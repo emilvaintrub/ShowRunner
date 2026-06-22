@@ -1,0 +1,66 @@
+{
+  "title": "Pen Test Coverage Ledger",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "engagement_id",
+    "scope_hash",
+    "roe_hash",
+    "catalog_digest",
+    "evidence_freshness_days",
+    "inventory_unknowns",
+    "tests"
+  ],
+  "properties": {
+    "engagement_id": { "type": "string", "minLength": 1 },
+    "scope_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "roe_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "catalog_digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "evidence_freshness_days": { "type": "integer", "minimum": 1 },
+    "inventory_unknowns": { "type": "array", "items": { "type": "string" } },
+    "tests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "domain",
+          "target",
+          "entry_point",
+          "critical",
+          "safety_class",
+          "state",
+          "evidence"
+        ],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "domain": { "type": "string", "minLength": 1 },
+          "target": { "type": "string", "minLength": 1 },
+          "entry_point": { "type": "string", "minLength": 1 },
+          "critical": { "type": "boolean" },
+          "safety_class": { "enum": ["S0", "S1", "S2", "S3"] },
+          "state": {
+            "enum": [
+              "pass",
+              "finding",
+              "accepted",
+              "rejected",
+              "blocked",
+              "deferred",
+              "not-run",
+              "not-applicable"
+            ]
+          },
+          "evidence": { "type": "string" },
+          "not_applicable_reason": { "type": "string" },
+          "reviewer": { "type": "string" },
+          "gap_owner": { "type": "string" },
+          "gap_reason": { "type": "string" },
+          "due_date": { "type": "string", "format": "date" },
+          "executed_at": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  }
+}

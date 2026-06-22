@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pen Test"
+  short_description: "Plan and run governed penetration tests"
+  default_prompt: "Use $pen-test to plan and execute an authorized, evidence-backed penetration test."

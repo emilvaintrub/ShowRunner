@@ -1,0 +1,34 @@
+{
+  "name": "showrunner",
+  "version": "1.0.2",
+  "description": "A four-policy workflow for product direction, implementation, security, and architecture synthesis.",
+  "author": {
+    "name": "ShowRunner"
+  },
+  "license": "MIT",
+  "keywords": [
+    "workflow",
+    "skills",
+    "software-delivery",
+    "security",
+    "architecture"
+  ],
+  "skills": "./skills",
+  "interface": {
+    "displayName": "ShowRunner",
+    "shortDescription": "Forge the direction, Arc the build, Sentry the risk, Bible the system.",
+    "longDescription": "ShowRunner is a project-neutral workflow skill for moving software work from idea to verified implementation with explicit decision gates, security review, browser evidence, penetration-test governance, and architecture synthesis.",
+    "developerName": "ShowRunner",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Initialize ShowRunner for this repository.",
+      "Plan the next implementation arc.",
+      "Run a Sentry sweep for this project."
+    ],
+    "brandColor": "#5B6CFF"
+  }
+}

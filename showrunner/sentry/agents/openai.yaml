@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sentry"
+  short_description: "Sweep, test, fix, and verify security posture"
+  default_prompt: "Use $sentry to sweep, run a governed penetration test, fix, verify, accept, or refresh project security posture."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Bible"
+  short_description: "Synthesize the architecture and capabilities document"
+  default_prompt: "Use $bible to bind sources, synthesize, and render the combined architecture and capabilities document, or merge an approved Bible."

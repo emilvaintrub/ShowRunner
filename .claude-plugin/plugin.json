@@ -1,0 +1,16 @@
+{
+  "name": "showrunner",
+  "description": "Project-neutral workflow package for AI-assisted software delivery: Forge, Arc, Sentry, and Bible.",
+  "author": {
+    "name": "ShowRunner contributors"
+  },
+  "version": "1.0.2",
+  "license": "MIT",
+  "keywords": [
+    "workflow",
+    "ai-agents",
+    "software-delivery",
+    "security",
+    "architecture"
+  ]
+}

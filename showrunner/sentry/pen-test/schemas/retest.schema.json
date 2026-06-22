@@ -1,0 +1,25 @@
+{
+  "title": "Pen Test Retest Evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "original_path_checked",
+    "variant_paths_checked",
+    "allowed_behavior_checked",
+    "verdict",
+    "evidence"
+  ],
+  "properties": {
+    "original_path_checked": { "type": "boolean" },
+    "variant_paths_checked": { "type": "boolean" },
+    "allowed_behavior_checked": { "type": "boolean" },
+    "verdict": {
+      "enum": ["closed", "residual-risk", "still-open", "blocked"]
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "showrunner",
+  "owner": {
+    "name": "ShowRunner contributors",
+    "email": "noreply@github.com"
+  },
+  "metadata": {
+    "description": "Project-neutral workflow package for AI-assisted software delivery"
+  },
+  "plugins": [
+    {
+      "name": "showrunner",
+      "source": "./",
+      "description": "Project-neutral workflow package for AI-assisted software delivery: Forge, Arc, Sentry, and Bible.",
+      "version": "1.0.2",
+      "author": {
+        "name": "ShowRunner contributors"
+      },
+      "license": "MIT",
+      "keywords": [
+        "workflow",
+        "ai-agents",
+        "software-delivery",
+        "security",
+        "architecture"
+      ],
+      "category": "productivity"
+    }
+  ]
+}

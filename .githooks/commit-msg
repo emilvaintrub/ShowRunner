@@ -1,0 +1,43 @@
+#!/usr/bin/env sh
+
+msg_file="$1"
+subject=$(head -n 1 "$msg_file")
+prefixes_file="$(dirname "$0")/showrunner-commit-prefixes"
+
+is_allowed_conventional() {
+  candidate="$1"
+  prefix=$(printf '%s\n' "$candidate" | sed -nE 's/^([a-z][a-z0-9-]*(\([a-z0-9._/-]+\))?)(!)?: [^[:space:]].*$/\1/p')
+  [ -n "$prefix" ] || return 1
+  [ -f "$prefixes_file" ] || return 1
+
+  type=$(printf '%s\n' "$prefix" | sed -E 's/\(.*$//')
+  while IFS= read -r allowed || [ -n "$allowed" ]; do
+    case "$allowed" in
+      *"("*)
+        [ "$prefix" = "$allowed" ] && return 0
+        ;;
+      *)
+        [ "$type" = "$allowed" ] && return 0
+        ;;
+    esac
+  done < "$prefixes_file"
+
+  return 1
+}
+
+case "$subject" in
+  Merge:\ *)
+    merge_subject=${subject#Merge: }
+    if is_allowed_conventional "$merge_subject"; then
+      exit 0
+    fi
+    ;;
+esac
+
+if is_allowed_conventional "$subject"; then
+  exit 0
+fi
+
+echo "Commit subject is not allowed: $subject" >&2
+echo "Use a prefix from $prefixes_file or 'Merge: <conventional summary>'." >&2
+exit 1

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Arc"
+  short_description: "Plan, dispatch, and verify implementation arcs"
+  default_prompt: "Use $arc to plan, run, verify, or merge an isolated implementation arc."

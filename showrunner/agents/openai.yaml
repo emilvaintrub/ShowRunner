@@ -1,0 +1,4 @@
+interface:
+  display_name: "Showrunner"
+  short_description: "Conceive, build, and secure software"
+  default_prompt: "Use $showrunner to route this work through Forge, Arc, or Sentry."

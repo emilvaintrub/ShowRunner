@@ -1,0 +1,4 @@
+interface:
+  display_name: "Forge"
+  short_description: "Turn product intent into build-ready direction"
+  default_prompt: "Use $forge to discover, plan, specify, or record a product decision."
