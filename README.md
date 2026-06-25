@@ -205,7 +205,8 @@ security triage, penetration testing, or approval.
 ## Context Hygiene
 
 ShowRunner can use an optional context optimizer before long arcs, broad
-security sweeps, Bible syncs, and post-compaction resumes. Token Optimizer is
+security sweeps, Bible syncs, and post-compaction resumes. 
+Token Optimizer (https://github.com/alexgreensh/token-optimizer) is
 one supported companion when installed separately under its own license;
 ShowRunner does not vendor or require it.
 
