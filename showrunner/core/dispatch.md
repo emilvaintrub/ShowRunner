@@ -111,6 +111,12 @@ The adapter supports parallel dispatch, but policy decides whether it is safe:
 - Red baseline: stop and report before authorizing edits; do not fix
   pre-existing failures as part of this arc's scope.
 - Lost resumable context: spawn a new cold context and repeat Step 0.
+- Lost isolation after Step 0 (for example, the adapter removed an unchanged
+  spawn-time worktree when the Step 0 turn ended): the implementer stops
+  without improvising. The architect provisions a new branch and worktree
+  (step 4), names the path in the resume message, and keeps the Step 0
+  approval only when the new base changes none of the approved paths or
+  sources; otherwise repeat Step 0.
 - Consistent test failure: report evidence; do not label a first flaky failure
   as a product decision.
 - Product/scope divergence: pause and escalate.
