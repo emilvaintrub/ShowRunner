@@ -17,6 +17,7 @@ unset CLAUDE_PROJECT_DIR 2>/dev/null || true
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 SHOWRUNNER="$ROOT_DIR/showrunner/scripts/showrunner"
 INSTALL_SH="$ROOT_DIR/showrunner/scripts/install-hooks.sh"
+INSTALL_PS1="$ROOT_DIR/showrunner/scripts/install-hooks.ps1"
 SOURCES="$ROOT_DIR/showrunner/scripts/showrunner-sources"
 
 pass_count=0
@@ -593,9 +594,10 @@ ok=1
 [ -x "$proj/.githooks/commit-msg" ] || ok=0
 [ -x "$proj/.githooks/pre-commit" ] || ok=0
 [ -x "$proj/.githooks/showrunner" ] || ok=0
+[ -x "$proj/.githooks/showrunner-sources" ] || ok=0
 [ -f "$proj/.githooks/showrunner-commit-prefixes" ] || ok=0
 [ "$(git -C "$proj" config --get core.hooksPath)" = ".githooks" ] || ok=0
-[ "$ok" -eq 1 ] && pass "install-hooks.sh sets hooksPath and copies 4 files executable" || fail "install-hooks.sh sets hooksPath and copies 4 files executable" "$out"
+[ "$ok" -eq 1 ] && pass "install-hooks.sh sets hooksPath and copies 5 files executable" || fail "install-hooks.sh sets hooksPath and copies 5 files executable" "$out"
 
 out=$("$INSTALL_SH" --project-root "$proj" --claude 2>&1)
 rc=$?
@@ -624,6 +626,59 @@ if command -v jq >/dev/null 2>&1; then
       "before=$before_count after=$after_count other_ok=$other_ok out=$out"
 else
   fail "re-run with --force --claude does not duplicate entries and preserves unrelated settings" "jq not available in this environment"
+fi
+
+# ===========================================================================
+# 7b. install-hooks.ps1 -ClaudeSettings under PowerShell (PS5.1 hardening)
+# ===========================================================================
+
+PWSH_BIN=${PWSH:-}
+if [ -z "$PWSH_BIN" ] && [ -x /tmp/claude-0/pwsh/pwsh ]; then
+  PWSH_BIN=/tmp/claude-0/pwsh/pwsh
+fi
+
+if [ -z "$PWSH_BIN" ] || [ ! -x "$PWSH_BIN" ] || ! command -v jq >/dev/null 2>&1; then
+  printf 'SKIP: install-hooks.ps1 -ClaudeSettings pwsh regression (no $PWSH / /tmp/claude-0/pwsh/pwsh, or no jq)\n'
+else
+  pproj=$(new_repo)
+  mkdir -p "$pproj/.claude"
+  cat > "$pproj/.claude/settings.json" <<'EOF'
+{
+  "otherSetting": true,
+  "hooks": {
+    "PostToolUse": [
+      { "hooks": [ { "type": "command", "command": "echo unrelated" } ] }
+    ]
+  }
+}
+EOF
+  out=$("$PWSH_BIN" -NoProfile -File "$INSTALL_PS1" -ProjectRoot "$pproj" -ClaudeSettings 2>&1)
+  rc1=$?
+  out2=$("$PWSH_BIN" -NoProfile -File "$INSTALL_PS1" -ProjectRoot "$pproj" -Force -ClaudeSettings 2>&1)
+  rc2=$?
+
+  ok=1
+  [ "$rc1" -eq 0 ] || ok=0
+  [ "$rc2" -eq 0 ] || ok=0
+  [ -x "$pproj/.githooks/commit-msg" ] || ok=0
+  [ -x "$pproj/.githooks/pre-commit" ] || ok=0
+  [ -x "$pproj/.githooks/showrunner" ] || ok=0
+  [ -x "$pproj/.githooks/showrunner-sources" ] || ok=0
+  [ -f "$pproj/.githooks/showrunner-commit-prefixes" ] || ok=0
+
+  other_ok=$(jq -e '.otherSetting == true and (.hooks.PostToolUse[0].hooks[0].command == "echo unrelated")' "$pproj/.claude/settings.json" >/dev/null 2>&1 && echo yes || echo no)
+  [ "$other_ok" = "yes" ] || ok=0
+
+  pretooluse_count=$(jq '[.hooks.PreToolUse[] | select(.hooks[]?.command | test("showrunner"))] | length' "$pproj/.claude/settings.json")
+  [ "$pretooluse_count" -eq 1 ] || ok=0
+
+  arrays_ok=$(jq -e '[.hooks | to_entries[] | .value | type == "array"] | all' "$pproj/.claude/settings.json" >/dev/null 2>&1 && echo yes || echo no)
+  [ "$arrays_ok" = "yes" ] || ok=0
+
+  [ "$ok" -eq 1 ] \
+    && pass "install-hooks.ps1 -ClaudeSettings (pwsh): 5 files, no duplicates, unrelated settings kept, hooks are arrays" \
+    || fail "install-hooks.ps1 -ClaudeSettings (pwsh): 5 files, no duplicates, unrelated settings kept, hooks are arrays" \
+      "rc1=$rc1 rc2=$rc2 other_ok=$other_ok pretooluse_count=$pretooluse_count arrays_ok=$arrays_ok out=$out out2=$out2"
 fi
 
 # ===========================================================================
