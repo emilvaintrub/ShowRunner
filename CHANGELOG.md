@@ -4,6 +4,26 @@ All notable public changes to ShowRunner are documented here.
 
 ## v1.4.0 - 2026-09-25
 
+The process now checks what happened after release, protects the owner's
+control of the product, and knows what to do when production breaks.
+
+- Added outcome reviews (`core/outcomes.md`): every initiative sets a metric,
+  target, source, and review date at `roadmap`; the review is scheduled at
+  `close`, surfaced when due, reported honestly (met, partly met, missed,
+  inconclusive), checked against the success measures and stop rule, and
+  followed by the owner's decision.
+- Added account ownership checks (`core/ownership.md`, accounts register
+  template): setup inventories every external service, the owner confirms who
+  holds each account, login, billing, and recovery; new services block build
+  until owner-confirmed; at-risk accounts block release; temporary access is
+  revoked at close; ShowRunner never creates accounts or holds secrets.
+- Added legal steps: name clearance searches (trademark registers, domains,
+  stores), dependency licence policy in Sentry (copyleft and unknown licences
+  stop for an owner decision), a legal launch pack in Pitch (drafts for lawyer
+  review), and a legal preflight before public releases.
+- Added incident mode (`core/incident.md`): stabilize with the pre-approved
+  rollback or owner-approved actions only, then fix through the full
+  lifecycle and write a blameless review.
 - Added an automated eval suite (`evals/`) covering 23 of the 26 behavioral
   scenarios in `docs/SCENARIOS.md`, graded with `claude plugin eval` against
   disposable fixture repositories, plus a weekly/on-demand `evals` GitHub
