@@ -43,14 +43,21 @@ adopted it.
   `active.feature_branch`.
 - Paths outside any Git worktree are allowed.
 
-**Shell commands** (`Bash`), checked per command segment:
+**Shell commands** (`Bash`), checked per command segment. Git global options
+(`-C`, `-c`, `--git-dir`, `--work-tree`, `--no-pager`) are normalized first,
+and a `git switch` or `git checkout` earlier in the same command changes the
+branch that later segments are judged against, per repository.
 
-- `--no-verify`, or `-n` on `git commit`: always blocked.
-- `git merge` while the current branch is the primary branch: blocked unless
-  `active.stage` is `merge`.
-- A force push (`--force`, `--force-with-lease`, `-f`, or a `+` refspec) while
-  on the primary branch or naming it: always blocked.
-- A segment starting with any `guard.release_patterns` entry: blocked unless
+- Hook bypass, always blocked: `--no-verify`; `-n` on `git commit`; setting
+  or unsetting `core.hooksPath` through `git config`, `git -c`, or the
+  `GIT_CONFIG_*` environment variables. Reading it is allowed.
+- `git merge` while the effective branch is the primary branch: blocked
+  unless `active.stage` is `merge`.
+- A force push (`--force`, `--force-with-lease`, `--force-if-includes`,
+  `--mirror`, `-f`, or a `+` refspec) while on the primary branch or naming
+  it in a refspec: always blocked.
+- A segment starting with any `guard.release_patterns` entry, after leading
+  `NAME=value` assignments and `env` are removed: blocked unless
   `active.stage` is `release` and `active.release_authorized` is `yes`.
 
 **Commits** (`pre-commit`):
@@ -60,7 +67,9 @@ adopted it.
 - On any other branch, staged product paths require the same three conditions
   as product edits.
 
-**Ledger** (`check`): the rules in [state.md](state.md) section Validation.
+**Ledger** (`check`): the rules in [state.md](state.md) section Validation,
+plus: a ShowRunner-owned stage (`intake`, `step0`, `build`, `verify`) closed
+by an owner outcome is an error.
 
 Block messages name the rule, the current stage, and what the lifecycle
 requires next, so the agent redirects instead of retrying.
@@ -82,6 +91,9 @@ The `setup` stage installs enforcement into the project and verifies it:
    them.
 4. Verify: `showrunner check` passes; a product-path edit before Step 0 is
    blocked in a disposable fixture, not in the real project.
+
+The package's own regression suite is `sh tests/run.sh` in the ShowRunner
+repository; run it under `sh` and `dash` after changing the script.
 
 ## 4. Limits
 

@@ -254,6 +254,8 @@ showrunner/
   bible/
   gates/
   scripts/
+tests/
+  run.sh        enforcement regression suite (POSIX sh)
 ```
 
 The reusable package stays under `showrunner/`. Project-specific evidence stays
