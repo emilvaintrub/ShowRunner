@@ -50,8 +50,8 @@ Open `discovery` by asking, in plain words, how the owner wants to work:
 - **Challenge me**: "I know what I want to build; stress-test it."
 - **Both**: guidance where the owner is new, challenge where they are sure.
 
-Recommend a profile from the owner's first description, explain the
-difference in two sentences, and record the choice as
+Always present all three options. Recommend a profile from the owner's first
+description, explain the difference in two sentences, and record the choice as
 `project.owner_profile` in the ledger. The owner can switch at any time.
 
 ### Guide Mode

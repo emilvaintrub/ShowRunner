@@ -192,7 +192,7 @@ Every turn that changes status or stops ends with:
 
 ```text
 SHOWRUNNER - <initiative id>: <title>
-Stage: <stage> (<n>/15, or P<n> for a project stage) - <in progress | awaiting owner | blocked | parked>
+Stage: <stage> (<n>/15 for an initiative stage, or P<n> alone for a project stage, e.g. `discovery (P2)`) - <in progress | awaiting owner | blocked | parked>
 Done: <what was produced or decided, in plain words>
 Now allowed: <what the recorded gates permit>
 From you: <the exact decision, approval, or evidence needed, or "nothing">
