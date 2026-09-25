@@ -1,4 +1,4 @@
 interface:
   display_name: "Showrunner"
-  short_description: "Conceive, build, and secure software"
-  default_prompt: "Use $showrunner to route this work through Forge, Arc, or Sentry."
+  short_description: "Conduct software work from idea to release"
+  default_prompt: "Use $showrunner to conduct this work through every lifecycle stage; I am the business owner."
