@@ -618,11 +618,17 @@ guard_bash() {
 
   _gb_violation=""
   _gb_violation_seg=""
-  # The branch later segments effectively run against, updated as earlier
-  # segments in the same command switch it (finding: `git switch main &&
-  # git merge feat/x` from a feature branch must be checked as running on
-  # main, not on the branch the command started on).
-  _gb_effective_branch=$_gb_branch
+  # Effective branch per resolved repo directory, updated as earlier
+  # segments in the same command switch it -- keyed by directory (not just
+  # cwd) so a `-C <dir> checkout main && -C <dir> merge feat/x` chain is
+  # tracked too, not only a plain (no -C) `switch`/`checkout`. A tab
+  # separates the two columns; querying and updating are both plain
+  # string/awk operations, no associative arrays needed in POSIX sh.
+  _gb_tab=$(printf '\t')
+  _gb_root_canon=""
+  [ -n "$_gb_root" ] && _gb_root_canon=$(git -C "$_gb_root" rev-parse --show-toplevel 2>/dev/null)
+  [ -n "$_gb_root_canon" ] || _gb_root_canon=$_gb_root
+  _gb_dir_branches="$_gb_root_canon$_gb_tab$_gb_branch"
 
   while IFS= read -r _gb_seg; do
     [ -n "$_gb_seg" ] || continue
@@ -635,9 +641,15 @@ guard_bash() {
         /*) _gb_seg_dir=$GIT_DASH_C_DIR ;;
         *) _gb_seg_dir="$_gb_cwd/$GIT_DASH_C_DIR" ;;
       esac
-      _gb_seg_branch=$(git -C "$_gb_seg_dir" rev-parse --abbrev-ref HEAD 2>/dev/null)
+      _gb_seg_canon=$(git -C "$_gb_seg_dir" rev-parse --show-toplevel 2>/dev/null)
+      [ -n "$_gb_seg_canon" ] || _gb_seg_canon=$_gb_seg_dir
     else
-      _gb_seg_branch=$_gb_effective_branch
+      _gb_seg_canon=$_gb_root_canon
+    fi
+
+    _gb_seg_branch=$(printf '%s\n' "$_gb_dir_branches" | awk -F"$_gb_tab" -v d="$_gb_seg_canon" '$1==d{v=$2} END{print v}')
+    if [ -z "$_gb_seg_branch" ]; then
+      _gb_seg_branch=$(git -C "$_gb_seg_canon" rev-parse --abbrev-ref HEAD 2>/dev/null)
     fi
 
     if [ -z "$_gb_violation" ] && seg_is_commit_dash_n "$_gb_norm"; then
@@ -659,9 +671,8 @@ guard_bash() {
       fi
     fi
 
-    if [ -z "$GIT_DASH_C_DIR" ]; then
-      _gb_switch_to=$(seg_switch_target_branch "$_gb_norm") && _gb_effective_branch=$_gb_switch_to
-    fi
+    _gb_switch_to=$(seg_switch_target_branch "$_gb_norm") && _gb_dir_branches="$_gb_dir_branches
+$_gb_seg_canon$_gb_tab$_gb_switch_to"
   done <<SEGEOF
 $(split_bash_segments "$_gb_command")
 SEGEOF
