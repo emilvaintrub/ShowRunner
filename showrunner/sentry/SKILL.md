@@ -10,8 +10,9 @@ stop every code fix before `main`.
 
 ## Load
 
-1. Read `../core/method.md`.
-2. Read the active project's `.claude/showrunner/config.md`.
+1. Read `../core/lifecycle.md` and `../core/method.md`.
+2. Read the active project's `.claude/showrunner/config.md` and
+   `.claude/showrunner/state.md`.
 3. Read [method.md](method.md).
 4. Load [knowledge/catalog.md](knowledge/catalog.md) for sweeps.
 5. Load [knowledge/standards.md](knowledge/standards.md) only for mapping or
@@ -23,6 +24,10 @@ stop every code fix before `main`.
 
 ## Route
 
+Sentry runs the lifecycle `security` stage for every initiative (method
+section 4), started by the conductor after `verify` records `SHIP`. Its other
+commands are read-only or open new initiatives:
+
 - `init`: infer security bindings, preserve shared and sibling config, and
   optionally create a project security document.
 - `sweep <category|all>`: perform a read-only categorical review, ingest any
@@ -30,8 +35,8 @@ stop every code fix before `main`.
   collect configured browser evidence such as Playwright traces and console or
   network observations,
   and reconcile findings with accepted-risk and regression memory.
-- `fix <finding-id>`: resolve human-owned decisions, dispatch one isolated fix,
-  verify evidence, and stop before merge.
+- `fix <finding-id>`: open the finding as a new initiative at `intake`; the
+  fix then runs every lifecycle stage (method section 8).
 - `verify <finding-id>`: independently review the exact feature tip against the
   original finding and regression catalog.
 - `accept <finding-id>`: append an evidence-backed risk decision with owner,
@@ -43,7 +48,9 @@ stop every code fix before `main`.
 - `pen-test <report-path>`: compatibility alias for `pen-test ingest
   <report-path>`.
 - `monthly`: refresh knowledge, sweep, audit dependencies, age accepted risks,
-  and write one digest without starting fixes.
+  and write one digest without starting fixes. When enabled, the conductor
+  reminds the owner at session start once it is overdue, and queues each
+  confirmed finding as an initiative.
 - `refresh-knowledge`: fetch authoritative pins through the configured adapter,
   cache evidence, and flag drift.
 - `merge`: after exact-tip `SHIP`, required smoke, and explicit approval, reuse

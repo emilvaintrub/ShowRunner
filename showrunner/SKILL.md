@@ -1,92 +1,93 @@
 ---
 name: showrunner
-description: Route software work through Forge, Arc, Sentry, or Bible on one shared, config-driven workflow. Use when conceiving a product or feature, turning an approved spec into an isolated implementation arc, running a security sweep or fix, synthesizing the architecture and capabilities document, initializing Showrunner for a repository, or performing the stop-before-merge verification and two-commit merge ceremony.
+description: Conduct software work from the owner's idea to release through one enforced lifecycle - setup, constitution, intake, roadmap, spec, design, design review, handoff, Arc plan, Step 0, build, verify, security, acceptance, merge, release, and close - using the Forge, Arc, Sentry, and Bible policies as instruments. Use for any request to build, change, fix, secure, release, or document software in a repository that has or should have `.claude/showrunner/config.md`, for status or "what next" questions, and when resuming interrupted work.
 ---
 
-# Showrunner
+# ShowRunner
 
-Run one lifecycle with four policies:
+ShowRunner is the conductor. The owner brings the idea and the business
+calls; ShowRunner runs every stage from first request to release, in order,
+without waiting to be told the next step. It stops only where the owner must
+decide or supply something, and it never skips a stage on its own.
 
-- `forge`: conceive with the inventor; recommend, ask, then write directions.
-- `arc`: build autonomously through verification; stop before `main`.
-- `sentry`: sweep and secure; preserve accepted-risk memory; stop before `main`.
-- `bible`: synthesize the architecture and capabilities document from the
-  repository, Forge spec, Arc reports, and Sentry posture; read-only over the
-  product; stop before `main`.
+## Every Turn
 
-## Route
+1. Load [core/lifecycle.md](core/lifecycle.md) and
+   [core/method.md](core/method.md).
+2. Read `.claude/showrunner/config.md` and `.claude/showrunner/state.md`
+   ([core/state.md](core/state.md)). No config means the current stage is
+   `setup`.
+3. Run `showrunner check` when the enforcement script is installed
+   ([core/enforcement.md](core/enforcement.md)); fix ledger errors before
+   anything else.
+4. Classify the owner's message (lifecycle section 4). A request is never
+   executed outside its stage, however small.
+5. Run the current stage with the files it needs (below).
+6. On exit, append the ledger row, advance, and start the next stage in the
+   same turn when ShowRunner owns it.
+7. End with the handoff block (lifecycle section 6).
 
-1. Read the active project's `.claude/showrunner/config.md`.
-2. If it is missing, run the requested skill's `init` flow before other work.
-3. Load [core/method.md](core/method.md) for every command.
-4. Load only the requested skill's `SKILL.md` and `method.md`.
-5. For dispatched work, also load [core/dispatch.md](core/dispatch.md).
-6. For implementation or fixes that produce code, also load
-   [core/tdd.md](core/tdd.md) and [core/debugging.md](core/debugging.md).
-7. For verification or merge, load [core/merge.md](core/merge.md).
-8. For hook setup or diagnosis, load [core/commit-hooks.md](core/commit-hooks.md).
-9. When `context_optimizer.enabled` is true, load
-   [core/context-hygiene.md](core/context-hygiene.md) before long plans,
-   dispatched work, broad Sentry sweeps, Bible syncs, or post-compaction
-   resumes.
+## Stage Loading
+
+| Stage | Load |
+| --- | --- |
+| `setup` | every present policy's `SKILL.md` and `method.md` (`init`), [core/config.schema.md](core/config.schema.md), [core/commit-hooks.md](core/commit-hooks.md), [core/enforcement.md](core/enforcement.md), [core/templates/state.md](core/templates/state.md) |
+| `constitution`, `roadmap`, `spec`, `design`, `design-review`, `handoff` | [forge/SKILL.md](forge/SKILL.md), [forge/method.md](forge/method.md), the command's template, [gates/wow-check.md](gates/wow-check.md) for GATE-OUT when enabled |
+| `arc-plan`, `step0`, `build` | [arc/SKILL.md](arc/SKILL.md), [arc/method.md](arc/method.md), [core/dispatch.md](core/dispatch.md), [core/tdd.md](core/tdd.md), [core/debugging.md](core/debugging.md) |
+| `verify` | Arc files above, [core/merge.md](core/merge.md), [gates/audit.md](gates/audit.md), [gates/wow-check.md](gates/wow-check.md) for UI work when enabled |
+| `security` | [sentry/SKILL.md](sentry/SKILL.md), [sentry/method.md](sentry/method.md), [sentry/knowledge/catalog.md](sentry/knowledge/catalog.md) |
+| `acceptance`, `merge` | [core/merge.md](core/merge.md), the policy's merge template |
+| `release` | [core/release.md](core/release.md) |
+| `close` | [bible/SKILL.md](bible/SKILL.md), [bible/method.md](bible/method.md), [core/merge.md](core/merge.md) |
+
+When `context_optimizer.enabled` is true, also load
+[core/context-hygiene.md](core/context-hygiene.md) before long stages and
+after compaction.
+
+## Policies
+
+- **Forge** - conceive with the owner; recommend, ask, then write direction.
+  Stages `constitution` through `handoff`.
+- **Arc** - build autonomously through verification. Stages `arc-plan`
+  through `verify`.
+- **Sentry** - secure the change and the project; preserve accepted-risk
+  memory. Stage `security`, plus read-only sweeps and the monthly cycle.
+- **Bible** - synthesize the architecture and capabilities document from
+  evidence. Stage `close`.
+
+Each policy's autonomy rules apply inside its stages. Do not substitute one
+policy's autonomy for another's.
 
 ## Commands
 
-The suite routes these command families:
+The owner never needs a command. Commands exist as overrides and are routed
+through the lifecycle (lifecycle section 10):
 
-- `/forge init|discover|plan|spec|decide|design`
+- `/showrunner status|next|resume`
+- `/forge init|discover|plan|spec|design|design-review|decide`
 - `/arc init|plan|run|verify|merge`
 - `/sentry init|sweep|fix|verify|accept|deps|pen-test|monthly|refresh-knowledge|merge`
 - `/bible init|sync|merge`
 
-If a requested skill package is absent, report that the runtime command is not
-available; do not reconstruct it from memory and claim it is available.
+If a policy package is absent, say the stage cannot run and stop; do not
+reconstruct it from memory or skip the stage.
 
-Forge is available when `forge/SKILL.md` exists. Route by status:
-
-- `ready`: allow every Forge command.
-- `uninitialized`: allow `/forge init` and `/forge discover`; block
-  `plan|spec|decide|design` until initialization is completed.
-- `disabled`: reject Forge commands until the project explicitly enables it.
-
-`design` additionally requires a `/forge plan` surface inventory
-(`## Surfaces`); a `ready` Forge without one still blocks `design` and
-recommends `plan`. Before a design brief can advance, it must include the
-configured research sprint or a recorded waiver, requested user examples,
-expert candidate directions with tradeoffs, and a recommendation.
-
-Arc is available when `arc/SKILL.md` exists. Route by status:
-
-- `ready`: allow every Arc command.
-- `uninitialized`: allow only `/arc init`; block `plan|run|verify|merge`.
-- `disabled`: reject Arc commands until the project explicitly enables it.
-
-Sentry is available when `sentry/SKILL.md` exists. Route by status:
-
-- `ready`: allow every Sentry command.
-- `uninitialized`: allow only `/sentry init`; block
-  `sweep|fix|verify|accept|deps|pen-test|monthly|refresh-knowledge|merge`.
-- `disabled`: reject Sentry commands until the project explicitly enables it.
-
-Bible is available when `bible/SKILL.md` exists. Route by status:
-
-- `ready`: allow every Bible command.
-- `uninitialized`: allow only `/bible init`; block `sync|merge`.
-- `disabled`: reject Bible commands until the project explicitly enables it.
-
-`sync` reads whichever configured sources exist (`bible.sources`) and binds to
-an exact commit; it never edits product code, configuration, schema, or risk
-memory.
-
-Do not substitute one skill's autonomy policy for another's.
+Policy status still gates commands: `uninitialized` allows only that policy's
+`init` (and Forge `discover`), `disabled` rejects them. A disabled policy
+means its stage cannot run, so disabling one at `setup` is an owner waiver
+recorded in the ledger.
 
 ## Invariants
 
-- Keep the engine project-neutral. Put repository-specific facts in
-  `.claude/showrunner/config.md`.
-- Classify decisions in core; apply the response policy in the selected skill.
-- Require Step 0 describe-back approval before implementation edits.
+- Every initiative runs every stage in [core/lifecycle.md](core/lifecycle.md).
+  Only the owner can waive a stage, in their own words, and some stages can
+  never be waived.
+- Only a ledger row completes a stage.
+- Ask the owner only business questions; answer technical ones from evidence.
+- Require ShowRunner's Step 0 approval before implementation edits.
 - Never widen scope silently.
 - Commit and push implementation only on the feature branch.
-- Stop before merging to `main`.
-- Merge only after independent verification and any required human smoke.
+- Stop before merging to `main` until the owner approves the merge.
+- Never release or deploy without the owner's explicit release instructions.
+- Keep the engine project-neutral; project facts live in
+  `.claude/showrunner/config.md`.

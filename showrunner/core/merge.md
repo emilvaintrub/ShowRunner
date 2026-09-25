@@ -27,10 +27,19 @@ The architect:
 
 `FIX` returns to the feature branch. It never authorizes a partial merge.
 
+## Lifecycle Position
+
+Merge readiness follows the `verify` and `security` stages and the owner's
+`acceptance` smoke ([lifecycle.md](lifecycle.md)). After the ceremony, the
+conductor moves straight to the mandatory `release` stage
+([release.md](release.md)); merging never implies releasing or deploying.
+
 ## Human Gate
 
-Before merge, the human completes any configured physical or operational smoke.
-Static analysis cannot waive this gate.
+Before merge, the owner completes the configured physical or operational smoke
+(`acceptance` stage). Static analysis cannot waive this gate. When the project
+has no runtime surface to exercise, the owner still reviews the ship report
+and records acceptance in their own words.
 
 Record:
 
@@ -108,4 +117,9 @@ Stop before merge when:
 - the main worktree has unrelated changes that the ceremony would capture;
 - hooks are missing;
 - the merge produces unreviewed conflict resolutions;
-- the hygiene commit has no truthful project record to update.
+- the hygiene commit has no truthful project record to update;
+- the ledger lacks terminal `verify`, `security`, and `acceptance` rows for
+  the initiative, or an owner-quoted merge approval.
+
+Record the ceremony in the `merge` ledger row (`commit:<merge sha>`), include
+the ledger update in the hygiene commit, then start `release`.

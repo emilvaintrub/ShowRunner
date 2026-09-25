@@ -10,35 +10,42 @@ dispatch Forge runtime work.
 
 ## Load
 
-1. Read `../core/method.md`.
-2. Read the active project's `.claude/showrunner/config.md`.
+1. Read `../core/lifecycle.md` and `../core/method.md`.
+2. Read the active project's `.claude/showrunner/config.md` and
+   `.claude/showrunner/state.md`.
 3. Read [method.md](method.md).
 4. Load only the template required by the requested command.
 
 ## Route
 
-- `init`: inspect existing product memory and fill the Forge config section.
-- `discover`: interview for a constitution using
-  [templates/soul.md](templates/soul.md).
-- `plan`: define phases and current state using
-  [templates/project.md](templates/project.md).
-- `spec`: resolve the decision surface, then write
-  [templates/spec.md](templates/spec.md).
-- `decide`: append one evidence-backed entry using
-  [templates/decision.md](templates/decision.md).
-- `design`: requires an existing `/forge plan` surface inventory
-  (`## Surfaces`); if absent, refuse and recommend `plan`. Request optional
-  user examples, run or record the configured research sprint, synthesize
-  2-3 expert directions with tradeoffs and a recommendation, resolve brand and
-  creative gates, then write
-  [templates/designer-brief.md](templates/designer-brief.md) and render it
-  through the adapter named by `forge.designer_helper.tool` under
-  [templates/adapters/](templates/adapters/).
+Forge runs lifecycle stages P2 and 2-6. The conductor starts each one; the
+owner never has to name it.
+
+| Stage | Command | Output |
+| --- | --- | --- |
+| `setup` (Forge part) | `init` | Forge config section |
+| `constitution` | `discover` | [templates/soul.md](templates/soul.md), then automatic `init` re-validation |
+| `roadmap` | `plan` | [templates/project.md](templates/project.md) with `## Surfaces` |
+| `spec` | `spec` | [templates/spec.md](templates/spec.md) sections 1-8 |
+| `design` | `design` | [templates/designer-brief.md](templates/designer-brief.md) rendered through `templates/adapters/<forge.designer_helper.tool>.md` |
+| `design-review` | `design-review` | returned design output reviewed against the brief's Design Review Package |
+| `handoff` | `spec` (sections 9-11) | spec marked `arc-ready` |
+
+`decide` is not a separate stage: every gate proposes the decision-log
+entries its answers create, and the owner's gate reply approves them. The
+command remains for recording a standalone decision the owner raises.
+
+`design` requires the plan's `## Surfaces` inventory and approved spec
+sections 1-8; if either is missing, the conductor re-opens that stage instead.
 
 Use [templates/questions.md](templates/questions.md) for every decision gate.
 
 ## Hard Stops
 
+- Never start a stage whose predecessors lack terminal ledger rows.
+- Never mark a constitution `approved`, a brief `inventor-approved` or
+  `design-output-approved`, or a spec `arc-ready` without the matching
+  owner-quoted ledger row.
 - Never write directions before the decision gate resolves.
 - Never choose a product, scope, brand, privacy, or emotional-framing call for
   the inventor.

@@ -60,11 +60,12 @@ token_cost_reporting: true
    - Require the exact Step 0 output from `method.md`.
    - Do not authorize edits.
 
-3. **Review**
+3. **Review** (ShowRunner as architect, not the owner)
    - Compare the describe-back with the brief and current repository.
-   - Approve a clean read.
+   - Approve a clean read and record the `step0` ledger row with the approved
+     contract digest.
    - Correct and require a new describe-back after any misread.
-   - Escalate human-owned divergence.
+   - Escalate owner-owned divergence as a batched business question.
 
 4. **Isolate or verify isolation**
    - Create the feature branch/worktree after approval when the adapter permits.
@@ -88,8 +89,9 @@ token_cost_reporting: true
    - Confirm the implementer did not touch `main`.
    - Remove the worktree only after evidence is retained.
 
-7. **Stop**
-   - Return control to the architect for independent verification.
+7. **Hand back**
+   - Record the `build` ledger row and return control to the architect, who
+     starts `verify` in the same turn.
    - Never continue directly into merge.
 
 ## Parallelism

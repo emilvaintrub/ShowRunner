@@ -10,14 +10,22 @@ evidence, escalate product or scope calls, and never merge automatically.
 
 ## Load
 
-1. Read `../core/method.md`.
-2. Read the active project's `.claude/showrunner/config.md`.
+1. Read `../core/lifecycle.md` and `../core/method.md`.
+2. Read the active project's `.claude/showrunner/config.md` and
+   `.claude/showrunner/state.md`.
 3. Read [method.md](method.md).
 4. For `run`, load `../core/dispatch.md`.
-5. For `verify` or `merge`, load `../core/merge.md`.
+5. For `verify` or `merge`, load `../core/merge.md`. For `verify`, also load
+   `../gates/audit.md`, and `../gates/wow-check.md` when the arc touches UI
+   and the creative gate is enabled.
 6. Load only the templates required by the requested command.
 
 ## Route
+
+Arc runs lifecycle stages 7-10 (`arc-plan`, `step0`, `build`, `verify`) and
+executes the `merge` ceremony. The conductor chains them: `plan` flows into
+`run`, `run` into `verify`, and `verify` `SHIP` into the Sentry `security`
+stage, without the owner asking.
 
 - `init`: inspect repository mechanics and fill the Arc config section.
 - `plan`: consume approved direction, resolve conventions, and render an
@@ -37,6 +45,8 @@ Use [templates/questions.md](templates/questions.md) for human decisions,
 
 ## Hard Stops
 
+- Never plan from a source whose `handoff` ledger row is missing; a raw brief
+  goes to `intake`, not to Arc.
 - Never rewrite approved Forge sections 1-8 while consuming sections 9-11.
 - Never dispatch before the front-loaded decision gate resolves.
 - Never authorize edits before Step 0 approval.

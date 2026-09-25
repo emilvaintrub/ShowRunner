@@ -1,7 +1,11 @@
 # Forge Method
 
 Forge owns the collaborative phase before implementation. Its defining policy
-is minimum autonomy over product direction.
+is minimum autonomy over product direction. The "inventor" in this file is
+the owner defined in [../core/lifecycle.md](../core/lifecycle.md). Forge
+stages run in lifecycle order: `constitution`, `roadmap`, `spec`, `design`,
+`design-review`, `handoff`. The conductor enters each one without being asked
+and closes it only with a ledger row.
 
 ## 1. Policy
 
@@ -37,7 +41,9 @@ Every Forge session follows this order:
 3. **DECIDE**
    - Wait for the inventor's answer.
    - Restate accepted choices.
-   - Record decisions that meet the evidence standard.
+   - Record decisions that meet the evidence standard. Present the proposed
+     decision-log entries with the gate so one reply approves both; append
+     only entries the reply approves.
    - If an answer reverses history, present prior rationale and require new
      evidence before recording the reversal.
 
@@ -47,18 +53,25 @@ Every Forge session follows this order:
    - Keep unresolved calls visibly unresolved; do not disguise them as defaults.
 
 5. **GATE-OUT**
-   - Evaluate the artifact with the configured creative gate.
+   - Evaluate the artifact with the configured creative gate
+     (`forge.creative_gate.gate`, by default
+     [../gates/wow-check.md](../gates/wow-check.md)). A disabled gate is
+     reported as `disabled`, never silently skipped.
    - Return `SHIP`, `FIX FIRST`, or `REDESIGN`.
    - Repair mechanical defects autonomously.
    - Return product changes to the inventor.
 
 6. **HANDOFF**
    - Present the written directions for inventor redline.
-   - Stop before Arc handoff until explicit approval.
-   - Mark the artifact `arc-ready` only after creative `SHIP` and inventor
-     approval.
+   - On explicit approval, record the owner-quoted ledger row with the
+     artifact digest, set the artifact's status line to match, commit it with
+     the ledger as `docs(showrunner): <stage> approved for <initiative>`, and
+     advance to the next stage in the same turn.
+   - Mark a spec `arc-ready` only at the `handoff` stage, after creative
+     `SHIP` and inventor approval.
 
-`GATE` always precedes `DIRECT`.
+`GATE` always precedes `DIRECT`. Each Forge stage ends at HANDOFF; the next
+Forge stage starts from FRAME.
 
 ## 3. Constitution
 
@@ -127,8 +140,10 @@ authority conflict instead of choosing silently.
     next.
 
 When a constitution is the only missing required binding, leave Forge
-`uninitialized`, run `discover`, then rerun `init` to validate the approved
-constitution and promote the status to `ready`.
+`uninitialized` and close the Forge part of `setup`. The conductor then runs
+the `constitution` stage (`discover`) and, once the owner approves it,
+re-validates `init` automatically to promote Forge to `ready`. The owner is
+never asked to re-run a command.
 
 ### `discover`
 
@@ -147,7 +162,11 @@ only after the inventor approves each durable claim. Stop for final redline.
 
 ### `plan`
 
-Frame the constitution and current state. Gate and resolve:
+At the `roadmap` stage, `plan` places the new initiative in the project state:
+which phase it belongs to, what it changes in the surface inventory, and what
+it defers. When a current plan exists, update it rather than rewriting it;
+the owner approves the change. Frame the constitution and current state. Gate
+and resolve:
 
 - outcome and success evidence;
 - phase boundaries;
@@ -179,11 +198,21 @@ Write sections 1-8 as Forge's creative direction:
 7. voice, content, accessibility, and locale direction;
 8. visual or interaction direction.
 
-Draft sections 9-11 as the Arc handoff:
+At the `spec` stage, the owner approves sections 1-8 and the conductor moves
+on to `design`. At the `handoff` stage, after the design output is approved
+(or both design stages are owner-confirmed `not-applicable`), draft sections
+9-11 as the Arc handoff, citing the approved design output in section 8:
 
 9. Step 0 read and describe-back contract;
 10. build phasing and verification;
 11. passing condition.
+
+Run GATE-OUT on the whole spec, then ask the owner to approve it as
+`arc-ready`. Record the digest of sections 1-8, 9, 10, and 11 in the ledger
+row.
+
+Every spec has all eleven sections regardless of change size. A section that
+does not apply states why in one line.
 
 Do not write an implementer prompt. Arc consumes the handoff skeleton and owns
 the execution prompt.
@@ -195,6 +224,12 @@ proposed entry, wait for approval, then append it. For a reversal, cite the
 prior entry and evidence that changed.
 
 ### `design`
+
+Runs at the `design` stage, after spec sections 1-8 are approved. First
+decide whether the initiative has any design-dependent surface (visual,
+interaction, content, workflow, or service). When it has none, present the
+evidence and ask the owner to confirm `not-applicable` for both `design` and
+`design-review`; never assume it.
 
 Requires an existing plan with a `## Surfaces` inventory. If no plan, or no
 surface inventory, exists, `design` stops and recommends `plan`.
@@ -300,6 +335,32 @@ Stop for inventor redline (`HANDOFF`) before writing to
 does not feed spec sections 9-11 or `/arc plan` until the user returns the
 design-engine output and approves the design result as implementation input.
 
+After approval, tell the owner exactly what to do with the brief: which
+design engine, which prompts in which order, and what to return. When the
+configured design engine is reachable from this session, offer to run it and
+return the output for review instead.
+
+### `design-review`
+
+Runs at the `design-review` stage when the owner returns design-engine output.
+Until it arrives, the initiative is `awaiting-owner` with a precise list of
+what to return; every session start repeats that list.
+
+1. Record what was returned: links, files, screenshots, exports, notes.
+2. Review it against the brief's Design Review Package: every planned surface
+   present (no ghost surfaces), every required state covered, brand and voice
+   fit, token and component rules, accessibility and locale, and each
+   deviation from the brief.
+3. Run the creative gate on the returned output.
+4. Classify each gap: a mechanical miss goes back to the owner as a specific
+   re-prompt for the design engine; a product, brand, or scope change is a
+   gate question with a recommendation.
+5. Fill the brief's Derivation Trace with the returned artifact per surface.
+6. Ask the owner to approve the design output as implementation input. On
+   approval, set the brief to `design-output-approved`, record the ledger row
+   with the digests of the brief and the returned artifacts, and start
+   `handoff`.
+
 ## 7. Mid-Session Findings
 
 - New product or scope call: pause and batch it into the next decision gate.
@@ -320,4 +381,5 @@ A Forge artifact is complete only when:
 - the inventor approves the written artifact;
 - status and handoff readiness are truthful.
 
-Forge stops at approved direction. It does not implement or dispatch.
+Forge stops at approved direction. It does not implement or dispatch; the
+conductor starts `arc-plan` as soon as the `handoff` row is recorded.

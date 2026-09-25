@@ -43,6 +43,17 @@ Apply the shared decision classifier:
    - Produce a ship report. End `STOP BEFORE MERGE`.
 6. **MERGE**
    - Run only after human approval, reusing the shared ceremony.
+7. **CLOSE** (lifecycle `close` stage)
+   - Run `sync` at the new primary tip on a `docs/bible-<initiative>` branch.
+     When `bible.status` is `disabled` by an owner waiver, say so and skip only
+     this step.
+   - Update the project state: move the initiative to Completed with its
+     evidence, refresh Next, and record deferred items.
+   - Ask the owner once, in one message, to approve the Bible merge and the
+     close summary; then run the ceremony for the Bible branch.
+   - Record the `close` row, clear `active`, and propose the next initiative
+     from the queue or the plan's Next list, starting its `intake` as soon as
+     the owner agrees.
 
 ## 3. Initialization
 

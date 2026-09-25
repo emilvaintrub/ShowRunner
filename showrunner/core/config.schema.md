@@ -32,6 +32,22 @@ roles:
 questions:
   max_per_round: 5
 
+lifecycle:
+  state_file: ".claude/showrunner/state.md"
+  fix_loop_limit: 3
+  enforcement:
+    git_hooks: true
+    claude_hooks: "enabled | disabled"
+    ci_check: "<CI job running `showrunner check`, or disabled>"
+
+release:
+  owner_supplied: true
+  known_mechanics: ["<release/deploy mechanism found in repository evidence, with path>"]
+  environments: ["<owner-named environment, or pending>"]
+  executor: "owner | showrunner-with-owner-steps | pending"
+  post_release_check: "<owner-named check, or pending>"
+  rollback: "<owner-approved rollback, or pending>"
+
 context_optimizer:
   enabled: false
   provider: "token-optimizer | other | disabled"
@@ -190,7 +206,7 @@ forge:
     specs_directory: "<path>"
     designer_briefs_directory: "<path or disabled>"
   creative_gate:
-    command: "/wow-check"
+    gate: "gates/wow-check.md | <project gate path> | disabled"
     ship_verdict_required: true
   decision_surface:
     ask: ["name", "scope", "emotional_framing", "privacy", "monetization"]
@@ -337,6 +353,14 @@ bible:
 
 ## Ownership
 
+### Lifecycle and release
+
+The lifecycle section binds the state ledger, the fix-loop limit, and the
+enforcement layer ([enforcement.md](enforcement.md)). The release section
+records only what repository evidence shows and what the owner has supplied;
+`owner_supplied` is always `true`, and every unsupplied value stays `pending`
+until the `release` stage asks ([release.md](release.md)).
+
 ### Shared base
 
 The base owns repository identity, role models, context hygiene, Step 0 reads,
@@ -378,6 +402,10 @@ Initialization must reject or surface:
 
 - a missing primary branch or contradictory merge count;
 - `stop_before_main: false`;
+- `release.owner_supplied: false`, or a release environment, executor, or
+  command recorded without an owner-quoted ledger row;
+- a missing state ledger, or enforcement hooks absent without a recorded
+  reason;
 - context optimization enabled without at least one configured command or an
   explicit manual fallback;
 - a locale ceremony enabled without approval rules;
