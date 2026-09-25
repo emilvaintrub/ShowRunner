@@ -1000,7 +1000,7 @@ cmd_check() {
         sub(/:.*/, "", cur_top)
         next
       }
-      if (cur_top == "active" && $0 ~ /^  [a-z_]+:/) {
+      if (cur_top == "active" && $0 ~ /^  [a-z0-9_]+:/) {
         k = $0
         sub(/^  /, "", k)
         sub(/:.*/, "", k)
