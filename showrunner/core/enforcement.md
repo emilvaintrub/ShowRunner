@@ -95,9 +95,14 @@ rationale, and a sensitivity. Ids are unique.
 
 **Documents** (errors): outside fenced code blocks and HTML comments, every
 table cell and every prose sentence that contains a figure carries a label in
-the same cell or sentence. A figure is a currency amount (a currency symbol or
-ISO code next to a number), a percentage, or a number with a magnitude word or
-suffix (`k`, `m`, `bn`, `thousand`, `million`, `billion`, `trillion`). Labels
+the same cell or sentence. Sentences are read across wrapped lines: a
+paragraph or list item is joined before it is split into sentences, and
+errors name the physical line where the figure appears. A figure is a
+currency amount (a currency symbol or ISO code next to a number), a
+percentage, or a number with a magnitude word or suffix (`k`, `m`, `mm`, `b`,
+`bn`, `thousand`, `million`, `billion`, `trillion`). Plain counts, years, and
+`<placeholder>` text are not figures. A missing registers file is an error;
+exit code 2 is reserved for usage errors. Labels
 are `[S<n>]` (several ids may share one bracket, `[S1, S4]`), `[OWNER]`,
 `[ASSUMPTION A<n>]`, and `[DERIVED: ...]`. Every cited `S`, `A`, and `Q` id
 exists in the registers.
