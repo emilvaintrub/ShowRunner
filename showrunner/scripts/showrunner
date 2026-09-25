@@ -36,7 +36,7 @@ primary_worktree_root() {
     if [ -n "$_pwr_raw" ]; then
       case "$_pwr_raw" in
         /*) _pwr_common=$_pwr_raw ;;
-        *) _pwr_common=$(cd "$_pwr_dir" 2>/dev/null && cd "$_pwr_raw" 2>/dev/null && pwd) ;;
+        *) _pwr_common=$(cd "$_pwr_dir" 2>/dev/null && cd "$_pwr_raw" 2>/dev/null && pwd -P) ;;
       esac
     fi
   fi
@@ -210,7 +210,11 @@ abs_path() {
   _ap_dir=$(dirname "$_ap_full")
   _ap_base_name=$(basename "$_ap_full")
   _ap_existing=$(nearest_existing_dir "$_ap_dir")
-  _ap_canon=$(cd "$_ap_existing" 2>/dev/null && pwd) || {
+  # -P: physical (symlink-resolved), to match git's own (physical)
+  # --show-toplevel output -- otherwise a symlinked cwd or worktree path
+  # (e.g. macOS /tmp -> /private/tmp) makes the prefix-strip in
+  # rel_to_root fail and a writable path is misread as product code.
+  _ap_canon=$(cd "$_ap_existing" 2>/dev/null && pwd -P) || {
     printf '%s\n' "$_ap_full"
     return
   }
@@ -600,7 +604,7 @@ cmd_guard() {
     _g_cmd=$(json_leaf "$_g_json" command)
   fi
 
-  [ -n "$_g_cwd" ] || _g_cwd=$(pwd)
+  [ -n "$_g_cwd" ] || _g_cwd=$(pwd -P)
 
   case "$_g_tool" in
     Edit|Write|MultiEdit)
@@ -629,7 +633,7 @@ cmd_guard() {
 # ---------------------------------------------------------------------------
 
 cmd_pre_commit() {
-  _pc_cwd=$(pwd)
+  _pc_cwd=$(pwd -P)
 
   _pc_root=$(git -C "$_pc_cwd" rev-parse --show-toplevel 2>/dev/null)
   [ -n "$_pc_root" ] || return 0
