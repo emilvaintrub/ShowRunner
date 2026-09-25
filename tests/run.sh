@@ -633,12 +633,12 @@ fi
 # ===========================================================================
 
 PWSH_BIN=${PWSH:-}
-if [ -z "$PWSH_BIN" ] && [ -x /tmp/claude-0/pwsh/pwsh ]; then
-  PWSH_BIN=/tmp/claude-0/pwsh/pwsh
+if [ -z "$PWSH_BIN" ]; then
+  PWSH_BIN=$(command -v pwsh 2>/dev/null || true)
 fi
 
 if [ -z "$PWSH_BIN" ] || [ ! -x "$PWSH_BIN" ] || ! command -v jq >/dev/null 2>&1; then
-  printf 'SKIP: install-hooks.ps1 -ClaudeSettings pwsh regression (no $PWSH / /tmp/claude-0/pwsh/pwsh, or no jq)\n'
+  printf 'SKIP: install-hooks.ps1 -ClaudeSettings pwsh regression (no $PWSH / pwsh on PATH, or no jq)\n'
 else
   pproj=$(new_repo)
   mkdir -p "$pproj/.claude"

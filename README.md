@@ -278,11 +278,18 @@ showrunner/
   gates/
   scripts/
 tests/
-  run.sh        enforcement regression suite (POSIX sh)
+  run.sh                    enforcement regression suite (POSIX sh)
+  windows-powershell.ps1    Windows PowerShell 5.1 installer check
 ```
 
 The reusable package stays under `showrunner/`. Project-specific evidence stays
 inside each target project, usually under `.claude/showrunner/`.
+
+## Tests
+
+Run the regression suites locally with `sh tests/run.sh`, `dash tests/run.sh`,
+and, on Windows, `powershell -NoProfile -ExecutionPolicy Bypass -File
+tests/windows-powershell.ps1`. CI runs all three on every pull request.
 
 ## License
 
