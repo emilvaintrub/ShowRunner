@@ -156,6 +156,18 @@ what happens next: keep it, improve it, remove it, or rethink the plan. Results
 feed back into the assessment and the roadmap, so the product learns from what
 really happened.
 
+## When Something Breaks
+
+If production is down, customers can't pay, or data may be at risk, tell
+ShowRunner. It switches to incident mode: it confirms it is treating this as an
+emergency, and first stops the harm using only what you already approved - the
+rollback plan from your last release or a kill switch - or asks you for a
+specific go-ahead. It drafts any customer message for you to send, and if
+personal data may be exposed it tells you plainly that legal deadlines may
+apply and to call a lawyer now. Once things are stable, the real fix goes
+through the normal process, and a short blameless review makes sure it doesn't
+happen again.
+
 ## You Own Your Product
 
 Your product runs on accounts: the domain, hosting, app stores, payments,
@@ -172,7 +184,7 @@ closes.
 
 ## Business Documents
 
-After the constitution, ShowRunner offers four documents. Pick none, some,
+After the constitution, ShowRunner offers five documents. Pick none, some,
 or all, now or later:
 
 - **Business decisions document** - every material decision, why it was made,
@@ -183,6 +195,10 @@ or all, now or later:
 - **Financial research and plan** - market size (two independent methods),
   pricing benchmarks, costs, unit economics, three-scenario projections,
   sensitivity, and funding need, with a spreadsheet model.
+- **Legal launch pack** - what legally applies in your markets, a map of the
+  personal data you collect, draft privacy policy and terms, trademark and
+  domain checks for your name, and open-source licence issues - all prepared
+  for a lawyer to review, never presented as legal advice.
 - **Investor presentation** - a 10-15 slide deck with speaker notes and the
   hard questions to expect. It introduces no fact that is not already sourced
   in the other documents.

@@ -30,6 +30,7 @@ roughly how much research it needs.
 | Competitor analysis | Understanding the field and positioning against it | known competitors, positioning intent |
 | Financial research and plan | Market sizing, pricing, costs, projections, funding need | budget, pricing intent, hiring plans, growth ambition, horizon |
 | Investor presentation | Raising money or pitching partners | raise amount, use of funds, team, traction, valuation expectations |
+| Legal launch pack | Launching publicly without avoidable legal gaps: what applies, a personal-data inventory, draft privacy policy and terms, name clearance, licence summary - all for lawyer review | markets, what data is collected and why, retention choices, the lawyer who will review |
 
 Recommend a selection based on the owner's goals (D1) and verdict: an owner
 raising money needs all four; an owner bootstrapping a side business may
@@ -181,7 +182,29 @@ Purpose: a concise, honest deck the owner can present.
 Scope choices: audience (angels, venture funds, grant bodies, partners,
 customers), stage, raise amount, and tone.
 
-## 8. Refresh
+## 8. Legal Launch Pack
+
+Purpose: make sure nothing legally required is forgotten before a public
+launch, and give a lawyer a well-organized starting point. ShowRunner is not a
+lawyer and says so.
+
+- **What applies** comes from the regulators' and platforms' own published
+  guidance for the owner's launch markets, under the evidence standard. Unclear
+  cases are marked `unclear` for the lawyer, never resolved by guesswork.
+- **Personal-data inventory** is built from the product's actual behavior and
+  the accounts register ([../core/ownership.md](../core/ownership.md)): what is
+  collected, why, where it is stored, for how long, and who processes it.
+- **Drafts** of the privacy policy, terms of service, and any cookie notice
+  describe the product as it actually behaves, and flag every point that
+  needs a legal decision.
+- **Name clearance** records the trademark, domain, app-store, and handle
+  searches from Forge (see Forge method, `decide` and `discover`).
+- **Licences** summarize Sentry's dependency licence inventory.
+
+The owner approves the pack only as "ready for lawyer review"; the lawyer's
+outcome is recorded when the owner reports it.
+
+## 9. Refresh
 
 Approved documents go stale. At every session start, list documents whose
 cited sources have passed `business.research.freshness_days`. At every
@@ -190,7 +213,7 @@ positioning, costs, legal exposure). Ask the owner which to refresh. A
 refresh re-runs RESEARCH through RECORD for the affected sections and appends
 a dated revision note; earlier versions stay in history.
 
-## 9. Completion
+## 10. Completion
 
 A Pitch document is complete only when:
 

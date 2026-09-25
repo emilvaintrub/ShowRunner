@@ -176,6 +176,11 @@ Classify every owner message before acting:
   under the waiver rule (section 5).
 - **Release or deploy information**: record it for the `release` stage; do not
   act on it before that stage.
+- **Incident**: something is broken or harmful in production now - down, data
+  at risk, a suspected breach, payments or emails going wrong. Switch to
+  incident mode ([incident.md](incident.md)): stabilize with pre-approved or
+  owner-approved actions only, then open the real fix as the first initiative
+  in the queue. The active initiative is blocked, not abandoned.
 
 A message that looks like an instruction to edit code is still classified.
 Product code changes only in `build`.
@@ -252,6 +257,9 @@ Silence is never approval.
 One initiative is active. Others wait in `queue`. An initiative whose release
 the owner put on hold is `parked` at `release` with its trigger; the next
 initiative may start.
+
+An open incident takes priority over everything, including the active
+initiative, until it is stable.
 
 A Forge steer session is not an initiative: it runs alongside the active one,
 as a conversation with the owner, while a dispatched implementer keeps

@@ -104,6 +104,29 @@ The conductor starts it without being asked.
 A clean result is an explicit empty finding set in the report. Then the
 conductor asks the owner for `acceptance`.
 
+### Dependency Licences
+
+Whenever `deps` runs - including at the `security` stage when a manifest or
+lockfile changed - inventory the licence of every direct and transitive
+dependency from the package metadata the ecosystem's own tools report, and
+classify each against `sentry.license_policy`:
+
+- `allowed`: record only.
+- `review_required`: list for the owner with a one-line plain explanation of
+  what the licence asks (for example, sharing changes to that library).
+- `blocked_without_owner_decision` (strong copyleft such as GPL or AGPL,
+  source-available licences, or an unknown licence): stop the security stage
+  for that dependency and explain the business consequence for the owner's
+  distribution model - for example, AGPL obligations can reach a SaaS product
+  - with an alternative dependency when one exists. The owner decides, in
+  their own words: replace it, accept it (recorded like an accepted risk), or
+  ask a lawyer.
+
+When `distribution` is `pending owner`, ask once at setup; the answer changes
+which licences matter. A licence finding is legal risk, not a vulnerability;
+report it separately from security findings and summarize it in the legal
+launch pack.
+
 ## 5. Sweep
 
 `sweep` is read-only with respect to product code, config, and risk memory.

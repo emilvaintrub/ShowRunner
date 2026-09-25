@@ -19,6 +19,15 @@ every service this release touches must be `owner-confirmed`. List any
 release question waits until the owner resolves each one or accepts the risk in
 their own words.
 
+### Legal preflight
+
+For the first public release, and any release that starts collecting new
+personal data, charging money, or entering a new market, check that the
+legal launch pack ([../pitch/method.md](../pitch/method.md) section 8) exists
+and its lawyer review is recorded. When it is missing, say so plainly and ask
+the owner whether to prepare it first or to release without it, recording the
+choice in their own words.
+
 ## 3. The Release Question
 
 Prepare, then ask in one message:

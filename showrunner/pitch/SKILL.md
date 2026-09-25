@@ -31,6 +31,7 @@ owner asks for a document or a refresh.
 | `/pitch competitors` | [templates/competitor-analysis.md](templates/competitor-analysis.md) |
 | `/pitch financials` | [templates/financial-plan.md](templates/financial-plan.md) and the financial model |
 | `/pitch deck` | [templates/investor-deck.md](templates/investor-deck.md), rendered in `business.formats.deck` |
+| `/pitch legal` | [templates/legal-launch-pack.md](templates/legal-launch-pack.md): drafts for lawyer review |
 | `/pitch refresh <document>` | a dated revision of an approved document |
 | `/pitch audit <document>` | lint and citation audit only |
 
@@ -48,4 +49,6 @@ owner asks for a document or a refresh.
 - Never mark a document approved before lint passes, the citation audit is
   recorded, and the owner approves it in their own words.
 - Never soften a finding to please the owner.
+- Never present a legal draft as final or as legal advice; every legal
+  document is marked for review by a qualified lawyer.
 - Never import facts or wording from another project.

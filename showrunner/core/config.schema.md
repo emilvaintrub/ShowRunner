@@ -347,6 +347,11 @@ sentry:
     regression_catalog: "<path or disabled>"
   backup_access_policy: "<path, prose, or disabled>"
   known_dependency_blocks: []
+  license_policy:
+    distribution: "saas | distributed-app | library | internal | pending owner"
+    allowed: ["MIT", "BSD-2-Clause", "BSD-3-Clause", "Apache-2.0", "ISC"]
+    review_required: ["LGPL-*", "MPL-2.0", "EPL-*"]
+    blocked_without_owner_decision: ["GPL-*", "AGPL-*", "SSPL-*", "unknown"]
   mobile_signing:
     enabled: false
     ios_profile_management: "disabled"

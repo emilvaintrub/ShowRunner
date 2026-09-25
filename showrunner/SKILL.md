@@ -42,6 +42,7 @@ decide or supply something, and it never skips a stage on its own.
 | `release` | [core/release.md](core/release.md), [core/ownership.md](core/ownership.md) |
 | `close` | [bible/SKILL.md](bible/SKILL.md), [bible/method.md](bible/method.md), [core/merge.md](core/merge.md), [core/outcomes.md](core/outcomes.md) |
 | any stage, when an outcome review is due | [core/outcomes.md](core/outcomes.md) |
+| any stage, when production is broken or harmful now | [core/incident.md](core/incident.md) |
 
 At any stage, when the owner raises an idea or changes their mind, also load
 [forge/steering.md](forge/steering.md) and run steering alongside the current
@@ -75,7 +76,7 @@ through the lifecycle (lifecycle section 10):
 
 - `/showrunner status|next|resume`
 - `/forge init|discover|assess|plan|spec|design|design-review|steer|decide`
-- `/pitch init|select|decisions|competitors|financials|deck|refresh|audit`
+- `/pitch init|select|decisions|competitors|financials|deck|legal|refresh|audit`
 - `/arc init|plan|run|verify|merge`
 - `/sentry init|sweep|fix|verify|accept|deps|pen-test|monthly|refresh-knowledge|merge`
 - `/bible init|sync|merge`
