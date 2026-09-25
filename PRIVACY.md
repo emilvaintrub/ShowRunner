@@ -1,7 +1,10 @@
 # Privacy
 
 ShowRunner is designed as a local workflow package. It does not include hosted
-services, telemetry, analytics, or background network calls.
+services, telemetry, analytics, or background network calls. Network access
+happens only when the agent researches on the owner's behalf or someone runs
+`showrunner-sources lint --fetch`, which re-opens the source URLs a document
+cites.
 
 ## What ShowRunner Stores
 
@@ -10,6 +13,11 @@ initialize or operate it. Those files normally live inside the target project
 and can include:
 
 - project configuration;
+- the state ledger, which quotes the owner's approvals verbatim;
+- discovery briefs, viability assessments, and research registers (source
+  URLs, excerpts, and search queries);
+- business documents: business decisions, competitor analysis, financial
+  plans and models, and investor presentations;
 - plans and specifications;
 - design briefs;
 - security findings and accepted-risk records;
@@ -32,6 +40,15 @@ When an external tool is configured, the user is responsible for:
 - avoiding secrets, customer data, and private targets unless explicitly
   authorized;
 - reviewing what evidence, URLs, screenshots, traces, or reports are shared.
+
+## Research And Confidential Ideas
+
+Discovery, assessment, and business documents use web search and page
+fetches. Search queries can reveal what the owner is working on to the search
+provider. Treat an unannounced idea accordingly: the owner may ask ShowRunner
+to phrase queries generically or to work only from sources the owner supplies.
+Business documents often hold confidential plans and figures; keep them out of
+public repositories unless the owner intends to publish them.
 
 ## No Telemetry
 

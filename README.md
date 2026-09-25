@@ -165,6 +165,22 @@ Use `-Force` to replace an existing local install.
 - Use `-Force` only when you intend to replace an existing local ShowRunner
   skill or instruction file.
 
+## Upgrading From 1.0
+
+1. Pull this repository and re-run the installer with `-Force` for each
+   target you use, so the skill folder and editor instructions are replaced.
+2. In each project that already uses ShowRunner, ask the agent to continue.
+   It creates the state ledger, adds the new `lifecycle`, `business`,
+   `release`, and `pitch` config sections, and installs the Git and Claude
+   Code hooks (`scripts/install-hooks.sh --claude` or
+   `scripts/install-hooks.ps1 -ClaudeSettings`).
+3. Existing projects also run the new project stages once: discovery reuses
+   what existing documents already answer and asks only for the gaps, then
+   comes the assessment, and the constitution is kept if already approved.
+4. Claude Code may ask you to review the new project hooks in
+   `.claude/settings.json` the first time; approve them to turn on the
+   guard.
+
 ## Operating The Workflow
 
 Read the full [user guide](docs/USER_GUIDE.md).
@@ -255,6 +271,7 @@ showrunner/
   SKILL.md
   core/
   forge/
+  pitch/
   arc/
   sentry/
   bible/
