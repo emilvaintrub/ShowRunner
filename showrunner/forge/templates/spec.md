@@ -1,6 +1,7 @@
 # Feature Specification - <feature>
 
-> Status: decision-gate | draft | inventor-approved | arc-ready
+> Status: decision-gate | draft | inventor-approved | arc-ready (set only with a matching owner ledger row)
+> Initiative: <id from .claude/showrunner/state.md>
 > Owner: <inventor or product owner>
 > Constitution: <path and passage>
 > Decisions: <ids>
@@ -111,6 +112,8 @@ or surfaces when relevant.
 
 `arc-ready` requires:
 
+- owner-approved ledger rows for `roadmap`, `spec`, `design`, and
+  `design-review` (the design rows may be owner-confirmed `not-applicable`);
 - all section 4 decisions approved;
 - creative gate `SHIP`;
 - inventor redline approval;

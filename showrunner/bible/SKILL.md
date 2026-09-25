@@ -11,14 +11,19 @@ claim traces to a repository path, interface, or named report.
 
 ## Load
 
-1. Read `../core/method.md`.
-2. Read the active project's `.claude/showrunner/config.md`.
+1. Read `../core/lifecycle.md` and `../core/method.md`.
+2. Read the active project's `.claude/showrunner/config.md` and
+   `.claude/showrunner/state.md`.
 3. Read [method.md](method.md).
 4. Load `../core/merge.md` for `merge`.
 5. Load [templates/bible.md](templates/bible.md) for `sync`.
 6. Load [templates/merge.md](templates/merge.md) for merge readiness.
 
 ## Route
+
+Bible runs inside the lifecycle `close` stage for every initiative, after
+`release` records `released` or `held` (method section 2, CLOSE). `sync` may
+also run read-only at any time for inspection.
 
 - `init`: infer Bible source bindings (Forge spec, Arc ship reports, Sentry
   sweep, security, and pen-test outputs, and repository-structure hints for

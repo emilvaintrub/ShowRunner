@@ -60,11 +60,12 @@ token_cost_reporting: true
    - Require the exact Step 0 output from `method.md`.
    - Do not authorize edits.
 
-3. **Review**
+3. **Review** (ShowRunner as architect, not the owner)
    - Compare the describe-back with the brief and current repository.
-   - Approve a clean read.
+   - Approve a clean read and record the `step0` ledger row with the approved
+     contract digest.
    - Correct and require a new describe-back after any misread.
-   - Escalate human-owned divergence.
+   - Escalate owner-owned divergence as a batched business question.
 
 4. **Isolate or verify isolation**
    - Create the feature branch/worktree after approval when the adapter permits.
@@ -88,8 +89,9 @@ token_cost_reporting: true
    - Confirm the implementer did not touch `main`.
    - Remove the worktree only after evidence is retained.
 
-7. **Stop**
-   - Return control to the architect for independent verification.
+7. **Hand back**
+   - Record the `build` ledger row and return control to the architect, who
+     starts `verify` in the same turn.
    - Never continue directly into merge.
 
 ## Parallelism
@@ -109,6 +111,12 @@ The adapter supports parallel dispatch, but policy decides whether it is safe:
 - Red baseline: stop and report before authorizing edits; do not fix
   pre-existing failures as part of this arc's scope.
 - Lost resumable context: spawn a new cold context and repeat Step 0.
+- Lost isolation after Step 0 (for example, the adapter removed an unchanged
+  spawn-time worktree when the Step 0 turn ended): the implementer stops
+  without improvising. The architect provisions a new branch and worktree
+  (step 4), names the path in the resume message, and keeps the Step 0
+  approval only when the new base changes none of the approved paths or
+  sources; otherwise repeat Step 0.
 - Consistent test failure: report evidence; do not label a first flaky failure
   as a product decision.
 - Product/scope divergence: pause and escalate.

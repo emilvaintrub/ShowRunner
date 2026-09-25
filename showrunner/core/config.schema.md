@@ -32,6 +32,38 @@ roles:
 questions:
   max_per_round: 5
 
+lifecycle:
+  state_file: ".claude/showrunner/state.md"
+  fix_loop_limit: 3
+  enforcement:
+    git_hooks: true
+    claude_hooks: "enabled | disabled"
+    ci_check: "<CI job running `showrunner check`, or disabled>"
+
+business:
+  registers: "docs/business/research-registers.md"
+  docs_directory: "docs/business"
+  selected: []            # owner's choice: decisions, competitors, financials, deck
+  geography: "<owner-confirmed markets, or pending>"
+  currency: "<owner-confirmed reporting currency, or pending>"
+  research:
+    web_required: required
+    min_sources: 10
+    min_competitors: 5
+    freshness_days: 365
+    independent_audit: true
+  formats:
+    deck: "<slides artifact type, pptx, or markdown>"
+    financial_model: "<xlsx, csv, or markdown tables>"
+
+release:
+  owner_supplied: true
+  known_mechanics: ["<release/deploy mechanism found in repository evidence, with path>"]
+  environments: ["<owner-named environment, or pending>"]
+  executor: "owner | showrunner-with-owner-steps | pending"
+  post_release_check: "<owner-named check, or pending>"
+  rollback: "<owner-approved rollback, or pending>"
+
 context_optimizer:
   enabled: false
   provider: "token-optimizer | other | disabled"
@@ -190,7 +222,7 @@ forge:
     specs_directory: "<path>"
     designer_briefs_directory: "<path or disabled>"
   creative_gate:
-    command: "/wow-check"
+    gate: "gates/wow-check.md | <project gate path> | disabled"
     ship_verdict_required: true
   decision_surface:
     ask: ["name", "scope", "emotional_framing", "privacy", "monetization"]
@@ -317,6 +349,9 @@ sentry:
     digest_destination: "<path or disabled>"
     accepted_risk_max_age_days: 90
 
+pitch:
+  status: "ready | uninitialized | disabled"
+
 bible:
   status: "ready | uninitialized | disabled"
   sources:
@@ -336,6 +371,23 @@ bible:
 ```
 
 ## Ownership
+
+### Business
+
+The business section binds the research registers, the business-document
+directory, and the research minimums used by the Forge `assessment` and by
+Pitch ([evidence.md](evidence.md)). `selected` records only what the owner
+chose at `business-docs`. `web_required` is always `required`: when research
+tools are unavailable, research-bearing sections stay `EVIDENCE PENDING`
+rather than falling back to model memory.
+
+### Lifecycle and release
+
+The lifecycle section binds the state ledger, the fix-loop limit, and the
+enforcement layer ([enforcement.md](enforcement.md)). The release section
+records only what repository evidence shows and what the owner has supplied;
+`owner_supplied` is always `true`, and every unsupplied value stays `pending`
+until the `release` stage asks ([release.md](release.md)).
 
 ### Shared base
 
@@ -378,6 +430,12 @@ Initialization must reject or surface:
 
 - a missing primary branch or contradictory merge count;
 - `stop_before_main: false`;
+- `business.research.web_required` set to anything but `required`, or
+  research minimums of zero;
+- `release.owner_supplied: false`, or a release environment, executor, or
+  command recorded without an owner-quoted ledger row;
+- a missing state ledger, or enforcement hooks absent without a recorded
+  reason;
 - context optimization enabled without at least one configured command or an
   explicit manual fallback;
 - a locale ceremony enabled without approval rules;

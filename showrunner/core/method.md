@@ -1,14 +1,23 @@
 # Shared Method
 
 This file defines universal ceremony. It does not decide how a skill responds
-to a classified decision.
+to a classified decision. Stage order, the conductor loop, and who approves
+what live in [lifecycle.md](lifecycle.md).
 
 ## 1. Roles
 
-**Architect/orchestrator**
+**Owner**
 
-- Own intent, scope, decisions, prompt quality, independent verification, and
-  the merge ceremony.
+- The business owner. Supplies the idea, product IP, and every business
+  decision listed in [lifecycle.md](lifecycle.md) section 1.
+- Is never asked a technical question the repository can answer, and never
+  asked to approve Step 0 or a verification verdict.
+
+**Architect/orchestrator (ShowRunner)**
+
+- Conduct the lifecycle. Own prompt quality, Step 0 approval, independent
+  verification, the security stage, and the merge ceremony; bring the owner
+  every business decision.
 - Do not perform the implementer's production edits in a dispatched arc.
 - May correct a describe-back, answer convention questions, and escalate
   product decisions.
@@ -41,11 +50,25 @@ An `init` command must:
 7. If `context_optimizer.enabled` is true, verify that at least one configured
    command or manual fallback exists. If the named provider is not installed,
    record it as unavailable rather than blocking initialization.
-8. Report inferred values, human-provided values, disabled capabilities, and
-   unresolved risks.
+8. Create `.claude/showrunner/state.md` from
+   [templates/state.md](templates/state.md) when it is missing. Fill
+   `guard.writable_before_build` with the config, ledger, and every
+   configured planning, report, and output path, and propose
+   `guard.release_patterns` from repository evidence.
+9. Install and verify enforcement per [enforcement.md](enforcement.md).
+10. Report inferred values, human-provided values, disabled capabilities, and
+    unresolved risks.
+
+Ask the owner only for bindings that are business decisions or cannot be
+evidenced; phrase them in plain language with a recommended answer. Resolve
+technical bindings (test commands, hook paths, branch patterns) from the
+repository and record them as defaults.
 
 Never silently infer product policy, compliance posture, a destructive
-migration policy, or a human approval ceremony.
+migration policy, or a human approval ceremony. "No regulated data seen in the
+repository" is evidence to present, not an answer: ask the owner to confirm
+compliance posture and data classification, with that evidence and a
+recommendation. Respect `questions.max_per_round` in every round.
 
 ## 3. Classify Decisions
 
@@ -106,11 +129,17 @@ branch commits, the implementer reports:
 
 End with `STOP: awaiting describe-back approval`.
 
-The reviewer responds with one of:
+ShowRunner, as architect, reviews the describe-back against the brief and the
+repository. The owner does not approve Step 0; ShowRunner tells the owner in
+two or three plain sentences what will be built and that building has begun.
+ShowRunner responds to the implementer with one of:
 
 - `APPROVED`: implementation may begin.
 - `CORRECT AND RE-DESCRIBE`: no implementation; incorporate corrections.
-- `ESCALATE`: ask the human a batched decision question.
+- `ESCALATE`: ask the owner a batched business decision question.
+
+Record `APPROVED` as the `step0` ledger row with the approved contract digest,
+and set `active.step0_approved` and `active.feature_branch`.
 
 Creating an isolated worktree is infrastructure, not implementation. Prefer
 describe-back approval before branch/worktree creation when the adapter permits.
@@ -199,13 +228,15 @@ Implementation ends with:
 - a short human smoke checklist when required;
 - `STOP BEFORE MERGE`.
 
-Continue through [merge.md](merge.md) only after independent verification and
-human sign-off.
+The lifecycle then continues without being asked: `verify`, `security`,
+`acceptance`, `merge`, `release`, and `close`. Merge happens only after
+independent verification and the owner's approval.
 
 ## 11. Plain-Language User Updates
 
-Every command that changes status or stops for a human decision must include a
-short explanation of what the status means in user terms:
+Every turn ends with the handoff block in [lifecycle.md](lifecycle.md)
+section 6. Every command that changes status or stops for a human decision
+must include a short explanation of what the status means in user terms:
 
 - what was found or created;
 - what is now allowed or still blocked;

@@ -79,7 +79,32 @@ merge policy resolve.
 While `uninitialized`, only `/sentry init` is allowed. `disabled` rejects all
 Sentry commands.
 
-## 4. Sweep
+## 4. Lifecycle Security Stage
+
+Every initiative passes the `security` stage
+([../core/lifecycle.md](../core/lifecycle.md)) after `verify` records `SHIP`.
+The conductor starts it without being asked.
+
+1. Run a bound sweep (below) on the exact verified feature tip.
+2. Scope: every enabled catalog category that the base-to-tip diff touches,
+   plus `deps` when a manifest or lockfile changed, plus the browser evidence
+   pass when configured and the diff touches a browser surface. Name each
+   category skipped as untouched, with the evidence.
+3. Reconcile with accepted-risk memory and the regression catalog.
+4. Route every confirmed finding:
+   - caused by this diff: record a `fix` ledger row and return to `build`;
+   - pre-existing, outside the diff: assign a finding ID and open it as a new
+     initiative at `intake`, unless the owner folds it in via the scope STOP
+     gate;
+   - owner wants to accept it: `accept` with owner-quoted approval.
+5. Record the stage row: `passed` (clean, or every finding routed) with the
+   sweep report path and tip, or `approved`/`waived` by the owner when risk
+   was accepted.
+
+A clean result is an explicit empty finding set in the report. Then the
+conductor asks the owner for `acceptance`.
+
+## 5. Sweep
 
 `sweep` is read-only with respect to product code, config, and risk memory.
 Reports may be written to the configured report destination.
@@ -179,7 +204,7 @@ analytics beacon and a CSP violation may be one CSP decision, while DNSSEC and
 CAA are separate edge/DNS actions. Do not equate the scanner's category or
 severity with the final Sentry severity.
 
-## 5. Finding Lifecycle
+## 6. Finding Lifecycle
 
 Every finding carries:
 
@@ -195,7 +220,7 @@ Severity uses [knowledge/severity-rubric.md](knowledge/severity-rubric.md).
 Finding IDs remain stable across passes. A reintroduction becomes a regression
 of the original ID rather than an unrelated new issue.
 
-## 6. Accepted-Risk Memory
+## 7. Accepted-Risk Memory
 
 Risk acceptance is append-only and requires:
 
@@ -216,26 +241,25 @@ A later sweep never silently suppresses the match:
 
 Do not overwrite old decisions. Supersede them with a new entry.
 
-## 7. Fix And Arc Boundary
+## 8. Fix And Arc Boundary
 
-Before dispatch, batch severity, acceptance, compliance, migration, rollout,
-and operational questions. An empty gate is explicit.
+A security fix is an initiative like any other and runs every lifecycle
+stage. `/sentry fix <finding-id>` opens it at `intake` with the finding as the
+owner-visible request; it never dispatches directly.
 
-Use direct Sentry fix dispatch for a narrow change with a known pattern and no
-schema, UI, or operational coupling. Hand off to `/arc plan` when the fix:
-
-- touches three or more production files;
-- changes schema or migration behavior;
-- changes user-facing UI or authentication flow;
-- requires coordinated rollout, feature flags, or operational work.
-
-The handoff includes the finding, evidence, approved risk decisions, security
-tests, non-goals, and regression checks. Arc owns implementation mechanics;
-Sentry owns the security acceptance contract.
+- At `spec`, the finding record supplies intent, evidence, and technical
+  direction; batch severity, acceptance, compliance, migration, rollout, and
+  operational questions into the Forge gate. An empty gate is explicit.
+- Arc owns implementation mechanics through `arc-plan`, `step0`, `build`, and
+  `verify`, using [templates/fix-prompt.md](templates/fix-prompt.md) content
+  inside the Arc implementer prompt.
+- Sentry owns the security acceptance contract: at `verify`, also run
+  `/sentry verify <finding-id>` on the same tip; at `security`, confirm the
+  original finding no longer reproduces.
 
 Interacting fixes are serialized using a touched-file and dependency graph.
 
-## 8. Verification
+## 9. Verification
 
 `verify` checks:
 
@@ -253,7 +277,7 @@ Interacting fixes are serialized using a touched-file and dependency graph.
 Verdicts are `SHIP`, `FIX`, or `REDESIGN`. `FIX` requires a new exact-tip
 verification.
 
-## 9. Penetration Testing And External Signals
+## 10. Penetration Testing And External Signals
 
 `pen-test` loads the nested Pen Test skill. Active testing requires approved
 Rules of Engagement, an exact target allowlist, a current testing window,
@@ -294,7 +318,7 @@ legacy `pen-test <report-path>` form routes to the same ingestion path.
 Dependency commands do not apply upgrades automatically. Approved upgrades
 become individual fixes.
 
-## 10. Knowledge Refresh And Monthly
+## 11. Knowledge Refresh And Monthly
 
 The standards manifest stores authoritative locations, expected versions,
 refresh modes, and last-known evidence. It does not make cached text timeless.
@@ -312,7 +336,7 @@ refresh modes, and last-known evidence. It does not make cached text timeless.
 reconciliation, and accepted-risk ageing. It writes one digest and opens no fix
 arc without a human decision.
 
-## 11. Completion
+## 12. Completion
 
 A Sentry fix may request merge approval only when:
 

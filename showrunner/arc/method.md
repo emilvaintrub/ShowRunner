@@ -2,6 +2,10 @@
 
 Arc owns implementation after product direction is approved. Its policy is
 maximum safe autonomy over conventions and zero authority to merge by itself.
+It runs lifecycle stages `arc-plan`, `step0`, `build`, and `verify`
+([../core/lifecycle.md](../core/lifecycle.md)) back to back; the only reasons
+to stop between them are a non-empty Arc decision gate, an escalation, or the
+fix-loop limit.
 
 ## 1. Policy
 
@@ -71,6 +75,9 @@ When input is an Arc-ready Forge specification:
   in the plan and implementer prompt.
 - Reject planning or execution when the source is not explicitly `arc-ready`,
   its approval markers are absent, or any bound section changes after planning.
+  The approval markers are the owner-quoted ledger rows for `spec`, `design`,
+  `design-review`, and `handoff`, whose recorded digests must match the
+  source's current bytes. A status line alone is not an approval marker.
 - Before implementation, require the planned base commit, a clean worktree,
   ordinary index flags, and tracked bytes that hash to that base tree.
 - During independent verification, reconstruct the Forge binding from the
@@ -78,10 +85,11 @@ When input is an Arc-ready Forge specification:
   exact feature tip.
 - Return product changes to Forge or the human; do not rewrite them in Arc.
 
-### Approved raw brief
+### Raw briefs
 
-A raw brief may enter Arc only when product behavior and scope are already
-approved. If material product calls remain, stop and recommend `/forge spec`.
+A raw brief, ticket, or chat request never enters Arc directly. The conductor
+opens it at `intake` and runs the Forge stages first, however small the
+change.
 
 ### Design readiness gate
 
@@ -101,7 +109,9 @@ inventory, or UI/UX states are missing, Arc stops and directs the user back:
 
 Arc must not design the missing experience itself. It may identify the gap,
 explain why implementation would otherwise invent product direction, and carry
-the approved result forward after the design stage returns.
+the approved result forward after the design stage returns. The lifecycle
+normally prevents this state; reaching it means a Forge stage closed
+incorrectly, so re-open that stage and record why.
 
 Arc owns the implementer prompt. Forge does not.
 
@@ -208,15 +218,26 @@ producing code and `../core/debugging.md` when a failure is hit.
 When the adapter cannot provide `../core/dispatch.md`'s required runtime
 capabilities (no isolated background worktree, no resumable spawn), `run` may
 execute the approved plan directly, bounded by the plan's phase and commit
-boundaries:
+boundaries. This path has no cold context, so it must not claim one:
 
-- Require Step 0 in a cold context before the first edit, exactly as with a
+- Record `isolation: reduced (same context)` in the `step0` ledger row and
+  the ship report.
+- Write the Step 0 describe-back from the rendered prompt and a fresh read of
+  every listed path, not from planning memory. Re-verify each path and symbol
+  with a tool call; a claim not re-read in this step is not verified.
+- ShowRunner reviews that describe-back against the prompt's checklist and
+  records `APPROVED` with the contract digest before the first edit, as in a
   dispatched run.
+- Create the feature branch before the first edit; never edit on the primary
+  branch.
 - Execute one implementation phase at a time. After each phase: commit, run
-  that phase's configured tests, and stop for an explicit checkpoint before
-  starting the next phase.
+  that phase's configured tests, and check the phase against the plan before
+  starting the next. The checkpoint is ShowRunner's, recorded in the ship
+  report; it does not wait for the owner.
 - A checkpoint is not a new Step 0; it confirms the just-completed phase
   matches the plan and the next phase remains unchanged.
+- `verify` still runs as a separate pass that re-reads the diff from Git, not
+  from memory of writing it.
 - The scope STOP gate, escalation rules, and `STOP BEFORE MERGE` apply
   identically to the dispatched path.
 - Record in the ship report that this run used the batch-execution alt path
@@ -227,7 +248,11 @@ repository policy. Consistent red blocks completion.
 
 ### Responding To A FIX Verdict
 
-When `verify` returns `FIX`, `run` resumes on the same branch:
+When `verify` returns `FIX`, record a `fix` ledger row, increment
+`active.fix_loops`, and resume `run` on the same branch in the same turn. When
+`fix_loops` reaches `lifecycle.fix_loop_limit`, stop and give the owner a
+plain account of what keeps failing and the options (re-scope, re-open the
+spec, or accept a narrower passing condition).
 
 - Reproduce the finding before changing anything; do not patch a behavior you
   have not observed.
@@ -280,6 +305,18 @@ Verdicts:
   finding; correct branch work, then re-run verification on the new tip.
 - `REDESIGN`: approved direction is internally unsafe or no longer adequate.
 
+Before issuing a verdict, run the audit gate
+([../gates/audit.md](../gates/audit.md)) over the base-to-tip diff; a Critical
+audit finding means `FIX`. For UI, interaction, or copy changes with the
+creative gate enabled, run [../gates/wow-check.md](../gates/wow-check.md) on
+the built result; anything other than `SHIP` means `FIX`, or `REDESIGN` when
+the cause is the approved direction. Disabled gates are named as `disabled`
+in the verdict.
+
+Record `SHIP` as the `verify` ledger row (`commit:<tip>`, with the audit and
+creative results in Evidence), reset `active.fix_loops`, and start the
+`security` stage in the same turn.
+
 ## 8. Server And UI Policy
 
 Server-only work may complete automated verification without physical smoke
@@ -314,12 +351,14 @@ human or CI command needed before merge.
 
 ## 10. Completion
 
-An Arc is ready to request merge approval only when:
+After `verify` records `SHIP`, the conductor runs `security`, then asks the
+owner for `acceptance`. An Arc is ready to request merge approval only when:
 
 - Step 0 was approved;
 - every commit is on the feature branch;
 - configured tests and gates pass;
 - ship report and remote-tip evidence are complete;
 - independent verification says `SHIP` on the exact current tip;
-- required smoke is complete or explicitly awaits the human;
+- the `security` stage has a terminal ledger row on the same tip;
+- the owner's `acceptance` smoke is recorded;
 - the response ends `STOP BEFORE MERGE`.

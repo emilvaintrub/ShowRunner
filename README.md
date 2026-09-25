@@ -1,6 +1,6 @@
 # ShowRunner
 
-Forge the direction. Arc the build. Sentry the risk. Bible the system.
+Forge the direction. Pitch the business. Arc the build. Sentry the risk. Bible the system.
 
 ShowRunner is a project-neutral workflow skill for AI-assisted software
 delivery. It turns fuzzy requests into approved direction, verified
@@ -8,7 +8,7 @@ implementation arcs, security posture, penetration-test governance, browser
 evidence, and architecture synthesis.
 
 ![Status](https://img.shields.io/badge/status-ready-2ea44f)
-![Policies](https://img.shields.io/badge/policies-Forge%20%7C%20Arc%20%7C%20Sentry%20%7C%20Bible-5B6CFF)
+![Policies](https://img.shields.io/badge/policies-Forge%20%7C%20Pitch%20%7C%20Arc%20%7C%20Sentry%20%7C%20Bible-5B6CFF)
 ![Context](https://img.shields.io/badge/context-hygiene-5B6CFF)
 ![Codex](https://img.shields.io/badge/Codex-skill-111827)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-skill-111827)
@@ -23,6 +23,9 @@ AI coding agents are fast, but speed is not the same as control. ShowRunner
 adds a disciplined lifecycle around them:
 
 - Product decisions are explicit;
+- One conductor runs every stage from idea to release, in order, without
+  waiting to be told the next step;
+- The owner makes business calls; the agent handles the technical ones;
 - Implementation starts only after Step 0 approval;
 - Security findings are triaged instead of blindly accepted from scanners;
 - Design gets research and expert synthesis when the user is not a specialist;
@@ -30,7 +33,9 @@ adds a disciplined lifecycle around them:
 - Architecture docs are generated from evidence, not vibes;
 - Long sessions can use an optional context optimizer before the work gets
   fuzzy;
-- Every build or fix stops before `main`.
+- Every build or fix stops before `main`, and release is always the owner's
+  call;
+- Git and Claude Code hooks enforce the key gates mechanically.
 
 ## TL;DR
 
@@ -68,7 +73,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Target cursor
 
 | Policy | Job | Command family |
 | --- | --- | --- |
-| Forge | Product direction, planning, specs, design, decisions. | `/forge init|discover|plan|spec|decide|design` |
+| Forge | Discovery, idea assessment, product direction, planning, specs, design, decisions. | `/forge init|discover|assess|plan|spec|design|design-review|decide` |
+| Pitch | Evidence-backed business documents: decisions, competitors, financials, investor deck. | `/pitch init|select|decisions|competitors|financials|deck|refresh|audit` |
 | Arc | Implementation planning, Step 0, branch work, verification, merge stop. | `/arc init|plan|run|verify|merge` |
 | Sentry | Security sweeps, fixes, dependency triage, external scanner ingestion, pen-test governance. | `/sentry init|sweep|fix|verify|accept|deps|pen-test|monthly|refresh-knowledge|merge` |
 | Bible | Evidence-bound architecture and capability synthesis. | `/bible init|sync|merge` |
@@ -159,19 +165,45 @@ Use `-Force` to replace an existing local install.
 - Use `-Force` only when you intend to replace an existing local ShowRunner
   skill or instruction file.
 
+## Upgrading From 1.0
+
+1. Pull this repository and re-run the installer with `-Force` for each
+   target you use, so the skill folder and editor instructions are replaced.
+2. In each project that already uses ShowRunner, ask the agent to continue.
+   It creates the state ledger, adds the new `lifecycle`, `business`,
+   `release`, and `pitch` config sections, and installs the Git and Claude
+   Code hooks (`scripts/install-hooks.sh --claude` or
+   `scripts/install-hooks.ps1 -ClaudeSettings`).
+3. Existing projects also run the new project stages once: discovery reuses
+   what existing documents already answer and asks only for the gaps, then
+   comes the assessment, and the constitution is kept if already approved.
+4. Claude Code may ask you to review the new project hooks in
+   `.claude/settings.json` the first time; approve them to turn on the
+   guard.
+
 ## Operating The Workflow
 
 Read the full [user guide](docs/USER_GUIDE.md).
 
 The short version:
 
-1. Run `/forge init` or ask the agent to initialize ShowRunner.
-2. Use Forge to discover, plan, specify, design, and record decisions.
-3. Use Arc only after direction is approved.
-4. Use Sentry for security posture, external scanner triage, dependency review,
-   pen-test governance, and verified security fixes.
-5. Use Bible to synthesize architecture and capabilities from current evidence.
-6. Stop before merge. Always.
+1. Ask the agent to initialize ShowRunner for your repository. It writes the
+   config and the state ledger, and installs the safety hooks.
+2. Tell it what you want in plain words. You are the business owner; ShowRunner
+   is the conductor.
+3. First it examines the idea with you: a deep discovery interview (guiding a
+   newcomer or challenging an experienced owner), an evidence-backed
+   viability assessment, the product constitution, and the business
+   documents you choose (business decisions, competitor analysis, financial
+   plan, investor deck), with no unsourced figures.
+4. Then, for each piece of work, ShowRunner runs every stage in order - intake, roadmap, spec, design,
+   design review, handoff, build plan, Step 0, build, verify, security,
+   acceptance, merge, release, close - and moves on by itself.
+5. It stops only for your decisions: product calls, approvals, the returned
+   design, your acceptance test, merge approval, and your release
+   instructions.
+6. It never skips a stage on its own, never merges without your approval, and
+   never releases or deploys without your instructions.
 
 ## Design Is Expert-Led
 
@@ -239,15 +271,25 @@ showrunner/
   SKILL.md
   core/
   forge/
+  pitch/
   arc/
   sentry/
   bible/
   gates/
   scripts/
+tests/
+  run.sh                    enforcement regression suite (POSIX sh)
+  windows-powershell.ps1    Windows PowerShell 5.1 installer check
 ```
 
 The reusable package stays under `showrunner/`. Project-specific evidence stays
 inside each target project, usually under `.claude/showrunner/`.
+
+## Tests
+
+Run the regression suites locally with `sh tests/run.sh`, `dash tests/run.sh`,
+and, on Windows, `powershell -NoProfile -ExecutionPolicy Bypass -File
+tests/windows-powershell.ps1`. CI runs all three on every pull request.
 
 ## License
 

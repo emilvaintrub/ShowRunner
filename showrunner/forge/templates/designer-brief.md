@@ -1,6 +1,6 @@
 # Designer Brief - <project or feature>
 
-> Status: draft | inventor-approved | design-output-approved
+> Status: draft | inventor-approved | design-output-approved (each set only with a matching owner ledger row)
 > Source plan: <path> (surface inventory under `## Surfaces`)
 > Source specification: <path>
 > Target engine: <configured `forge.designer_helper.tool` or neutral>

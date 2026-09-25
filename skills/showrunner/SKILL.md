@@ -1,6 +1,6 @@
 ---
 name: showrunner
-description: "Route software work through the ShowRunner workflow package: Forge for product direction, Arc for implementation, Sentry for security, Pen Test for governed assessment, and Bible for architecture/capability synthesis."
+description: "Conduct software work from the owner's idea to release through the ShowRunner lifecycle: every stage in order, with Forge for product direction, Arc for implementation, Sentry for security, and Bible for architecture synthesis. Use for any build, change, fix, security, release, or status request in a ShowRunner project."
 ---
 
 # ShowRunner Plugin Wrapper
