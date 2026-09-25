@@ -422,7 +422,9 @@ seg_is_force_push() {
   esac
   _fp_forceful=1
   case "$_fp_seg" in
-    *--force-with-lease*|*--force*) _fp_forceful=0 ;;
+    # --force-if-includes and --force-with-lease=... are already caught by
+    # the *--force* glob since they contain that literal substring.
+    *--force-with-lease*|*--force*|*--mirror*) _fp_forceful=0 ;;
   esac
   if [ "$_fp_forceful" -ne 0 ] && has_token "$(strip_quoted_spans "$_fp_seg")" "-f"; then
     _fp_forceful=0
@@ -450,8 +452,10 @@ seg_is_force_push() {
     set +f
     for _fp_w in "$@"; do
       case "$_fp_w" in
-        "$_fp_primary") _fp_targets_primary=0; break ;;
-        *":$_fp_primary") _fp_targets_primary=0; break ;;
+        # Plain "main", a "+main" no-colon refspec, "<src>:main" /
+        # "+<src>:main", and the "refs/heads/main" long forms of both.
+        "$_fp_primary"|"+$_fp_primary") _fp_targets_primary=0; break ;;
+        *":$_fp_primary"|*":refs/heads/$_fp_primary") _fp_targets_primary=0; break ;;
       esac
     done
   fi
