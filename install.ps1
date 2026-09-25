@@ -113,6 +113,8 @@ Hard rules:
 - Product code changes only in the build stage, after ShowRunner approves Step 0, on the feature branch.
 - Stop before merging to the primary branch until the owner approves.
 - Never release or deploy without the owner's explicit release instructions.
+- If production is broken or harmful now, switch to incident mode (`core/incident.md`): stabilize only with pre-approved or owner-approved actions, then fix through the normal stages.
+- Never create accounts or hold secrets for the owner; keep the accounts register (`core/ownership.md`) current. Schedule and run an outcome review for every shipped initiative (`core/outcomes.md`).
 - Keep project facts in `.claude/showrunner/config.md`.
 '@
 
@@ -136,6 +138,8 @@ Hard rules:
 - Product code changes only in the build stage, after ShowRunner approves Step 0, on the feature branch.
 - Stop before merging to the primary branch until the owner approves.
 - Never release or deploy without the owner's explicit release instructions.
+- If production is broken or harmful now, switch to incident mode (`core/incident.md`): stabilize only with pre-approved or owner-approved actions, then fix through the normal stages.
+- Never create accounts or hold secrets for the owner; keep the accounts register (`core/ownership.md`) current. Schedule and run an outcome review for every shipped initiative (`core/outcomes.md`).
 - Keep project facts in `.claude/showrunner/config.md`.
 '@
 
