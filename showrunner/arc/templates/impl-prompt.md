@@ -112,8 +112,10 @@ Describe back:
 2. verified paths, symbols, interfaces, and current behavior;
 3. implementation sequence and ownership;
 4. flags, migrations, locale, tests, gates, and smoke;
-5. decisions, convention defaults, ambiguities, and deviations;
-6. the exact execution-contract digest this approval will authorize.
+5. every external service, account, or credential the work touches, and
+   whether each is in the accounts register as owner-confirmed;
+6. decisions, convention defaults, ambiguities, and deviations;
+7. the exact execution-contract digest this approval will authorize.
 
 End with `Approval contract digest: <sha256>`, then
 `STOP: awaiting describe-back approval`. Do not edit, format, generate, commit,

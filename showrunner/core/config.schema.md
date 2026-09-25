@@ -56,6 +56,13 @@ business:
     deck: "<slides artifact type, pptx, or markdown>"
     financial_model: "<xlsx, csv, or markdown tables>"
 
+ownership:
+  register: "docs/business/accounts.md"
+  secret_store: "<owner-named password manager or secret store, or pending>"
+
+outcomes:
+  default_review_after_days: 30
+
 release:
   owner_supplied: true
   known_mechanics: ["<release/deploy mechanism found in repository evidence, with path>"]
@@ -381,6 +388,13 @@ Pitch ([evidence.md](evidence.md)). `selected` records only what the owner
 chose at `business-docs`. `web_required` is always `required`: when research
 tools are unavailable, research-bearing sections stay `EVIDENCE PENDING`
 rather than falling back to model memory.
+
+### Ownership and outcomes
+
+`ownership.register` is the accounts map from [ownership.md](ownership.md);
+`secret_store` names where credentials live, never the credentials.
+`outcomes.default_review_after_days` is the review delay ShowRunner proposes
+when the initiative does not suggest a better one.
 
 ### Lifecycle and release
 

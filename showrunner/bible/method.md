@@ -47,6 +47,12 @@ Apply the shared decision classifier:
    - Run `sync` at the new primary tip on a `docs/bible-<initiative>` branch.
      When `bible.status` is `disabled` by an owner waiver, say so and skip only
      this step.
+   - Schedule the outcome review ([../core/outcomes.md](../core/outcomes.md)):
+     add the Outcome Reviews row with metric, target, source, and review
+     date, and offer a reminder when the platform supports one.
+   - List access granted during this initiative (contractors, temporary
+     tokens, agent credentials) and revoke or confirm each
+     ([../core/ownership.md](../core/ownership.md)).
    - Review the ideas log: list queued ideas and parked ideas whose trigger
      has arrived, and ask the owner whether to explore, queue, or keep each
      parked.

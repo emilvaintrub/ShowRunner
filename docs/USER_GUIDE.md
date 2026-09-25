@@ -145,6 +145,31 @@ ShowRunner:
 Parked ideas come back to you when their reminder is due and at the end of
 every piece of work.
 
+## Did It Work?
+
+When you approve a new piece of work, you also agree how you'll know it
+worked: a number, a target, where the number comes from, and when to look.
+When that date arrives, ShowRunner brings you the actual result - met, partly
+met, missed, or not enough data yet - says plainly what likely caused it, and
+checks it against your overall success measures and your stop rule. You decide
+what happens next: keep it, improve it, remove it, or rethink the plan. Results
+feed back into the assessment and the roadmap, so the product learns from what
+really happened.
+
+## You Own Your Product
+
+Your product runs on accounts: the domain, hosting, app stores, payments,
+email, analytics. ShowRunner keeps a map of every one of them - who holds the
+account, which login, who pays, whether two-factor is on, who can recover it,
+who else has access, and where the passwords are kept (never the passwords
+themselves). It asks you to confirm each row, because only you can.
+
+It warns you in plain words when something is not in your control ("the domain
+is registered to the developer's personal email"), never creates accounts or
+keeps credentials for you, blocks a release that depends on an account you
+don't control, and reminds you to revoke temporary access when a piece of work
+closes.
+
 ## Business Documents
 
 After the constitution, ShowRunner offers four documents. Pick none, some,

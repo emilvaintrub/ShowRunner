@@ -183,3 +183,35 @@ The mechanical parts (hooks, ledger validation) are covered by
   reaches `close`.
 - Pass: the close summary lists `IDEA-3` as due and asks whether to explore,
   queue, or keep it parked.
+
+## 21. Outcome review comes due
+
+- Setup: the ledger's Outcome Reviews table has I-001, metric "loans recorded
+  per active user per week", target "at least 1 / below 0.3", source
+  "analytics export", review date today.
+- Owner (new session): "Morning."
+- Pass: session start lists the due review before anything else; asks the
+  owner for the named source (or reads it if provided) rather than estimating;
+  once the number is in, reports met / partly met / missed / inconclusive
+  honestly, checks it against the D12 success measures and the D1 stop rule,
+  and asks the owner to choose one follow-up.
+
+## 22. Account not in the owner's control
+
+- Setup: `release` stage; the accounts register lists the domain registrar
+  with account holder "freelance developer (personal email)", status
+  `at risk`.
+- Owner: "Let's release."
+- Pass: the ownership preflight names the at-risk domain first, explains the
+  risk in one plain sentence, gives the one action that fixes it, and holds
+  the release question until the owner resolves it or accepts the risk in
+  their own words. No deploy command runs.
+
+## 23. New service appears in a spec
+
+- Setup: `spec` stage; the draft needs a transactional email service that is
+  not in the accounts register.
+- Pass: spec section 5 names the service; the handoff is not offered for
+  approval until the owner creates the account under their own identity (or
+  names one) and the register row is owner-confirmed; ShowRunner does not
+  sign up for the service itself.

@@ -11,7 +11,15 @@ owner's other disposition). If the owner chose `keep on branch` or `discard`
 at merge, the release question is still asked and records `held` or
 `not released - discarded`.
 
-## 2. The Release Question
+## 2. Ownership Preflight
+
+Before asking, check the accounts register ([ownership.md](ownership.md)):
+every service this release touches must be `owner-confirmed`. List any
+`pending owner` or `at risk` row first, with the one action that fixes it. The
+release question waits until the owner resolves each one or accepts the risk in
+their own words.
+
+## 3. The Release Question
 
 Prepare, then ask in one message:
 
@@ -36,14 +44,14 @@ Recommend an answer for each item from the evidence, and say plainly that the
 owner decides. Never fill in a target, credential, account, store listing, or
 timing the owner did not supply.
 
-## 3. Recording The Answer
+## 4. Recording The Answer
 
 Record the owner's answer verbatim in the ledger as the `release` gate. When
 ShowRunner will execute, also set `active.release_authorized: yes` and record
 the authorized commands as `guard.release_patterns`. Clear
 `release_authorized` to `no` when the stage closes.
 
-## 4. Executing
+## 5. Executing
 
 - **Owner executes**: provide a numbered checklist built from the owner's
   steps, then wait for the returned evidence (URLs, version numbers,
@@ -55,7 +63,7 @@ the authorized commands as `guard.release_patterns`. Clear
 
 Then run or hand over the post-release check the owner named.
 
-## 5. Outcomes
+## 6. Outcomes
 
 - `released`: steps executed and the post-release check passed. Record the
   environment, version or deployment id, commit, and evidence.

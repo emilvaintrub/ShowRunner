@@ -56,8 +56,11 @@ An `init` command must:
    configured planning, report, and output path, and propose
    `guard.release_patterns` from repository evidence.
 9. Install and verify enforcement per [enforcement.md](enforcement.md).
-10. Report inferred values, human-provided values, disabled capabilities, and
-    unresolved risks.
+10. Inventory every external service the repository evidences into the
+    accounts register and ask the owner to confirm who controls each
+    ([ownership.md](ownership.md)).
+11. Report inferred values, human-provided values, disabled capabilities, and
+    unresolved risks, including every account marked at risk.
 
 Ask the owner only for bindings that are business decisions or cannot be
 evidenced; phrase them in plain language with a recommended answer. Resolve
