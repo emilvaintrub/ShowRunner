@@ -26,6 +26,8 @@ parked: []
 guard:
   writable_before_build:
     - ".claude/showrunner/*"
+    - ".claude/settings.json"
+    - ".githooks/*"
   release_patterns: []
 ```
 

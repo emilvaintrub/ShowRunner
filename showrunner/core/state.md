@@ -45,6 +45,8 @@ parked:
 guard:
   writable_before_build:
     - ".claude/showrunner/*"
+    - ".claude/settings.json"
+    - "<configured hooks path>/*"
     - "<every configured planning, report, and output path or glob>"
   release_patterns:
     - "<deploy or publish command prefix the owner must authorize>"
@@ -52,8 +54,9 @@ guard:
 
 `guard.writable_before_build` lists the paths ShowRunner may write outside the
 `build` stage: the config and ledger, constitution, decision log, project
-state, specs, briefs, plans, prompts, ship, sweep, and Bible outputs, and the
-hygiene ledger. Setup derives it from the config; anything not listed is
+state, specs, briefs, plans, prompts, ship, sweep, and Bible outputs, the
+hygiene ledger, and the enforcement files setup installs (`.claude/settings.json`
+and the hooks path). Setup derives it from the config; anything not listed is
 product code.
 
 `guard.release_patterns` lists command prefixes that publish or deploy
