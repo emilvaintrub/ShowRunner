@@ -56,6 +56,11 @@ executable on POSIX, and runs:
 git config core.hooksPath .githooks
 ```
 
+It also installs `showrunner-sources` ([enforcement.md](enforcement.md)
+section 3), the research/evidence linter, into the same hooks directory so it
+is available on PATH-relative invocation from any clone without a separate
+step.
+
 This setting is clone-local and shared by linked worktrees. Add `--claude`
 (`-ClaudeSettings`) to also merge the Claude Code hooks that call `showrunner`
 into `.claude/settings.json`, preserving everything already there. See

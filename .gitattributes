@@ -3,6 +3,7 @@
 *.ps1 text eol=crlf
 showrunner/scripts/hooks/* text eol=lf
 showrunner/scripts/showrunner text eol=lf
+showrunner/scripts/showrunner-sources text eol=lf
 showrunner/scripts/*.sh text eol=lf
 showrunner/scripts/*.json text eol=lf
 tests/*.sh text eol=lf
