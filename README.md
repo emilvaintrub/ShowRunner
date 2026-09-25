@@ -199,10 +199,14 @@ The short version:
 4. Then, for each piece of work, ShowRunner runs every stage in order - intake, roadmap, spec, design,
    design review, handoff, build plan, Step 0, build, verify, security,
    acceptance, merge, release, close - and moves on by itself.
-5. It stops only for your decisions: product calls, approvals, the returned
+5. New ideas and changes of mind are welcome at any stage: ShowRunner
+   captures them word for word, maps what they would change, keeps unaffected
+   work moving, and explores them with you through Forge before anything
+   approved changes.
+6. It stops only for your decisions: product calls, approvals, the returned
    design, your acceptance test, merge approval, and your release
    instructions.
-6. It never skips a stage on its own, never merges without your approval, and
+7. It never skips a stage on its own, never merges without your approval, and
    never releases or deploys without your instructions.
 
 ## Design Is Expert-Led

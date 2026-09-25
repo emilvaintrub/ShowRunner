@@ -37,6 +37,7 @@ decisions, in plain language, with a recommendation.
 | Returned design output | approves | reviews against the brief |
 | `arc-ready` handoff (spec 9-11) | approves | writes |
 | Folding adjacent work into scope | decides | recommends |
+| A new idea or steer: explore now, fold in, queue, or park; then adopt, adopt later, or drop | decides | captures verbatim, maps impact, explores with Forge, recommends |
 | Risk acceptance | decides | recommends |
 | Acceptance smoke on a real build | performs, approves | writes the playbook |
 | Merge disposition and merge approval | decides | runs the ceremony |
@@ -83,7 +84,7 @@ later stage finds that their conclusions no longer hold.
 | 12 | `acceptance` | smoke | yes | owner-run smoke evidence and verdict |
 | 13 | `merge` | shared ceremony | yes | disposition and approval recorded; ceremony verified |
 | 14 | `release` | [release.md](release.md) | yes, mandatory | owner-supplied release decision executed and checked, or recorded `held` |
-| 15 | `close` | Bible `sync`, hygiene | yes (Bible merge) | Bible current; project state updated; next item proposed |
+| 15 | `close` | Bible `sync`, hygiene | yes (Bible merge) | Bible current; project state updated; queued and due parked ideas reviewed; next item proposed |
 
 ### Project Verdicts
 
@@ -153,13 +154,19 @@ Classify every owner message before acting:
 
 - **Gate answer**: answers the open gate. Restate what was accepted, record it,
   advance.
-- **Correction in scope**: changes the artifact of the current or an earlier
-  stage. Apply it at the stage that owns the artifact; if that stage is behind
-  the current one, re-open it and re-run every later stage whose inputs
-  changed. Tell the owner which stages re-open.
-- **New request**: anything outside the active initiative's approved scope.
-  Open it at `intake` and queue it, or offer the scope STOP choice (fold in or
-  defer) when it touches the active initiative. Never implement it directly,
+- **Correction**: fixes a detail of the artifact at the current stage
+  (wording, a number, a missed state) without changing what was decided.
+  Apply it in place.
+- **Idea or steer**: anything new the owner thought of, or a change of mind
+  about something already decided - a feature, a customer group, pricing,
+  positioning, scope, a design, a roadmap priority, a constitution truth -
+  at any stage, including mid-build, and including half-formed "what if"
+  thoughts. Capture it verbatim and run Forge steering
+  ([../forge/steering.md](../forge/steering.md)) in the same turn: triage,
+  impact map, effect on the active build, then one owner choice (explore now,
+  fold in, queue, or park). A product-level steer is always explored with
+  Forge before it changes anything approved. When unsure whether a message is
+  a correction or a steer, treat it as a steer. Never implement it directly,
   however small.
 - **Status question**: answer from the ledger.
 - **Request to skip, hurry, or "just do it"**: explain which stages would be
@@ -170,6 +177,10 @@ Classify every owner message before acting:
 
 A message that looks like an instruction to edit code is still classified.
 Product code changes only in `build`.
+
+The owner's picture of the product grows as the work goes on; that is
+expected, not a disruption. Steering is how a new idea reaches the build
+without skipping the thinking that approved the rest of it.
 
 ## 5. Waivers
 
@@ -236,9 +247,18 @@ Silence is never approval.
 
 One initiative is active. Others wait in `queue`. An initiative whose release
 the owner put on hold is `parked` at `release` with its trigger; the next
-initiative may start. Every session start lists parked releases, overdue
-Sentry monthly cycles (when enabled), stale accepted risks, and business
-documents whose evidence has passed its freshness window before new work.
+initiative may start.
+
+A Forge steer session is not an initiative: it runs alongside the active one,
+as a conversation with the owner, while a dispatched implementer keeps
+building whatever the steer's impact map marks unaffected. When the impact map
+marks the build affected, ShowRunner pauses it at the next commit boundary
+(or at once, when invalidated) and says why.
+
+Every session start lists parked releases, overdue Sentry monthly cycles
+(when enabled), stale accepted risks, business documents whose evidence has
+passed its freshness window, and parked ideas whose revisit trigger has
+arrived, before new work.
 
 ## 10. Commands As Overrides
 

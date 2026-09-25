@@ -13,7 +13,7 @@ jobs:
   posix:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Ensure dash is installed
         run: |
@@ -44,7 +44,7 @@ jobs:
       run:
         shell: powershell
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Run Windows PowerShell 5.1 installer regression
         run: powershell -NoProfile -ExecutionPolicy Bypass -File tests/windows-powershell.ps1

@@ -47,6 +47,9 @@ Apply the shared decision classifier:
    - Run `sync` at the new primary tip on a `docs/bible-<initiative>` branch.
      When `bible.status` is `disabled` by an owner waiver, say so and skip only
      this step.
+   - Review the ideas log: list queued ideas and parked ideas whose trigger
+     has arrived, and ask the owner whether to explore, queue, or keep each
+     parked.
    - Update the project state: move the initiative to Completed with its
      evidence, refresh Next, and record deferred items.
    - Ask the owner once, in one message, to approve the Bible merge and the

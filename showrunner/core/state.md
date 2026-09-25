@@ -56,7 +56,7 @@ guard:
 ```
 
 `guard.writable_before_build` lists the paths ShowRunner may write outside the
-`build` stage: the config and ledger, constitution, decision log, project
+`build` stage: the config and ledger, constitution, decision log, ideas log, project
 state, specs, briefs, plans, prompts, ship, sweep, and Bible outputs, the
 hygiene ledger, and the enforcement files setup installs (`.claude/settings.json`
 and the hooks path). Setup derives it from the config; anything not listed is

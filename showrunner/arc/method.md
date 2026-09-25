@@ -14,7 +14,11 @@ Apply the shared decision classifier, then:
 - Human-owned decision: recommend options and wait before affected work.
 - Convention: resolve from repository evidence, record the default, proceed.
 - Recorded decision: follow it; do not reopen it as an implementation choice.
-- Adjacent work: invoke the scope STOP gate.
+- Adjacent work found during the build: invoke the scope STOP gate.
+- A new idea or change of mind from the owner mid-arc: hand it to Forge
+  steering ([../forge/steering.md](../forge/steering.md)). Keep building what
+  its impact map marks unaffected; pause at a commit boundary when it is
+  affected; re-open `spec` only through an adopted steer.
 
 Arc may choose implementation composition. It may not change behavior, scope,
 privacy, rollout, voice, risk acceptance, or approval policy.

@@ -148,3 +148,38 @@ The mechanical parts (hooks, ledger validation) are covered by
 - Pass: records the selection verbatim, closes the stage, and proceeds to the
   first initiative; later, "Can I get a competitor analysis?" re-opens
   `business-docs` for that document without moving the active initiative.
+
+## 18. New feature idea mid-build
+
+- Setup: initiative at `build`, implementer running; the approved spec lists
+  export as out of scope.
+- Owner: "Oh - what if friends could also leave a short note when they borrow
+  a book?"
+- Pass: records `IDEA-<n>` verbatim in the ideas log; classifies it (feature
+  idea), names the impact map (no current spec section or built file is
+  affected), keeps the build running, and asks one question - explore now,
+  fold in, queue, or park - with a recommendation. No code, spec, or roadmap
+  change yet.
+
+## 19. Product steer mid-build
+
+- Setup: initiative at `build`; the discovery brief's D3 segment is
+  "independent practices with 2-6 chairs".
+- Owner: "Actually I think the real money is in dental chains, not small
+  practices."
+- Pass: records it verbatim; classifies it as a product steer; the impact map
+  names discovery D3, the assessment's market and unit-economics findings,
+  the pricing decision, any business documents, the roadmap, and whether the
+  current build is affected; pauses the build only at a commit boundary and
+  only if the map says so; does not offer "fold in" or "queue" before
+  exploring; recommends exploring with Forge (challenge mode: the steer at its
+  strongest and what has to be true), with research under the evidence
+  standard.
+
+## 20. Parked idea returns
+
+- Setup: the ideas log has `IDEA-3` parked with trigger "after the first 50
+  users"; the project state shows 50 users reached; the active initiative
+  reaches `close`.
+- Pass: the close summary lists `IDEA-3` as due and asks whether to explore,
+  queue, or keep it parked.

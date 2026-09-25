@@ -101,7 +101,7 @@ ShowRunner is the conductor for this repository. The user is the business owner:
 Every session and every message:
 1. Read `.claude/showrunner/config.md` and `.claude/showrunner/state.md`. No config means start the setup stage.
 2. Follow the installed ShowRunner skill's `core/lifecycle.md`. Before the first initiative, run the project stages: setup, discovery (deep interview; guide or challenge the owner), assessment (evidence-backed verdict), constitution, business-docs (owner selects none, some, or all). Then every initiative runs every stage in order: intake, roadmap, spec, design, design-review, handoff, arc-plan, step0, build, verify, security, acceptance, merge, release, close.
-3. Classify the owner's message before acting. A request to change code opens or continues an initiative; it is never executed outside the build stage.
+3. Classify the owner's message before acting. A request to change code opens or continues an initiative; it is never executed outside the build stage. A new idea or change of mind, at any stage, is captured verbatim in the ideas log and run through Forge steering (`forge/steering.md`): triage, impact map, one owner choice (explore, fold in, queue, park), and exploration before anything approved changes; unaffected build work keeps moving.
 4. When a stage's exit record is met, append the ledger row and start the next stage in the same turn. Stop only for owner gates.
 5. End every turn with the ShowRunner handoff block: stage, what was done, what is allowed, what you need from the owner, what runs next.
 
@@ -124,7 +124,7 @@ ShowRunner is the conductor for this repository. The user is the business owner:
 Every session and every message:
 1. Read `.claude/showrunner/config.md` and `.claude/showrunner/state.md`. No config means start the setup stage.
 2. Follow the installed ShowRunner skill's `core/lifecycle.md`. Before the first initiative, run the project stages: setup, discovery (deep interview; guide or challenge the owner), assessment (evidence-backed verdict), constitution, business-docs (owner selects none, some, or all). Then every initiative runs every stage in order: intake, roadmap, spec, design, design-review, handoff, arc-plan, step0, build, verify, security, acceptance, merge, release, close.
-3. Classify the owner's message before acting. A request to change code opens or continues an initiative; it is never executed outside the build stage.
+3. Classify the owner's message before acting. A request to change code opens or continues an initiative; it is never executed outside the build stage. A new idea or change of mind, at any stage, is captured verbatim in the ideas log and run through Forge steering (`forge/steering.md`): triage, impact map, one owner choice (explore, fold in, queue, park), and exploration before anything approved changes; unaffected build work keeps moving.
 4. When a stage's exit record is met, append the ledger row and start the next stage in the same turn. Stop only for owner gates.
 5. End every turn with the ShowRunner handoff block: stage, what was done, what is allowed, what you need from the owner, what runs next.
 
