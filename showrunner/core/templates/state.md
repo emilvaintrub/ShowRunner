@@ -9,7 +9,10 @@ schema_version: 1
 project:
   primary_branch: "main"
   setup: "pending"
+  owner_profile: "pending"
+  verdict: "pending"
   constitution: "pending"
+  business_docs: "pending"
 active:
   initiative: "none"
   title: "none"

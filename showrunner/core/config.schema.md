@@ -40,6 +40,22 @@ lifecycle:
     claude_hooks: "enabled | disabled"
     ci_check: "<CI job running `showrunner check`, or disabled>"
 
+business:
+  registers: "docs/business/research-registers.md"
+  docs_directory: "docs/business"
+  selected: []            # owner's choice: decisions, competitors, financials, deck
+  geography: "<owner-confirmed markets, or pending>"
+  currency: "<owner-confirmed reporting currency, or pending>"
+  research:
+    web_required: required
+    min_sources: 10
+    min_competitors: 5
+    freshness_days: 365
+    independent_audit: true
+  formats:
+    deck: "<slides artifact type, pptx, or markdown>"
+    financial_model: "<xlsx, csv, or markdown tables>"
+
 release:
   owner_supplied: true
   known_mechanics: ["<release/deploy mechanism found in repository evidence, with path>"]
@@ -353,6 +369,15 @@ bible:
 
 ## Ownership
 
+### Business
+
+The business section binds the research registers, the business-document
+directory, and the research minimums used by the Forge `assessment` and by
+Pitch ([evidence.md](evidence.md)). `selected` records only what the owner
+chose at `business-docs`. `web_required` is always `required`: when research
+tools are unavailable, research-bearing sections stay `EVIDENCE PENDING`
+rather than falling back to model memory.
+
 ### Lifecycle and release
 
 The lifecycle section binds the state ledger, the fix-loop limit, and the
@@ -402,6 +427,8 @@ Initialization must reject or surface:
 
 - a missing primary branch or contradictory merge count;
 - `stop_before_main: false`;
+- `business.research.web_required` set to anything but `required`, or
+  research minimums of zero;
 - `release.owner_supplied: false`, or a release environment, executor, or
   command recorded without an owner-quoted ledger row;
 - a missing state ledger, or enforcement hooks absent without a recorded

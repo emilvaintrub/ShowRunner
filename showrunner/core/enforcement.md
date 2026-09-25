@@ -74,13 +74,58 @@ by an owner outcome is an error.
 Block messages name the rule, the current stage, and what the lifecycle
 requires next, so the agent redirects instead of retrying.
 
-## 3. Installation
+## 3. Research Linter
+
+`scripts/showrunner-sources` checks research-bearing documents against the
+[evidence standard](evidence.md). It is a separate POSIX `sh` script, so the
+guard stays small and fast.
+
+```text
+showrunner-sources lint [--registers FILE] [--fetch] DOCUMENT...
+```
+
+The registers file comes from `--registers`, else `business.registers` in
+`.claude/showrunner/config.md`, else it is an error.
+
+**Registers** (errors): every row in `## Sources` has an `S<n>` id, a URL (or
+a file path or description when the Type is `owner`), an `Accessed` date in
+`YYYY-MM-DD` form, and a non-empty quoted excerpt; `## Search Log` rows have
+`Q<n>` ids and a query; `## Assumptions` rows have `A<n>` ids, a value, a
+rationale, and a sensitivity. Ids are unique.
+
+**Documents** (errors): outside fenced code blocks and HTML comments, every
+table cell and every prose sentence that contains a figure carries a label in
+the same cell or sentence. A figure is a currency amount (a currency symbol or
+ISO code next to a number), a percentage, or a number with a magnitude word or
+suffix (`k`, `m`, `bn`, `thousand`, `million`, `billion`, `trillion`). Labels
+are `[S<n>]` (several ids may share one bracket, `[S1, S4]`), `[OWNER]`,
+`[ASSUMPTION A<n>]`, and `[DERIVED: ...]`. Every cited `S`, `A`, and `Q` id
+exists in the registers.
+
+**Warnings**: a cited source whose `Accessed` date is older than
+`business.research.freshness_days` (default 365); each `EVIDENCE PENDING`
+marker, reported so the owner sees open gaps.
+
+**`--fetch`** (warnings only, never errors): for every cited source with an
+`http` or `https` URL, fetch the page, reduce it to lowercase text with
+collapsed whitespace, and report `confirmed` when the normalized excerpt is
+found, `excerpt-not-found` when the page loads but the excerpt is absent, and
+`unreachable` on an HTTP error or timeout. Pages that render in JavaScript or
+sit behind a login often report `excerpt-not-found`; the human-readable
+citation audit ([evidence.md](evidence.md) section 5) decides those.
+
+Output: `ERROR:` and `WARN:` lines naming file and line, a `--fetch` result
+table when requested, then `showrunner-sources: N errors, M warnings`. Exit 1
+when there are errors.
+
+## 4. Installation
 
 The `setup` stage installs enforcement into the project and verifies it:
 
 1. Run `scripts/install-hooks.sh` (POSIX) or `scripts/install-hooks.ps1`
    (Windows PowerShell). Each copies `commit-msg`, `pre-commit`, the prefix
-   allowlist, and `showrunner` into the configured hooks path, marks them
+   allowlist, `showrunner`, and `showrunner-sources` into the configured
+   hooks path, marks them
    executable, and sets `core.hooksPath`.
 2. With `--claude` (`-ClaudeSettings` in PowerShell), the installer merges the
    entries from `scripts/claude-hooks.json` into the project's
@@ -95,7 +140,7 @@ The `setup` stage installs enforcement into the project and verifies it:
 The package's own regression suite is `sh tests/run.sh` in the ShowRunner
 repository; run it under `sh` and `dash` after changing the script.
 
-## 4. Limits
+## 5. Limits
 
 The guard catches honest mistakes and drift, not a determined bypass.
 It inspects edit tools and recognizable Git and release commands; it does not

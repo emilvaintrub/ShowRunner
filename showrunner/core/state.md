@@ -26,7 +26,10 @@ schema_version: 1
 project:
   primary_branch: "main"
   setup: "pending | complete"
+  owner_profile: "pending | guide | challenge | both"
+  verdict: "pending | proceed | validate-first | pivot | stop"
   constitution: "pending | approved"
+  business_docs: "pending | none | <comma-separated selected documents>"
 active:
   initiative: "<id or none>"
   title: "<short title or none>"
@@ -97,7 +100,8 @@ Outcomes:
 
 ## Recording Rules
 
-- Use `project` as the initiative for `setup` and `constitution`.
+- Use `project` as the initiative for the project stages: `setup`,
+  `discovery`, `assessment`, `constitution`, and `business-docs`.
 - The Artifact column names the approved file as `path@sha256:<hex>` of its
   exact bytes at approval, or `commit:<sha>` for branch and merge gates.
 - An owner row's Evidence column quotes the owner verbatim, in quotes. Replace
@@ -117,7 +121,8 @@ fails when:
 
 - the active stage is not a known stage;
 - any earlier stage for the active initiative, or any project stage, lacks a
-  terminal row;
+  terminal row (while a project stage is active, every earlier project stage
+  needs one);
 - an owner-gate stage is closed by `showrunner`, or an owner row has no quoted
   evidence;
 - `not-applicable` is used outside `design` and `design-review`;

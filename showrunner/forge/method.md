@@ -145,9 +145,16 @@ the `constitution` stage (`discover`) and, once the owner approves it,
 re-validates `init` automatically to promote Forge to `ready`. The owner is
 never asked to re-run a command.
 
-### `discover`
+### `discover` and `assess`
 
-Run a founding interview. Gate and resolve:
+`discovery` and `assessment` follow [discovery.md](discovery.md): the owner
+profile, the full inquiry across the inquiry bank's twelve domains, research
+under `../core/evidence.md`, the discovery brief, and a candid viability
+assessment ending in the owner's verdict. Only after the verdict does
+`discover` move on to the constitution.
+
+For the constitution, draw on the confirmed discovery brief and the
+assessment; do not re-ask what they already answer. Gate and resolve:
 
 - the problem worth caring about;
 - intended people and context;
@@ -162,7 +169,10 @@ only after the inventor approves each durable claim. Stop for final redline.
 
 ### `plan`
 
-At the `roadmap` stage, `plan` places the new initiative in the project state:
+At the `roadmap` stage, first run the Initiative Inquiry
+([discovery.md](discovery.md) section 5): the six questions every initiative
+answers, plus the challenge question in challenge mode. Then `plan` places the
+new initiative in the project state:
 which phase it belongs to, what it changes in the surface inventory, and what
 it defers. When a current plan exists, update it rather than rewriting it;
 the owner approves the change. Frame the constitution and current state. Gate
