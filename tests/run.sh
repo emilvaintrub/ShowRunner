@@ -521,6 +521,86 @@ else
 fi
 
 # ===========================================================================
+# 8. Reviewer findings (arc A-1 fix round, verdict on tip 2d9ad37)
+# ===========================================================================
+
+# F1 (HIGH): chained `git switch main && git merge feat/x` from a feature
+# branch must be treated as merging into the primary branch outside the
+# merge stage.
+repo=$(new_repo)
+(cd "$repo" && git checkout -q -b feat/x)
+write_state "$repo" spec no none no
+out=$(guard_json_bash "git switch main && git merge feat/x" "$repo" | "$SHOWRUNNER" guard 2>&1)
+rc=$?
+[ "$rc" -eq 2 ] && pass "F1: chained switch-then-merge onto primary blocked outside merge stage" \
+  || fail "F1: chained switch-then-merge onto primary blocked outside merge stage" "exit=$rc out=$out"
+
+# F2 (HIGH): `git -C <dir> merge ...` must still be recognized as a merge,
+# with the branch resolved from <dir>.
+repo=$(new_repo)
+write_state "$repo" spec no none no
+out=$(guard_json_bash "git -C $repo merge feat/x" "$repo" | "$SHOWRUNNER" guard 2>&1)
+rc=$?
+[ "$rc" -eq 2 ] && pass "F2: git -C DIR merge onto primary blocked (global-option normalization)" \
+  || fail "F2: git -C DIR merge onto primary blocked (global-option normalization)" "exit=$rc out=$out"
+
+# F3 (HIGH): a `+<primary>` refspec (no colon) is still a force push to the
+# primary branch.
+repo=$(new_repo)
+(cd "$repo" && git checkout -q -b feat/x)
+write_state "$repo" spec no none no
+out=$(guard_json_bash "git push origin +main" "$repo" | "$SHOWRUNNER" guard 2>&1)
+rc=$?
+[ "$rc" -eq 2 ] && pass "F3: git push origin +main blocked from a non-primary branch" \
+  || fail "F3: git push origin +main blocked from a non-primary branch" "exit=$rc out=$out"
+
+# F4 (MEDIUM): a symlinked cwd/file_path (e.g. macOS /tmp -> /private/tmp)
+# must not produce a false block on an otherwise-writable path.
+repo=$(new_repo)
+write_state "$repo" spec no none no
+linkdir="${repo}-symlink"
+ln -s "$repo" "$linkdir"
+track_tmp "$linkdir"
+out=$(guard_json_edit Write file_path "$linkdir/.claude/showrunner/notes.md" "$linkdir" | "$SHOWRUNNER" guard 2>&1)
+rc=$?
+[ "$rc" -eq 0 ] && pass "F4: writable path reached through a symlinked worktree path is allowed" \
+  || fail "F4: writable path reached through a symlinked worktree path is allowed" "exit=$rc out=$out"
+
+# F5 (MEDIUM): release-pattern matching must see through a leading
+# environment-assignment prefix.
+repo=$(new_repo)
+write_state "$repo" spec no none no "" "vercel --prod"
+out=$(guard_json_bash "FOO=1 vercel --prod" "$repo" | "$SHOWRUNNER" guard 2>&1)
+rc=$?
+[ "$rc" -eq 2 ] && pass "F5a: release pattern recognized through a leading FOO=1 env assignment" \
+  || fail "F5a: release pattern recognized through a leading FOO=1 env assignment" "exit=$rc out=$out"
+
+out=$(guard_json_bash "env FOO=1 vercel --prod" "$repo" | "$SHOWRUNNER" guard 2>&1)
+rc=$?
+[ "$rc" -eq 2 ] && pass "F5b: release pattern recognized through a leading env FOO=1 wrapper" \
+  || fail "F5b: release pattern recognized through a leading env FOO=1 wrapper" "exit=$rc out=$out"
+
+# F6 (LOW): context must not print a literal "none" initiative/title.
+repo=$(new_repo)
+write_state "$repo" spec no none no
+out=$(cd "$repo" && "$SHOWRUNNER" context)
+case "$out" in
+  "ShowRunner: no active initiative; project stage"*) pass "F6: context prints 'no active initiative' when active.initiative is none" ;;
+  *) fail "F6: context prints 'no active initiative' when active.initiative is none" "out=[$out]" ;;
+esac
+
+# F7 (LOW): a showrunner-only stage (intake/step0/build/verify) closed by an
+# owner outcome must be flagged.
+repo=$(new_repo)
+write_state "$repo" intake no none no
+append_row "$repo" '| 1 | I-001 | intake | approved | owner | 2026-01-01 | commit:abc | "go" |'
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "showrunner-owned stage intake closed by owner"; } \
+  && pass "F7: showrunner-only stage closed by an owner outcome is an error" \
+  || fail "F7: showrunner-only stage closed by an owner outcome is an error" "exit=$rc out=$out"
+
+# ===========================================================================
 # Summary
 # ===========================================================================
 
