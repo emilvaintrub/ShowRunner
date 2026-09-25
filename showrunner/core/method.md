@@ -130,7 +130,8 @@ branch commits, the implementer reports:
 End with `STOP: awaiting describe-back approval`.
 
 ShowRunner, as architect, reviews the describe-back against the brief and the
-repository. The owner does not approve Step 0; ShowRunner tells the owner in
+repository. The owner does not approve Step 0, and ShowRunner never tells the
+owner they will; ShowRunner tells the owner in
 two or three plain sentences what will be built and that building has begun.
 ShowRunner responds to the implementer with one of:
 

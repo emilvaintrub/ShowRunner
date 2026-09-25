@@ -24,6 +24,9 @@ The owner's picture can grow during the work.
   installer on Windows PowerShell 5.1.
 - CI checkout moved to `actions/checkout@v5` (Node 24 runtime) after GitHub's
   Node 20 deprecation warning.
+- From scenario re-runs: the waiver rule is now one fixed sentence with no
+  example skip wording, and ShowRunner never tells the owner they approve
+  Step 0.
 
 ## v1.2.0 - 2026-09-25
 
