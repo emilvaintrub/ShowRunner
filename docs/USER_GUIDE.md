@@ -117,6 +117,34 @@ Each new feature later gets a shorter version of the same questioning: what
 problem it solves, how we will know it worked, the smallest version, and what
 could go wrong.
 
+## New Ideas Along The Way
+
+You don't need the full picture at the start. When a new idea or a change of
+mind comes to you - mid-build, mid-spec, anytime - just say it, even half
+formed ("what if we also...", "actually, maybe clinics in Austria too").
+
+ShowRunner:
+
+1. **Writes it down word for word** in the ideas log, so nothing is lost.
+2. **Works out what it touches** in the same turn: is it a new feature, a
+   change to the current work, or a change of direction for the product? Which
+   approved decisions, documents, and parts of the current build would it
+   affect?
+3. **Keeps the build moving** where the idea doesn't affect it, and pauses it
+   at a safe point where it does, telling you why.
+4. **Asks you one question**: explore it now, add it to the current work,
+   queue it for later, or park it with a reminder.
+5. **Explores it with you** (in guide or challenge mode) with the same depth
+   and real research as discovery, and tells you honestly whether it makes the
+   product stronger or weaker. You decide: adopt now, adopt later, or drop.
+6. **Applies it properly** when you adopt it: the decision is recorded, the
+   discovery brief, assessment, constitution, business documents, and roadmap
+   are updated through your approvals, and the current work continues,
+   changes course, or is replaced - whatever the idea actually requires.
+
+Parked ideas come back to you when their reminder is due and at the end of
+every piece of work.
+
 ## Business Documents
 
 After the constitution, ShowRunner offers four documents. Pick none, some,
@@ -149,7 +177,7 @@ investment advice.
 
 ## Who Decides What
 
-You decide: how you want to be guided or challenged, the idea's verdict,
+You decide: what happens to each new idea you raise, how you want to be guided or challenged, the idea's verdict,
 which business documents to produce and their assumptions, product
 direction, scope, brand, voice, privacy, pricing, design,
 risk acceptance, the acceptance test result, merging, releasing, and whether

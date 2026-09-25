@@ -82,6 +82,12 @@ token_cost_reporting: true
    - Permit in-scope edits, tests, branch commits, and configured pushes.
    - Route mid-run questions through the decision classifier.
    - Enforce the scope STOP gate.
+   - When the owner raises an idea or steer during the run, the architect runs
+     Forge steering with the owner while the implementer continues. If the
+     steer's impact map marks the build affected, tell the implementer to
+     stop at its next commit boundary, push, and report; if invalidated, to
+     stop now at a clean commit. Resume, or return to `spec`, only after the
+     owner's steer decision.
 
 6. **Collect**
    - Receive the ship report, test evidence, commit list, remote-tip evidence,

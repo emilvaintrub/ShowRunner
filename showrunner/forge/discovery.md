@@ -225,6 +225,8 @@ say plainly when another item would be more valuable to build first.
 Re-open `discovery` or `assessment` when:
 
 - the owner asks, or chooses `pivot`;
+- the owner adopts a steer that changes a discovery answer or an assessment
+  finding ([steering.md](steering.md) section 6);
 - a validation experiment passes or fails its threshold;
 - an initiative's inquiry contradicts a discovery answer or an assessment
   finding;

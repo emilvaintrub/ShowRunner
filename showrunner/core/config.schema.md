@@ -217,6 +217,7 @@ forge:
   design_principle: "<principle or disabled>"
   asset_reservations: ["<rule>"]
   decision_entry_template: "<template path or disabled>"
+  ideas_log: "<path, e.g. docs/ideas.md>"
   project_state_cadence: "<cadence or disabled>"
   outputs:
     specs_directory: "<path>"

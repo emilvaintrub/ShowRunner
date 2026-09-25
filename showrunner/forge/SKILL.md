@@ -36,6 +36,11 @@ also load `../core/evidence.md`.
 | `design-review` | `design-review` | returned design output reviewed against the brief's Design Review Package |
 | `handoff` | `spec` (sections 9-11) | spec marked `arc-ready` |
 
+`steer` is not a stage either: it runs whenever the owner raises an idea or
+changes their mind, at any stage, following [steering.md](steering.md) and
+recording in [templates/ideas-log.md](templates/ideas-log.md). The conductor
+starts it on its own when it classifies an owner message as an idea or steer.
+
 `decide` is not a separate stage: every gate proposes the decision-log
 entries its answers create, and the owner's gate reply approves them. The
 command remains for recording a standalone decision the owner raises.
@@ -48,6 +53,8 @@ Use [templates/questions.md](templates/questions.md) for every decision gate.
 ## Hard Stops
 
 - Never start a stage whose predecessors lack terminal ledger rows.
+- Never let an unexplored product steer change a spec, design, document, or
+  code; never lose or silently drop an owner idea.
 - Never close `discovery` while an inquiry domain lacks a coverage state, or
   write the constitution before the owner's `assessment` verdict.
 - Never state a market, competitor, price, cost, or regulatory fact without

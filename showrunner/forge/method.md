@@ -373,7 +373,11 @@ what to return; every session start repeats that list.
 
 ## 7. Mid-Session Findings
 
-- New product or scope call: pause and batch it into the next decision gate.
+- The owner raises a new idea or changes their mind: run steering
+  ([steering.md](steering.md)) - capture, triage, impact map, one owner
+  choice, then explore before anything approved changes.
+- New product or scope call found by Forge itself: pause and batch it into the
+  next decision gate.
 - New convention: record the default and continue.
 - Adjacent feature: use the shared scope STOP gate.
 - Missing evidence: label the recommendation provisional.

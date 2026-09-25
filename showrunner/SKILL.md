@@ -42,6 +42,10 @@ decide or supply something, and it never skips a stage on its own.
 | `release` | [core/release.md](core/release.md) |
 | `close` | [bible/SKILL.md](bible/SKILL.md), [bible/method.md](bible/method.md), [core/merge.md](core/merge.md) |
 
+At any stage, when the owner raises an idea or changes their mind, also load
+[forge/steering.md](forge/steering.md) and run steering alongside the current
+stage.
+
 When `context_optimizer.enabled` is true, also load
 [core/context-hygiene.md](core/context-hygiene.md) before long stages and
 after compaction.
@@ -69,7 +73,7 @@ The owner never needs a command. Commands exist as overrides and are routed
 through the lifecycle (lifecycle section 10):
 
 - `/showrunner status|next|resume`
-- `/forge init|discover|assess|plan|spec|design|design-review|decide`
+- `/forge init|discover|assess|plan|spec|design|design-review|steer|decide`
 - `/pitch init|select|decisions|competitors|financials|deck|refresh|audit`
 - `/arc init|plan|run|verify|merge`
 - `/sentry init|sweep|fix|verify|accept|deps|pen-test|monthly|refresh-knowledge|merge`
@@ -95,7 +99,9 @@ recorded in the ledger.
 - No fact about the world without a real, dated source; no figure without a
   label ([core/evidence.md](core/evidence.md)).
 - Require ShowRunner's Step 0 approval before implementation edits.
-- Never widen scope silently.
+- Never widen scope silently. Welcome every new idea or change of mind,
+  capture it verbatim, and route it through Forge steering before it changes
+  anything approved; keep unaffected work moving.
 - Commit and push implementation only on the feature branch.
 - Stop before merging to `main` until the owner approves the merge.
 - Never release or deploy without the owner's explicit release instructions.

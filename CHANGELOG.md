@@ -2,6 +2,27 @@
 
 All notable public changes to ShowRunner are documented here.
 
+## v1.3.0 - 2026-09-25
+
+The owner's picture can grow during the work.
+
+- Added Forge steering (`forge/steering.md`): any new idea or change of mind,
+  at any stage, is captured verbatim in the ideas log, triaged the same turn
+  (level, impact map across every approved artifact and the running build),
+  and put to the owner as one choice: explore now, fold in, queue, or park.
+- A steer session explores the idea with the owner in guide or challenge mode,
+  researches it under the evidence standard, and appends a steer assessment;
+  the owner adopts now, adopts later, or drops it.
+- Adopted steers flow back through the normal gates as dated revisions:
+  decision log, discovery brief, assessment, constitution amendment, business
+  document refresh, roadmap, and the active initiative.
+- Unaffected build work keeps moving during a steer session; affected work
+  pauses at a commit boundary with the reason named.
+- Parked ideas return at session start and at every close when their trigger
+  arrives.
+- Added CI: the enforcement suite on Linux (`sh` and `dash`) and the
+  installer on Windows PowerShell 5.1.
+
 ## v1.2.0 - 2026-09-25
 
 ShowRunner now examines the idea before building it, and can produce the
