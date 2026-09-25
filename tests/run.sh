@@ -1340,6 +1340,90 @@ rc=$?
 [ "$rc" -eq 2 ] && pass "usage error (unknown subcommand) exits 2" || fail "usage error (unknown subcommand) exits 2" "exit=$rc out=$out"
 
 # ===========================================================================
+# 11. Eval suite structural checks (evals/): no model calls.
+# ===========================================================================
+
+EVALS_DIR="$ROOT_DIR/evals"
+
+if [ -d "$EVALS_DIR" ]; then
+  case_list=$(find "$EVALS_DIR" -mindepth 1 -maxdepth 1 -type d ! -name '_fixtures' | sort)
+  if [ -z "$case_list" ]; then
+    fail "evals/: at least one case directory exists" "found none under $EVALS_DIR"
+  else
+    pass "evals/: at least one case directory exists"
+  fi
+
+  if command -v python3 >/dev/null 2>&1 && python3 -c 'import yaml' >/dev/null 2>&1; then
+    for cdir in $case_list; do
+      name=$(basename "$cdir")
+      result=$(python3 - "$cdir" <<'PYEOF'
+import sys, os
+import yaml
+d = sys.argv[1]
+cy = os.path.join(d, "case.yaml")
+try:
+    if os.path.isfile(cy):
+        doc = yaml.safe_load(open(cy))
+        if not isinstance(doc, dict):
+            print("FAIL case.yaml is not a mapping"); sys.exit(0)
+        if "schema_version" not in doc:
+            print("FAIL missing schema_version"); sys.exit(0)
+        graders = doc.get("graders")
+        if not isinstance(graders, list) or len(graders) < 1:
+            print("FAIL no graders"); sys.exit(0)
+        names = []
+        for g in graders:
+            if not isinstance(g, dict) or not g.get("name") or not g.get("type"):
+                print("FAIL a grader is missing name or type"); sys.exit(0)
+            names.append(g["name"])
+        if len(names) != len(set(names)):
+            print("FAIL duplicate grader names"); sys.exit(0)
+        exe = doc.get("execution")
+        if not isinstance(exe, dict) or not (exe.get("prompt") or "").strip():
+            print("FAIL execution.prompt missing or empty"); sys.exit(0)
+        print("PASS %d graders" % len(names))
+    elif os.path.isfile(os.path.join(d, "prompt.md")):
+        print("PASS prompt.md case (not case.yaml)")
+    else:
+        print("FAIL no case.yaml or prompt.md")
+except Exception as e:
+    print("FAIL exception: %s" % e)
+PYEOF
+)
+      case "$result" in
+        PASS*) pass "evals/$name/case.yaml parses and names its graders ($result)" ;;
+        *) fail "evals/$name/case.yaml parses and names its graders" "$result" ;;
+      esac
+    done
+  else
+    printf 'SKIP: evals/*/case.yaml structural parse (python3 with PyYAML not available)\n'
+  fi
+
+  if command -v python3 >/dev/null 2>&1; then
+    for cdir in $case_list; do
+      id=$(basename "$cdir")
+      fdir=$(mktemp -d)
+      track_tmp "$fdir"
+      if python3 "$EVALS_DIR/_fixtures/build.py" "$id" "$fdir" >/tmp/fixture_build_err.$$ 2>&1; then
+        out=$(cd "$fdir" && "$SHOWRUNNER" check 2>&1)
+        if printf '%s' "$out" | grep -q "ERROR"; then
+          fail "evals/$id: fixture ledger passes showrunner check" "out=$out"
+        else
+          pass "evals/$id: fixture ledger passes showrunner check"
+        fi
+      else
+        fail "evals/$id: fixture scaffold builds without error" "$(cat /tmp/fixture_build_err.$$)"
+      fi
+      rm -f /tmp/fixture_build_err.$$
+    done
+  else
+    printf 'SKIP: evals/*/_fixtures build + showrunner check (python3 not available)\n'
+  fi
+else
+  fail "evals/ directory exists" "not found: $EVALS_DIR"
+fi
+
+# ===========================================================================
 # Summary
 # ===========================================================================
 

@@ -1,0 +1,38 @@
+schema_version: '1.0'
+name: Outcome review comes due
+description: 'Scenario 21: a due outcome review is surfaced first at session start, graded
+  honestly against the source, not estimated.'
+tags:
+- outcomes
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: Morning.
+  max_turns: 15
+  timeout_seconds: 600
+  allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Skill
+  - Write
+  - Edit
+  - Bash
+runs: 1
+graders:
+- type: tool_used
+  name: showrunner-skill-fired
+  tool: Skill
+  input_match: showrunner
+  min: 1
+- type: llm
+  name: meets-scenario-pass-criteria
+  criteria: PASS only if the response lists the due outcome review for I-001 before starting
+    any new work, asks the owner for the number from the named source (the analytics export)
+    rather than estimating it itself (or reads it if the owner already supplied it in this
+    message, which they did not), and if a number were in hand would report met/partly met/missed/inconclusive
+    honestly and check it against the D12 success measures and D1 stop rule. It must ask the
+    owner to choose one follow-up rather than deciding for them. FAIL if it invents or estimates
+    the metric's value instead of asking for the named source, or fails to mention the due
+    review at all.
+  focus: last_message

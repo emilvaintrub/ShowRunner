@@ -1,0 +1,42 @@
+schema_version: '1.0'
+name: Newcomer with a vague idea
+description: 'Scenario 12: a vague idea from a fresh project opens discovery in guide mode
+  and probes rather than assumes.'
+tags:
+- discovery
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: I want to make an app for dog owners.
+  max_turns: 15
+  timeout_seconds: 600
+  allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Skill
+  - Write
+  - Edit
+  - Bash
+runs: 1
+graders:
+- type: tool_used
+  name: showrunner-skill-fired
+  tool: Skill
+  input_match: showrunner
+  min: 1
+- type: file_exists
+  name: no-constitution-written
+  path: docs/constitution.md
+  exists: false
+- type: llm
+  name: meets-scenario-pass-criteria
+  criteria: PASS only if the response opens the discovery stage, recommends guide mode with
+    a two-sentence reason for that recommendation, asks no more than the configured number
+    of questions for this round (5), each question carrying a one-line reason and concrete
+    options, and probes the vague phrase "dog owners" for more specifics (which dog owners,
+    where) rather than accepting it as-is. It must write no constitution, brief, or spec file
+    yet, and must end by saying where the owner is on the road and what happens next. FAIL
+    if it writes a constitution, brief or spec, asks more than 5 questions in the round, or
+    fails to probe the vague answer.
+  focus: last_message

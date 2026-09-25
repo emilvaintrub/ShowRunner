@@ -2,6 +2,15 @@
 
 All notable public changes to ShowRunner are documented here.
 
+## v1.4.0 - 2026-09-25
+
+- Added an automated eval suite (`evals/`) covering 23 of the 26 behavioral
+  scenarios in `docs/SCENARIOS.md`, graded with `claude plugin eval` against
+  disposable fixture repositories, plus a weekly/on-demand `evals` GitHub
+  Actions workflow and a cheap structural check in `sh tests/run.sh`, so
+  prose edits and new model generations can no longer silently regress a
+  scenario that was previously verified only by hand.
+
 ## v1.3.0 - 2026-09-25
 
 The owner's picture can grow during the work.

@@ -1,0 +1,37 @@
+schema_version: '1.0'
+name: Parked idea returns
+description: 'Scenario 20: closing an initiative after its parked idea''s trigger has occurred
+  surfaces that idea for a decision.'
+tags:
+- ownership
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: Great, it's live. Let's wrap this one up.
+  max_turns: 15
+  timeout_seconds: 600
+  allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Skill
+  - Write
+  - Edit
+  - Bash
+runs: 1
+graders:
+- type: tool_used
+  name: showrunner-skill-fired
+  tool: Skill
+  input_match: showrunner
+  min: 1
+- type: regex
+  name: parked-idea-surfaced
+  pattern: IDEA-3
+  match: contains
+- type: llm
+  name: meets-scenario-pass-criteria
+  criteria: PASS only if the close summary lists the parked IDEA-3 as due now that its trigger
+    ("after the first 50 users") has occurred, and asks the owner whether to explore it, queue
+    it, or keep it parked. FAIL if it closes the initiative without mentioning IDEA-3.
+  focus: last_message

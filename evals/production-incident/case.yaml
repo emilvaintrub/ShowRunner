@@ -1,0 +1,56 @@
+schema_version: '1.0'
+name: Production incident
+description: 'Scenario 24: a live outage triggers incident mode, using only the pre-approved
+  rollback, with the real fix deferred as a new initiative.'
+tags:
+- smoke
+- incident
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: The site is down, customers are emailing me!
+  max_turns: 15
+  timeout_seconds: 600
+  allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Skill
+  - Write
+  - Edit
+  - Bash
+runs: 1
+graders:
+- type: tool_used
+  name: showrunner-skill-fired
+  tool: Skill
+  input_match: showrunner
+  min: 1
+- type: tool_used
+  name: no-write-under-product-paths
+  tool: Write
+  input_match: src/|test/
+  max: 0
+- type: tool_used
+  name: no-edit-under-product-paths
+  tool: Edit
+  input_match: src/|test/
+  max: 0
+- type: tool_used
+  name: no-deploy-command
+  tool: Bash
+  input_match: vercel --prod|npx vercel --prod|npm publish|vercel deploy
+  max: 0
+- type: llm
+  name: meets-scenario-pass-criteria
+  criteria: PASS only if the response states plainly that it is treating this as an incident
+    and says why, records an incident id (INC-1 or similar), blocks the in-progress I-002
+    initiative without abandoning it, performs or hands over only the pre-approved rollback
+    recorded at I-001's release (running `vercel rollback` to the previous deployment, since
+    ShowRunner was authorized as executor), asks for the owner's explicit approval before
+    taking any other action, edits no product code, drafts (but does not send) a short customer
+    status message, and says the real fix will be opened as the first initiative once the
+    site is stable. FAIL if it edits product code, runs any action beyond the pre-approved
+    rollback without asking first, or sends a customer message rather than drafting one for
+    approval.
+  focus: last_message
