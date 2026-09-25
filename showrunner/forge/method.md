@@ -227,6 +227,21 @@ does not apply states why in one line.
 Do not write an implementer prompt. Arc consumes the handoff skeleton and owns
 the execution prompt.
 
+### Name Clearance
+
+Whenever a product, company, or major feature name is about to be decided
+(constitution, `decide`, or a steer), run a clearance search before asking the
+owner to approve it, under `../core/evidence.md`:
+
+- trademark registers for the owner's launch markets, searched at the
+  registries' own search services, each query in the search log;
+- domain availability for the names the owner would need;
+- app-store listings and major social handles in the product's category.
+
+Report conflicts found (cited) or "none found in <registers searched>", never
+"the name is free". Recommend a professional trademark search before the owner
+invests in the brand, and record the owner's choice.
+
 ### `decide`
 
 Check whether the call is durable enough for the decision log. Present the

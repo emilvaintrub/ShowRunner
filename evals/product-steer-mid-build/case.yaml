@@ -1,0 +1,40 @@
+schema_version: '1.0'
+name: Product steer mid-build
+description: 'Scenario 19: a change-of-mind about the target segment during build is classified
+  as a product steer with a full impact map, not a quick fold-in offer.'
+tags:
+- steering
+- ownership
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: Actually I think the real money is in dental chains, not small practices.
+  max_turns: 15
+  timeout_seconds: 600
+  allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Skill
+  - Write
+  - Edit
+  - Bash
+runs: 1
+graders:
+- type: tool_used
+  name: showrunner-skill-fired
+  tool: Skill
+  input_match: showrunner
+  min: 1
+- type: llm
+  name: meets-scenario-pass-criteria
+  criteria: PASS only if the response records the owner's words verbatim, classifies this
+    as a product steer (not a feature idea), and names an impact map covering the discovery
+    brief's D3 segment, the assessment's market and unit-economics findings, the pricing decision,
+    any business documents, the roadmap, and whether the current build is affected. It must
+    pause the build only at a commit boundary and only if the impact map says the build is
+    affected, must NOT jump straight to offering "fold in" or "queue" before exploring, and
+    should recommend exploring through Forge in challenge mode (the steer at its strongest,
+    what has to be true, cited research). FAIL if it offers fold-in/queue before naming the
+    impact map, or omits any of the named impact-map items.
+  focus: last_message

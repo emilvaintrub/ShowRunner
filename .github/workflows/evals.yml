@@ -1,0 +1,86 @@
+name: evals
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Grader tag filter (e.g. smoke). Leave empty for the full suite."
+        required: false
+        default: "smoke"
+      max_cost_usd:
+        description: "Hard cost ceiling in USD for this run."
+        required: false
+        default: "10"
+  schedule:
+    # Weekly, off the hour to avoid the top-of-hour scheduling crowd.
+    - cron: "17 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      - name: Check for ANTHROPIC_API_KEY
+        id: has_key
+        run: |
+          if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+            echo "::notice::ANTHROPIC_API_KEY is not set for this repository/environment - skipping the eval run. Add it as a repository or environment secret to enable this workflow."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Ensure the Bash-tool sandbox backend is installed
+        if: steps.has_key.outputs.present == 'true'
+        run: |
+          if ! command -v bwrap >/dev/null 2>&1 || ! command -v socat >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y bubblewrap socat
+          fi
+
+      - name: Install Claude Code
+        if: steps.has_key.outputs.present == 'true'
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run eval suite
+        if: steps.has_key.outputs.present == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -eu
+          TAG="${{ github.event.inputs.tag }}"
+          MAX_COST="${{ github.event.inputs.max_cost_usd }}"
+          MAX_COST="${MAX_COST:-10}"
+          ARGS=(
+            . --trust-plugin --scaffold --allow-tools Bash Write Edit
+            --ablation none --runs 1 --threshold 0.8 --no-publish
+            --model claude-sonnet-5
+            --max-cost-usd "$MAX_COST"
+            --json evals-results.json
+            --report evals-report.html
+          )
+          if [ -n "${TAG:-}" ]; then
+            ARGS+=(--tag "$TAG")
+          fi
+          claude plugin eval "${ARGS[@]}"
+
+      - name: Upload eval results
+        if: steps.has_key.outputs.present == 'true' && always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: evals-results
+          path: |
+            evals-results.json
+            evals-report.html
+          if-no-files-found: warn
+          retention-days: 30

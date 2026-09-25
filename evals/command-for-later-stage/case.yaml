@@ -1,0 +1,35 @@
+schema_version: '1.0'
+name: Command for a later stage
+description: 'Scenario 9: the owner issues /arc run while the initiative is still at spec;
+  ShowRunner refuses and stays on-stage.'
+tags:
+- smoke
+- lifecycle
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: /arc run
+  max_turns: 15
+  timeout_seconds: 600
+  allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Skill
+  - Write
+  - Edit
+  - Bash
+runs: 1
+graders:
+- type: tool_used
+  name: showrunner-skill-fired
+  tool: Skill
+  input_match: showrunner
+  min: 1
+- type: llm
+  name: meets-scenario-pass-criteria
+  criteria: PASS only if the response refuses to run /arc run right now, names the specific
+    missing predecessor stages (spec redline still open, then design, design-review, handoff,
+    and arc-plan), and continues working the current spec stage instead of jumping ahead.
+    FAIL if it runs Arc, or if it silently ignores the command without explaining why.
+  focus: last_message

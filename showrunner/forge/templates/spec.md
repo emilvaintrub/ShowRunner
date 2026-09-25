@@ -48,6 +48,9 @@ Do not leave hidden product decisions in later sections.
 - Privacy, security, accessibility, and operational constraints.
 - Flags, migrations, and compatibility expectations.
 - Technical facts Arc must verify rather than assume.
+- New external services or accounts this change needs, each with its row in
+  the accounts register (`core/ownership.md`); a service without an
+  owner-confirmed row blocks build.
 
 ## 6. Recorded Implementation Defaults
 
@@ -107,6 +110,8 @@ For each phase, name:
 ## 11. Passing Condition
 
 State an observable end-to-end scenario and the human/product test it must pass.
+Restate the outcome review from the roadmap entry: metric, target, source, and
+review date (`core/outcomes.md`).
 Include inert behavior for disabled flags and non-leakage for excluded people
 or surfaces when relevant.
 

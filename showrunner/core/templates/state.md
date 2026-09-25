@@ -39,6 +39,11 @@ guard:
 | Initiative | Title | Opened | Owner request (verbatim) | Stage | Status |
 | --- | --- | --- | --- | --- | --- |
 
+## Outcome Reviews
+
+| Initiative | Metric | Target (works / does not) | Source | Review date | Result | Owner's follow-up (verbatim) |
+| --- | --- | --- | --- | --- | --- | --- |
+
 ## Gate Ledger
 
 | # | Initiative | Stage | Outcome | Approver | Date | Artifact | Evidence |

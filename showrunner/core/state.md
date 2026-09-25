@@ -56,7 +56,7 @@ guard:
 ```
 
 `guard.writable_before_build` lists the paths ShowRunner may write outside the
-`build` stage: the config and ledger, constitution, decision log, ideas log, project
+`build` stage: the config and ledger, constitution, decision log, ideas log, accounts register, project
 state, specs, briefs, plans, prompts, ship, sweep, and Bible outputs, the
 hygiene ledger, and the enforcement files setup installs (`.claude/settings.json`
 and the hooks path). Setup derives it from the config; anything not listed is
@@ -73,6 +73,18 @@ proposes them from repository evidence; the owner confirms them at `release`.
 | --- | --- | --- | --- | --- | --- |
 | I-001 | <title> | <date> | "<the owner's words>" | <stage> | <status> |
 ```
+
+### Outcome Reviews
+
+```markdown
+| Initiative | Metric | Target (works / does not) | Source | Review date | Result | Owner's follow-up (verbatim) |
+| --- | --- | --- | --- | --- | --- | --- |
+| I-001 | <metric> | <target> | <named source> | <YYYY-MM-DD> | pending / met / partly met / missed / inconclusive | "<owner's words>" |
+```
+
+Added at `close` from the initiative's roadmap entry; updated when the review
+runs ([outcomes.md](outcomes.md)). Validation experiments use the same table
+with the experiment id in the Initiative column.
 
 ### Gate Ledger
 

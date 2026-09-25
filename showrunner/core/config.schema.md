@@ -56,6 +56,13 @@ business:
     deck: "<slides artifact type, pptx, or markdown>"
     financial_model: "<xlsx, csv, or markdown tables>"
 
+ownership:
+  register: "docs/business/accounts.md"
+  secret_store: "<owner-named password manager or secret store, or pending>"
+
+outcomes:
+  default_review_after_days: 30
+
 release:
   owner_supplied: true
   known_mechanics: ["<release/deploy mechanism found in repository evidence, with path>"]
@@ -340,6 +347,11 @@ sentry:
     regression_catalog: "<path or disabled>"
   backup_access_policy: "<path, prose, or disabled>"
   known_dependency_blocks: []
+  license_policy:
+    distribution: "saas | distributed-app | library | internal | pending owner"
+    allowed: ["MIT", "BSD-2-Clause", "BSD-3-Clause", "Apache-2.0", "ISC"]
+    review_required: ["LGPL-*", "MPL-2.0", "EPL-*"]
+    blocked_without_owner_decision: ["GPL-*", "AGPL-*", "SSPL-*", "unknown"]
   mobile_signing:
     enabled: false
     ios_profile_management: "disabled"
@@ -381,6 +393,13 @@ Pitch ([evidence.md](evidence.md)). `selected` records only what the owner
 chose at `business-docs`. `web_required` is always `required`: when research
 tools are unavailable, research-bearing sections stay `EVIDENCE PENDING`
 rather than falling back to model memory.
+
+### Ownership and outcomes
+
+`ownership.register` is the accounts map from [ownership.md](ownership.md);
+`secret_store` names where credentials live, never the credentials.
+`outcomes.default_review_after_days` is the review delay ShowRunner proposes
+when the initiative does not suggest a better one.
 
 ### Lifecycle and release
 

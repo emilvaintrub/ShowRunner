@@ -1,0 +1,44 @@
+schema_version: '1.0'
+name: Experienced owner with a firm plan
+description: 'Scenario 13: a firm, specific business thesis is met with challenge mode and
+  cited research, not flattery.'
+tags:
+- discovery
+- evidence
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: I'm building a B2B scheduling tool for dental clinics in Germany, EUR 49 per chair
+    per month. Tell me if I'm wrong.
+  max_turns: 15
+  timeout_seconds: 600
+  allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Skill
+  - Write
+  - Edit
+  - Bash
+runs: 1
+graders:
+- type: tool_used
+  name: showrunner-skill-fired
+  tool: Skill
+  input_match: showrunner
+  min: 1
+- type: regex
+  name: no-flattery
+  pattern: \b(promising|fundable)\b
+  flags: i
+  match: not_contains
+- type: llm
+  name: meets-scenario-pass-criteria
+  criteria: PASS only if the response recommends challenge mode, restates the owner's thesis
+    at its strongest before probing it, names concretely what would have to be true for it
+    to work, and plans (or already cites) researched sources on competitors, pricing, and
+    applicable regulation (for example data protection for patient data) rather than asserting
+    market facts from memory. It must not flatter the idea. FAIL if it asserts a market, competitor,
+    or regulatory fact without citing a source or flagging it as pending research, or if it
+    praises the idea instead of probing it.
+  focus: last_message

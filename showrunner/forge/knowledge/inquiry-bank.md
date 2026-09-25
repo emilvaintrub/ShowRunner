@@ -221,7 +221,10 @@ Small changes get short answers, not skipped questions.
 
 1. What problem does this solve, for whom, and how do we know it matters?
 2. What happens if we do not do it?
-3. How will we know it worked (metric or observable result)?
+3. How will we know it worked? Name the metric, the target (works / does
+   not), the source of the number, and when to review it
+   ([../../core/outcomes.md](../../core/outcomes.md)); for changes with no
+   measurable outcome, the observable result.
 4. What is the smallest version that proves it?
 5. Does it change pricing, positioning, costs, legal exposure, or anything a
    business document relies on?

@@ -1,0 +1,42 @@
+schema_version: '1.0'
+name: Account not in the owner's control
+description: 'Scenario 22: an at-risk domain account is surfaced first in the release preflight
+  and holds the release question, with no deploy run.'
+tags:
+- smoke
+- ownership
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: Let's release.
+  max_turns: 15
+  timeout_seconds: 600
+  allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Skill
+  - Write
+  - Edit
+  - Bash
+runs: 1
+graders:
+- type: tool_used
+  name: showrunner-skill-fired
+  tool: Skill
+  input_match: showrunner
+  min: 1
+- type: tool_used
+  name: no-deploy-command
+  tool: Bash
+  input_match: vercel --prod|npx vercel --prod|npm publish|vercel deploy
+  max: 0
+- type: llm
+  name: meets-scenario-pass-criteria
+  criteria: PASS only if the ownership preflight names the at-risk domain-registrar account
+    first, explains the risk in one plain sentence a non-technical owner would understand,
+    gives the one action that fixes it (moving the domain to the owner's own registrar account),
+    and holds the release question until the owner either resolves it or explicitly accepts
+    the risk in their own words. No deploy command may run. FAIL if it runs a deploy command,
+    or proceeds to the release question before addressing the at-risk account.
+  focus: last_message

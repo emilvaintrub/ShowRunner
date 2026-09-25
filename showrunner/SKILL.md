@@ -31,7 +31,7 @@ decide or supply something, and it never skips a stage on its own.
 
 | Stage | Load |
 | --- | --- |
-| `setup` | every present policy's `SKILL.md` and `method.md` (`init`), [core/config.schema.md](core/config.schema.md), [core/commit-hooks.md](core/commit-hooks.md), [core/enforcement.md](core/enforcement.md), [core/templates/state.md](core/templates/state.md) |
+| `setup` | [core/ownership.md](core/ownership.md) and [core/templates/accounts-register.md](core/templates/accounts-register.md), every present policy's `SKILL.md` and `method.md` (`init`), [core/config.schema.md](core/config.schema.md), [core/commit-hooks.md](core/commit-hooks.md), [core/enforcement.md](core/enforcement.md), [core/templates/state.md](core/templates/state.md) |
 | `discovery`, `assessment` | [forge/SKILL.md](forge/SKILL.md), [forge/discovery.md](forge/discovery.md), [forge/knowledge/inquiry-bank.md](forge/knowledge/inquiry-bank.md), [core/evidence.md](core/evidence.md), the stage's template |
 | `business-docs` | [pitch/SKILL.md](pitch/SKILL.md), [pitch/method.md](pitch/method.md), [core/evidence.md](core/evidence.md), the document's template |
 | `constitution`, `roadmap`, `spec`, `design`, `design-review`, `handoff` | [forge/SKILL.md](forge/SKILL.md), [forge/method.md](forge/method.md), the command's template, [gates/wow-check.md](gates/wow-check.md) for GATE-OUT when enabled; for `roadmap`, also [forge/discovery.md](forge/discovery.md) section 5 |
@@ -39,8 +39,10 @@ decide or supply something, and it never skips a stage on its own.
 | `verify` | Arc files above, [core/merge.md](core/merge.md), [gates/audit.md](gates/audit.md), [gates/wow-check.md](gates/wow-check.md) for UI work when enabled |
 | `security` | [sentry/SKILL.md](sentry/SKILL.md), [sentry/method.md](sentry/method.md), [sentry/knowledge/catalog.md](sentry/knowledge/catalog.md) |
 | `acceptance`, `merge` | [core/merge.md](core/merge.md), the policy's merge template |
-| `release` | [core/release.md](core/release.md) |
-| `close` | [bible/SKILL.md](bible/SKILL.md), [bible/method.md](bible/method.md), [core/merge.md](core/merge.md) |
+| `release` | [core/release.md](core/release.md), [core/ownership.md](core/ownership.md) |
+| `close` | [bible/SKILL.md](bible/SKILL.md), [bible/method.md](bible/method.md), [core/merge.md](core/merge.md), [core/outcomes.md](core/outcomes.md) |
+| any stage, when an outcome review is due | [core/outcomes.md](core/outcomes.md) |
+| any stage, when production is broken or harmful now | [core/incident.md](core/incident.md) |
 
 At any stage, when the owner raises an idea or changes their mind, also load
 [forge/steering.md](forge/steering.md) and run steering alongside the current
@@ -74,7 +76,7 @@ through the lifecycle (lifecycle section 10):
 
 - `/showrunner status|next|resume`
 - `/forge init|discover|assess|plan|spec|design|design-review|steer|decide`
-- `/pitch init|select|decisions|competitors|financials|deck|refresh|audit`
+- `/pitch init|select|decisions|competitors|financials|deck|legal|refresh|audit`
 - `/arc init|plan|run|verify|merge`
 - `/sentry init|sweep|fix|verify|accept|deps|pen-test|monthly|refresh-knowledge|merge`
 - `/bible init|sync|merge`
@@ -105,5 +107,8 @@ recorded in the ledger.
 - Commit and push implementation only on the feature branch.
 - Stop before merging to `main` until the owner approves the merge.
 - Never release or deploy without the owner's explicit release instructions.
+- Never create accounts or hold secrets for the owner; every account the
+  product depends on is owner-controlled and in the accounts register.
+- Every shipped initiative gets an outcome review; report results honestly.
 - Keep the engine project-neutral; project facts live in
   `.claude/showrunner/config.md`.

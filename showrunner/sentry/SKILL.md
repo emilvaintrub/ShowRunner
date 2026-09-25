@@ -42,7 +42,9 @@ commands are read-only or open new initiatives:
 - `accept <finding-id>`: append an evidence-backed risk decision with owner,
   expiry, and revisit trigger.
 - `deps`: run configured dependency tools and classify direct, transitive,
-  override, and accepted cases.
+  override, and accepted cases; inventory dependency licences against
+  `sentry.license_policy` and flag copyleft or unknown licences for the
+  owner.
 - `pen-test init|plan|run|validate|retest|report|abort|ingest`: route a
   governed assessment through the nested Pen Test skill.
 - `pen-test <report-path>`: compatibility alias for `pen-test ingest

@@ -1,0 +1,5 @@
+# Runtime output from `claude plugin eval` (JSON/HTML reports, per-run scaffold
+# dirs kept with --keep-temp). Never commit eval run artifacts.
+evals/results/
+__pycache__/
+*.pyc

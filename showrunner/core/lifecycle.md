@@ -37,6 +37,8 @@ decisions, in plain language, with a recommendation.
 | Returned design output | approves | reviews against the brief |
 | `arc-ready` handoff (spec 9-11) | approves | writes |
 | Folding adjacent work into scope | decides | recommends |
+| Who holds each account, login, billing, and recovery | confirms, creates accounts | inventories, flags risks, never creates accounts |
+| Outcome targets and review dates; the follow-up after each review | approves, decides | proposes, measures, reports honestly |
 | A new idea or steer: explore now, fold in, queue, or park; then adopt, adopt later, or drop | decides | captures verbatim, maps impact, explores with Forge, recommends |
 | Risk acceptance | decides | recommends |
 | Acceptance smoke on a real build | performs, approves | writes the playbook |
@@ -65,7 +67,7 @@ later stage finds that their conclusions no longer hold.
 
 | # | Stage id | Policy | Owner gate | Exit record |
 | --- | --- | --- | --- | --- |
-| P1 | `setup` | all `init` | business bindings only: compliance posture, data classification, risk appetite, operational ownership, any binding the repository cannot evidence, and any disabled policy - always asked, never inferred | config valid, every policy `ready` or owner-approved `disabled`, hooks installed, state ledger created |
+| P1 | `setup` | all `init`, accounts inventory ([ownership.md](ownership.md)) | business bindings only, plus confirming who owns each account the product depends on: compliance posture, data classification, risk appetite, operational ownership, any binding the repository cannot evidence, and any disabled policy - always asked, never inferred | config valid, every policy `ready` or owner-approved `disabled`, hooks installed, state ledger created |
 | P2 | `discovery` | Forge `discover` (interview) | yes | owner profile recorded; discovery brief confirmed by the owner; inquiry coverage complete |
 | P3 | `assessment` | Forge `assess` | yes | viability assessment with cited research; owner's verdict (proceed, validate first, pivot, or stop) |
 | P4 | `constitution` | Forge `discover` (constitution) | yes | constitution approved; Forge re-validated to `ready` |
@@ -84,7 +86,7 @@ later stage finds that their conclusions no longer hold.
 | 12 | `acceptance` | smoke | yes | owner-run smoke evidence and verdict |
 | 13 | `merge` | shared ceremony | yes | disposition and approval recorded; ceremony verified |
 | 14 | `release` | [release.md](release.md) | yes, mandatory | owner-supplied release decision executed and checked, or recorded `held` |
-| 15 | `close` | Bible `sync`, hygiene | yes (Bible merge) | Bible current; project state updated; queued and due parked ideas reviewed; next item proposed |
+| 15 | `close` | Bible `sync`, hygiene | yes (Bible merge) | Bible current; project state updated; outcome review scheduled ([outcomes.md](outcomes.md)); temporary access revoked or confirmed; queued and due parked ideas reviewed; next item proposed |
 
 ### Project Verdicts
 
@@ -174,6 +176,11 @@ Classify every owner message before acting:
   under the waiver rule (section 5).
 - **Release or deploy information**: record it for the `release` stage; do not
   act on it before that stage.
+- **Incident**: something is broken or harmful in production now - down, data
+  at risk, a suspected breach, payments or emails going wrong. Switch to
+  incident mode ([incident.md](incident.md)): stabilize with pre-approved or
+  owner-approved actions only, then open the real fix as the first initiative
+  in the queue. The active initiative is blocked, not abandoned.
 
 A message that looks like an instruction to edit code is still classified.
 Product code changes only in `build`.
@@ -251,16 +258,20 @@ One initiative is active. Others wait in `queue`. An initiative whose release
 the owner put on hold is `parked` at `release` with its trigger; the next
 initiative may start.
 
+An open incident takes priority over everything, including the active
+initiative, until it is stable.
+
 A Forge steer session is not an initiative: it runs alongside the active one,
 as a conversation with the owner, while a dispatched implementer keeps
 building whatever the steer's impact map marks unaffected. When the impact map
 marks the build affected, ShowRunner pauses it at the next commit boundary
 (or at once, when invalidated) and says why.
 
-Every session start lists parked releases, overdue Sentry monthly cycles
-(when enabled), stale accepted risks, business documents whose evidence has
-passed its freshness window, and parked ideas whose revisit trigger has
-arrived, before new work.
+Every session start lists parked releases, outcome reviews that are due,
+accounts marked at risk and access past its revocation date, overdue Sentry
+monthly cycles (when enabled), stale accepted risks, business documents whose
+evidence has passed its freshness window, and parked ideas whose revisit
+trigger has arrived, before new work.
 
 ## 10. Commands As Overrides
 

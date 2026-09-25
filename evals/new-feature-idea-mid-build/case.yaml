@@ -1,0 +1,47 @@
+schema_version: '1.0'
+name: New feature idea mid-build
+description: 'Scenario 18: a new feature idea during build is logged verbatim and triaged
+  without pausing the running build.'
+tags:
+- steering
+- ownership
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: Oh - what if friends could also leave a short note when they borrow a book?
+  max_turns: 15
+  timeout_seconds: 600
+  allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Skill
+  - Write
+  - Edit
+  - Bash
+runs: 1
+graders:
+- type: tool_used
+  name: showrunner-skill-fired
+  tool: Skill
+  input_match: showrunner
+  min: 1
+- type: tool_used
+  name: no-write-under-product-paths
+  tool: Write
+  input_match: src/|docs/specs/
+  max: 0
+- type: tool_used
+  name: no-edit-under-product-paths
+  tool: Edit
+  input_match: src/|docs/specs/
+  max: 0
+- type: llm
+  name: meets-scenario-pass-criteria
+  criteria: 'PASS only if the response records the idea verbatim (an IDEA-<n> row) in the
+    ideas log, classifies it as a feature idea, names the impact map (here: no current spec
+    section or built file is affected), keeps the build running rather than pausing it, and
+    asks exactly one question - explore now, fold in, queue, or park - with a recommendation.
+    It must make no code, spec, or roadmap change in this turn. FAIL if it edits code or the
+    spec, or fails to log the idea verbatim.'
+  focus: last_message

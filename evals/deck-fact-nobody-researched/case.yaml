@@ -1,0 +1,44 @@
+schema_version: '1.0'
+name: Deck asks for a fact nobody researched
+description: 'Scenario 16: a growth-rate figure for a deck slide must be researched and registered
+  before it is used, not asserted directly.'
+tags:
+- evidence
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: Can we add a 'why now' slide citing how fast this market is growing?
+  max_turns: 15
+  timeout_seconds: 600
+  allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Skill
+  - Write
+  - Edit
+  - Bash
+runs: 1
+graders:
+- type: tool_used
+  name: showrunner-skill-fired
+  tool: Skill
+  input_match: showrunner
+  min: 1
+- type: tool_order
+  name: research-before-deck-edit
+  before:
+    tool: Edit
+    input_match: research-registers
+  after:
+    tool: Edit
+    input_match: investor-deck
+- type: llm
+  name: meets-scenario-pass-criteria
+  criteria: PASS only if the response does not put an ungrounded growth-rate figure straight
+    onto the slide; instead it returns to research, registers a cited source for the growth
+    rate, updates the financial plan through its normal gates, and only then uses the figure
+    on the slide with the same source label. FAIL if a growth-rate number appears on the slide
+    without first being registered as a cited source, or if the financial plan is not touched
+    at all.
+  focus: last_message
