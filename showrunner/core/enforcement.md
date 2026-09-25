@@ -86,6 +86,11 @@ The `setup` stage installs enforcement into the project and verifies it:
 ## 4. Limits
 
 The guard catches honest mistakes and drift, not a determined bypass.
+It inspects edit tools and recognizable Git and release commands; it does not
+parse arbitrary shell. A file written through a shell redirect or a script is
+not blocked at edit time, but the `pre-commit` rule still rejects committing
+it outside `build`. Release wrappers (`npx`, `sudo`, task runners) are matched
+only when setup lists them in `guard.release_patterns`.
 Instructions and the ledger remain authoritative. Report a guard that blocked
 legitimate work as a setup defect and fix `guard.writable_before_build`;
 never disable the hook to get past a stage.
