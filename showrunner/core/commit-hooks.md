@@ -34,22 +34,32 @@ the hook with `--no-verify`.
 
 ## Install Per Clone
 
-From the project root:
+From the project root, on POSIX:
+
+```text
+<showrunner>/scripts/install-hooks.sh
+```
+
+or on Windows:
 
 ```text
 powershell -ExecutionPolicy Bypass -File <showrunner>/scripts/install-hooks.ps1
 ```
 
 The installer refuses to overwrite a different existing hook unless the human
-has reviewed it and explicitly uses `-Force`. It copies the portable shell hook
-to the configured hooks directory, writes `showrunner-commit-prefixes`, marks
-the hook executable on POSIX, and runs:
+has reviewed it and explicitly uses `--force` (`-Force`). It copies
+`commit-msg`, the `pre-commit` shim, `showrunner`, and
+`showrunner-commit-prefixes` into the configured hooks directory, marks them
+executable on POSIX, and runs:
 
 ```text
 git config core.hooksPath .githooks
 ```
 
-This setting is clone-local and shared by linked worktrees.
+This setting is clone-local and shared by linked worktrees. Add `--claude`
+(`-ClaudeSettings`) to also merge the Claude Code hooks that call `showrunner`
+into `.claude/settings.json`, preserving everything already there. See
+[enforcement.md](enforcement.md) for what `showrunner` enforces and how.
 
 ## Verify
 

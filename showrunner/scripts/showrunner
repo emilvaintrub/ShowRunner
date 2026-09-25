@@ -1,0 +1,1230 @@
+#!/bin/sh
+# ShowRunner lifecycle enforcement. POSIX sh; see core/enforcement.md.
+#
+# Known simplifications (documented, not bugs):
+#  - When jq is unavailable, hook JSON on stdin is read with a plain
+#    sed/grep heuristic that assumes flat "key":"value" pairs without
+#    embedded, escaped quotes in the value. Good enough for file paths
+#    and shell commands; install jq for exact JSON handling.
+#  - The Bash `-n`-on-`git commit` and force-push `-f` detection blank
+#    out single- and double-quoted spans before looking for a standalone
+#    token, so `git commit -m "use -n flag"` is not blocked. This does
+#    not handle escaped quotes inside quotes, nested quoting, or
+#    multi-byte edge cases.
+#  - Path-prefix stripping (turning an absolute file path into one
+#    relative to a worktree root) uses sed with the root escaped for
+#    regex metacharacters; worktree paths containing literal `*`, `.`,
+#    `[`, `]`, `^`, or `$` are not specifically tested.
+
+set -u
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+
+# ---------------------------------------------------------------------------
+# State ledger resolution (enforcement.md section 1)
+# ---------------------------------------------------------------------------
+
+# primary_worktree_root DIR
+# Prints the primary worktree's root (the parent of the shared
+# .git/git-common-dir), running git from DIR. Empty + failure if DIR is
+# not inside a Git working tree.
+primary_worktree_root() {
+  _pwr_dir=${1:-.}
+  _pwr_common=$(git -C "$_pwr_dir" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
+  if [ -z "$_pwr_common" ]; then
+    _pwr_raw=$(git -C "$_pwr_dir" rev-parse --git-common-dir 2>/dev/null)
+    if [ -n "$_pwr_raw" ]; then
+      case "$_pwr_raw" in
+        /*) _pwr_common=$_pwr_raw ;;
+        *) _pwr_common=$(cd "$_pwr_dir" 2>/dev/null && cd "$_pwr_raw" 2>/dev/null && pwd -P) ;;
+      esac
+    fi
+  fi
+  [ -n "$_pwr_common" ] || return 1
+  dirname "$_pwr_common"
+}
+
+# find_first_existing DIR RELPATH
+# Prints the first of {primary worktree root, $CLAUDE_PROJECT_DIR}/RELPATH
+# that exists as a file.
+find_first_existing() {
+  _ffe_dir=$1
+  _ffe_rel=$2
+  _ffe_root=$(primary_worktree_root "$_ffe_dir" 2>/dev/null) || _ffe_root=""
+  if [ -n "$_ffe_root" ] && [ -f "$_ffe_root/$_ffe_rel" ]; then
+    printf '%s\n' "$_ffe_root/$_ffe_rel"
+    return 0
+  fi
+  if [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ -f "$CLAUDE_PROJECT_DIR/$_ffe_rel" ]; then
+    printf '%s\n' "$CLAUDE_PROJECT_DIR/$_ffe_rel"
+    return 0
+  fi
+  return 1
+}
+
+# compute_state_path DIR
+# Sets STATE_FILE. Returns 0 (with an existing STATE_FILE) or 1 (no ledger).
+compute_state_path() {
+  _csp_dir=${1:-.}
+  if [ -n "${SHOWRUNNER_STATE:-}" ]; then
+    STATE_FILE=$SHOWRUNNER_STATE
+    [ -f "$STATE_FILE" ] && return 0
+    STATE_FILE=""
+    return 1
+  fi
+  STATE_FILE=$(find_first_existing "$_csp_dir" ".claude/showrunner/state.md") || {
+    STATE_FILE=""
+    return 1
+  }
+  return 0
+}
+
+# ---------------------------------------------------------------------------
+# Minimal flat-YAML reader for the ledger's single fenced ```yaml block.
+# ---------------------------------------------------------------------------
+
+yaml_block() {
+  awk '
+    /^```yaml[ \t]*$/ { infence=1; next }
+    infence && /^```[ \t]*$/ { exit }
+    infence { print }
+  ' "$STATE_FILE"
+}
+
+# yaml_scalar SECTION KEY -- prints the raw (still possibly quoted) value of
+# "  KEY: value" found under a top-level "SECTION:" line.
+yaml_scalar() {
+  yaml_block | awk -v section="$1" -v key="$2" '
+    BEGIN { insect = 0; val = "" }
+    /^[A-Za-z_][A-Za-z0-9_]*:/ {
+      top = $0
+      sub(/:.*/, "", top)
+      insect = (top == section)
+      next
+    }
+    insect && $0 ~ ("^  " key ":") {
+      v = $0
+      sub("^  " key ":[ \t]*", "", v)
+      sub(/[ \t]*$/, "", v)
+      val = v
+    }
+    END { print val }
+  '
+}
+
+strip_quotes() {
+  _sq_v=$1
+  case "$_sq_v" in
+    \"*\") _sq_v=${_sq_v#\"}; _sq_v=${_sq_v%\"} ;;
+  esac
+  printf '%s' "$_sq_v"
+}
+
+cfg_get() {
+  strip_quotes "$(yaml_scalar "$1" "$2")"
+}
+
+# yaml_nested_list SECTION SUBKEY -- prints one item per line (still quoted)
+# from "  SUBKEY:\n    - \"item\"" under top-level "SECTION:". "[]" -> empty.
+yaml_nested_list() {
+  yaml_block | awk -v section="$1" -v subkey="$2" '
+    BEGIN { insect = 0; insub = 0 }
+    /^[A-Za-z_][A-Za-z0-9_]*:/ {
+      top = $0
+      sub(/:.*/, "", top)
+      insect = (top == section)
+      insub = 0
+      next
+    }
+    insect && $0 ~ /^  [A-Za-z_][A-Za-z0-9_]*:/ {
+      k = $0
+      sub(/^  /, "", k)
+      sub(/:.*/, "", k)
+      if (k == subkey) {
+        rest = $0
+        sub("^  " subkey ":[ \t]*", "", rest)
+        sub(/[ \t]*$/, "", rest)
+        insub = (rest != "[]")
+      } else {
+        insub = 0
+      }
+      next
+    }
+    insub && /^    - / {
+      item = $0
+      sub(/^    - [ \t]*/, "", item)
+      sub(/[ \t]*$/, "", item)
+      print item
+    }
+  '
+}
+
+# yaml_top_list KEY -- prints one item per line (still quoted) from a
+# top-level "KEY:\n  - \"item\"" list. "[]" -> empty.
+yaml_top_list() {
+  yaml_block | awk -v key="$1" '
+    BEGIN { insub = 0 }
+    /^[A-Za-z_][A-Za-z0-9_]*:/ {
+      k = $0
+      sub(/:.*/, "", k)
+      if (k == key) {
+        rest = $0
+        sub("^" key ":[ \t]*", "", rest)
+        sub(/[ \t]*$/, "", rest)
+        insub = (rest != "[]")
+      } else {
+        insub = 0
+      }
+      next
+    }
+    insub && /^  - / {
+      item = $0
+      sub(/^  - [ \t]*/, "", item)
+      sub(/[ \t]*$/, "", item)
+      print item
+    }
+  '
+}
+
+# ---------------------------------------------------------------------------
+# Path helpers
+# ---------------------------------------------------------------------------
+
+nearest_existing_dir() {
+  _ned_p=$1
+  while [ ! -d "$_ned_p" ]; do
+    _ned_p=$(dirname "$_ned_p")
+  done
+  printf '%s\n' "$_ned_p"
+}
+
+# abs_path PATH BASE -- resolves PATH (possibly relative to BASE) to an
+# absolute path, canonicalizing whatever prefix of it currently exists.
+abs_path() {
+  _ap_path=$1
+  _ap_base=$2
+  case "$_ap_path" in
+    /*) _ap_full=$_ap_path ;;
+    *) _ap_full="$_ap_base/$_ap_path" ;;
+  esac
+  _ap_dir=$(dirname "$_ap_full")
+  _ap_base_name=$(basename "$_ap_full")
+  _ap_existing=$(nearest_existing_dir "$_ap_dir")
+  # -P: physical (symlink-resolved), to match git's own (physical)
+  # --show-toplevel output -- otherwise a symlinked cwd or worktree path
+  # (e.g. macOS /tmp -> /private/tmp) makes the prefix-strip in
+  # rel_to_root fail and a writable path is misread as product code.
+  _ap_canon=$(cd "$_ap_existing" 2>/dev/null && pwd -P) || {
+    printf '%s\n' "$_ap_full"
+    return
+  }
+  _ap_tail=${_ap_dir#"$_ap_existing"}
+  printf '%s%s/%s\n' "$_ap_canon" "$_ap_tail" "$_ap_base_name"
+}
+
+escape_re() {
+  printf '%s' "$1" | sed -e 's/[].[^$*\/]/\\&/g'
+}
+
+# rel_to_root FULL ROOT -- FULL relative to ROOT (both absolute), forward
+# slashes, no leading slash.
+rel_to_root() {
+  _rtr_full=$1
+  _rtr_root=$2
+  if [ "$_rtr_full" = "$_rtr_root" ]; then
+    printf '.\n'
+    return
+  fi
+  _rtr_esc=$(escape_re "$_rtr_root")
+  printf '%s\n' "$_rtr_full" | sed "s#^${_rtr_esc}/##"
+}
+
+is_writable_path() {
+  _iwp_rel=$1
+  _iwp_raw=$(yaml_nested_list guard writable_before_build)
+  _iwp_oldifs=$IFS
+  IFS='
+'
+  set -f
+  # shellcheck disable=SC2086
+  set -- $_iwp_raw
+  set +f
+  IFS=$_iwp_oldifs
+  for _iwp_g in "$@"; do
+    _iwp_g=$(strip_quotes "$_iwp_g")
+    [ -n "$_iwp_g" ] || continue
+    case "$_iwp_rel" in
+      $_iwp_g) return 0 ;;
+    esac
+  done
+  return 1
+}
+
+# ---------------------------------------------------------------------------
+# context / context --session
+# ---------------------------------------------------------------------------
+
+stage_number() {
+  _sn_stage=$1
+  _sn_i=1
+  for _sn_s in intake roadmap spec design design-review handoff arc-plan step0 build verify security acceptance merge release close; do
+    if [ "$_sn_s" = "$_sn_stage" ]; then
+      printf '%s' "$_sn_i"
+      return 0
+    fi
+    _sn_i=$((_sn_i + 1))
+  done
+  return 1
+}
+
+stage_label() {
+  case "$1" in
+    setup) printf 'project setup'; return 0 ;;
+    constitution) printf 'project constitution'; return 0 ;;
+  esac
+  _sl_n=$(stage_number "$1") || {
+    printf '%s' "$1"
+    return 0
+  }
+  printf '%s (%s/15)' "$1" "$_sl_n"
+}
+
+cmd_context() {
+  _ctx_session=0
+  [ "${1:-}" = "--session" ] && _ctx_session=1
+
+  if ! compute_state_path "."; then
+    _ctx_cfg=$(find_first_existing "." ".claude/showrunner/config.md") || _ctx_cfg=""
+    if [ -n "$_ctx_cfg" ]; then
+      echo "ShowRunner: no state ledger yet. Run the setup stage (see core/lifecycle.md) before other work."
+    fi
+    return 0
+  fi
+
+  _ctx_initiative=$(cfg_get active initiative)
+  _ctx_title=$(cfg_get active title)
+  _ctx_stage=$(cfg_get active stage)
+  _ctx_status=$(cfg_get active status)
+  _ctx_awaiting=$(cfg_get active awaiting)
+
+  if [ -z "$_ctx_initiative" ] || [ "$_ctx_initiative" = "none" ]; then
+    _ctx_line="ShowRunner: no active initiative; project stage $(stage_label "$_ctx_stage")"
+  else
+    _ctx_line="ShowRunner: $_ctx_initiative \"$_ctx_title\" is at stage $(stage_label "$_ctx_stage"), $_ctx_status"
+    if [ -n "$_ctx_awaiting" ] && [ "$_ctx_awaiting" != "none" ]; then
+      _ctx_line="$_ctx_line, waiting on the owner for: $_ctx_awaiting"
+    fi
+  fi
+  _ctx_line="$_ctx_line. Route this message through the ShowRunner conductor (core/lifecycle.md section 4) before acting. Product code changes only in the build stage."
+  printf '%s\n' "$_ctx_line"
+
+  if [ "$_ctx_session" -eq 1 ]; then
+    _ctx_resume=$(cfg_get active resume)
+    if [ -n "$_ctx_resume" ] && [ "$_ctx_resume" != "none" ]; then
+      printf 'Resume: %s\n' "$_ctx_resume"
+    fi
+    _ctx_queue=$(yaml_top_list queue)
+    if [ -n "$_ctx_queue" ]; then
+      printf 'Queue:\n'
+      printf '%s\n' "$_ctx_queue" | while IFS= read -r _ctx_item; do
+        [ -n "$_ctx_item" ] || continue
+        printf '  - %s\n' "$(strip_quotes "$_ctx_item")"
+      done
+    fi
+    _ctx_parked=$(yaml_top_list parked)
+    if [ -n "$_ctx_parked" ]; then
+      printf 'Parked:\n'
+      printf '%s\n' "$_ctx_parked" | while IFS= read -r _ctx_item; do
+        [ -n "$_ctx_item" ] || continue
+        printf '  - %s\n' "$(strip_quotes "$_ctx_item")"
+      done
+    fi
+    _ctx_check_out=$(cmd_check)
+    _ctx_summary=$(printf '%s\n' "$_ctx_check_out" | tail -n1 | sed 's/^showrunner check: //')
+    printf 'check: %s\n' "$_ctx_summary"
+  fi
+  return 0
+}
+
+# ---------------------------------------------------------------------------
+# guard (PreToolUse)
+# ---------------------------------------------------------------------------
+
+guard_block() {
+  printf 'ShowRunner guard: %s\n' "$1" >&2
+}
+
+json_leaf() {
+  # $1=json blob, $2=key name. Minimal heuristic; see header comment.
+  printf '%s' "$1" | sed -n 's/.*"'"$2"'"[ \t]*:[ \t]*"\([^"]*\)".*/\1/p' | head -n1 | sed 's/\\\\/\\/g; s/\\"/"/g'
+}
+
+strip_quoted_spans() {
+  printf '%s' "$1" | sed -e "s/'[^']*'/Q/g" -e 's/"[^"]*"/Q/g'
+}
+
+has_token() {
+  case " $1 " in
+    *" $2 "*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+split_bash_segments() {
+  printf '%s' "$1" | awk '
+    {
+      line = $0
+      gsub(/\|\|/, "\037", line)
+      gsub(/&&/, "\037", line)
+      gsub(/;/, "\037", line)
+      gsub(/\|/, "\037", line)
+      n = split(line, parts, "\037")
+      for (i = 1; i <= n; i++) {
+        seg = parts[i]
+        gsub(/^[ \t]+/, "", seg)
+        gsub(/[ \t]+$/, "", seg)
+        if (seg != "") print seg
+      }
+    }
+  '
+}
+
+seg_is_commit_dash_n() {
+  case "$1" in
+    "git commit"*) ;;
+    *) return 1 ;;
+  esac
+  has_token "$(strip_quoted_spans "$1")" "-n"
+}
+
+seg_is_merge_block() {
+  # $1=seg $2=current_branch $3=primary_branch $4=stage
+  case "$1" in
+    "git merge"*) ;;
+    *) return 1 ;;
+  esac
+  [ "$2" = "$3" ] || return 1
+  [ "$4" = "merge" ] && return 1
+  return 0
+}
+
+seg_is_force_push() {
+  # $1=seg $2=current_branch $3=primary_branch
+  # Positional params are captured up front because this function uses
+  # `set --` internally to tokenize the segment, which would otherwise
+  # clobber $1/$2/$3.
+  _fp_seg=$1
+  _fp_cur=$2
+  _fp_primary=$3
+  case "$_fp_seg" in
+    "git push"*) ;;
+    *) return 1 ;;
+  esac
+  _fp_forceful=1
+  case "$_fp_seg" in
+    # --force-if-includes and --force-with-lease=... are already caught by
+    # the *--force* glob since they contain that literal substring.
+    *--force-with-lease*|*--force*|*--mirror*) _fp_forceful=0 ;;
+  esac
+  if [ "$_fp_forceful" -ne 0 ] && has_token "$(strip_quoted_spans "$_fp_seg")" "-f"; then
+    _fp_forceful=0
+  fi
+  if [ "$_fp_forceful" -ne 0 ]; then
+    set -f
+    # shellcheck disable=SC2086
+    set -- $_fp_seg
+    set +f
+    for _fp_w in "$@"; do
+      case "$_fp_w" in
+        +*) _fp_forceful=0; break ;;
+      esac
+    done
+  fi
+  [ "$_fp_forceful" -eq 0 ] || return 1
+
+  _fp_targets_primary=1
+  if [ "$_fp_cur" = "$_fp_primary" ]; then
+    _fp_targets_primary=0
+  else
+    set -f
+    # shellcheck disable=SC2086
+    set -- $_fp_seg
+    set +f
+    for _fp_w in "$@"; do
+      case "$_fp_w" in
+        # Plain "main", a "+main" no-colon refspec, "<src>:main" /
+        # "+<src>:main", and the "refs/heads/main" long forms of both.
+        "$_fp_primary"|"+$_fp_primary") _fp_targets_primary=0; break ;;
+        *":$_fp_primary"|*":refs/heads/$_fp_primary") _fp_targets_primary=0; break ;;
+      esac
+    done
+  fi
+  [ "$_fp_targets_primary" -eq 0 ] || return 1
+  return 0
+}
+
+seg_is_release() {
+  # $1=seg. Captured up front: `set --` below (to iterate release
+  # patterns) would otherwise clobber it.
+  _sir_seg=$1
+  _sir_oldifs=$IFS
+  IFS='
+'
+  set -f
+  # shellcheck disable=SC2086
+  set -- $RELEASE_PATTERNS_RAW
+  set +f
+  IFS=$_sir_oldifs
+  for _sir_pat in "$@"; do
+    _sir_pat=$(strip_quotes "$_sir_pat")
+    [ -n "$_sir_pat" ] || continue
+    case "$_sir_seg" in
+      "$_sir_pat"*) return 0 ;;
+    esac
+  done
+  return 1
+}
+
+seg_switch_target_branch() {
+  # $1=a git-global-normalized segment (starts with "git "). Prints the
+  # branch name a plain `git switch <b>` / `git switch -c|-C <b>` /
+  # `git checkout <b>` (bare branch argument only -- not -b/-B, not a
+  # `--`-marked path, not a multi-token pathspec form) switches to.
+  # Returns 1 when the segment isn't one of those recognized forms.
+  case "$1" in
+    "git switch -c "*) _sstb_t=${1#git switch -c } ;;
+    "git switch -C "*) _sstb_t=${1#git switch -C } ;;
+    "git switch "*)
+      _sstb_t=${1#git switch }
+      case "$_sstb_t" in
+        -*|*" "*) return 1 ;;
+      esac
+      ;;
+    "git checkout "*)
+      _sstb_t=${1#git checkout }
+      case "$_sstb_t" in
+        -*|*" "*) return 1 ;;
+      esac
+      ;;
+    *) return 1 ;;
+  esac
+  case "$_sstb_t" in
+    *" "*) _sstb_t=${_sstb_t%% *} ;;
+  esac
+  [ -n "$_sstb_t" ] || return 1
+  printf '%s' "$_sstb_t"
+}
+
+# strip_env_prefix SEG -- strips a leading `env` wrapper and/or leading
+# NAME=value assignments (`FOO=1 BAR=2 vercel --prod` -> `vercel --prod`),
+# so release-pattern prefix matching sees through them.
+strip_env_prefix() {
+  _sep_s=$1
+  while :; do
+    case "$_sep_s" in
+      "env "*)
+        _sep_s=${_sep_s#env }
+        continue
+        ;;
+    esac
+    case "$_sep_s" in
+      *" "*) _sep_head=${_sep_s%% *} ;;
+      *) _sep_head=$_sep_s ;;
+    esac
+    case "$_sep_head" in
+      [A-Za-z_]*=*)
+        case "$_sep_s" in
+          *" "*) _sep_s=${_sep_s#* } ;;
+          *) _sep_s="" ;;
+        esac
+        continue
+        ;;
+    esac
+    break
+  done
+  printf '%s' "$_sep_s"
+}
+
+# git_seg_info SEG -- sets GIT_NORM (SEG with recognized leading global
+# git options stripped: -C <dir>, -c <k=v>, --git-dir=..., --work-tree=...,
+# --no-pager; unchanged when SEG isn't a git invocation) and
+# GIT_DASH_C_DIR (the raw argument to a leading -C, or empty). Uses a
+# single awk pass, purely prefix-stripping by regex so the untouched
+# remainder (which may hold quoted arguments) is never re-tokenized.
+# git_seg_info SEG -- as above, plus GIT_HOOKSPATH_C: "1" when a leading
+# `-c` global option's key (case-insensitive) is core.hooksPath, which
+# disables hooks for the invocation exactly like --no-verify, regardless
+# of the subcommand that follows.
+git_seg_info() {
+  GIT_NORM=""
+  GIT_DASH_C_DIR=""
+  GIT_HOOKSPATH_C=""
+  _gsi_n=0
+  while IFS= read -r _gsi_line; do
+    _gsi_n=$((_gsi_n + 1))
+    case "$_gsi_n" in
+      1) GIT_DASH_C_DIR=$_gsi_line ;;
+      2) GIT_HOOKSPATH_C=$_gsi_line ;;
+      *) GIT_NORM=$_gsi_line ;;
+    esac
+  done <<GSIEOF
+$(printf '%s\n' "$1" | awk '
+    {
+      rest = $0
+      if (rest !~ /^git([ \t]|$)/) { print ""; print ""; print rest; exit }
+      sub(/^git[ \t]*/, "", rest)
+      dir = ""
+      hookspath_c = ""
+      while (1) {
+        if (rest ~ /^-C[ \t]+/) {
+          sub(/^-C[ \t]+/, "", rest)
+          if (match(rest, /^[^ \t]+/)) {
+            dir = substr(rest, RSTART, RLENGTH)
+            rest = substr(rest, RSTART + RLENGTH)
+            sub(/^[ \t]+/, "", rest)
+          }
+          continue
+        }
+        if (rest ~ /^-c[ \t]+[^ \t]+[ \t]*/) {
+          tmp = rest
+          sub(/^-c[ \t]+/, "", tmp)
+          if (match(tmp, /^[^ \t]+/)) {
+            kv = substr(tmp, RSTART, RLENGTH)
+            key = kv
+            sub(/=.*/, "", key)
+            if (tolower(key) == "core.hookspath") hookspath_c = "1"
+          }
+          sub(/^-c[ \t]+[^ \t]+[ \t]*/, "", rest)
+          continue
+        }
+        if (rest ~ /^(--git-dir=|--work-tree=)[^ \t]*[ \t]*/) { sub(/^(--git-dir=|--work-tree=)[^ \t]*[ \t]*/, "", rest); continue }
+        if (rest ~ /^--no-pager[ \t]*/) { sub(/^--no-pager[ \t]*/, "", rest); continue }
+        break
+      }
+      print dir
+      print hookspath_c
+      print "git " rest
+    }
+  ')
+GSIEOF
+}
+
+# seg_is_hookspath_config_violation NORM_SEG -- true when a `git config`
+# invocation (old syntax, --unset*/--replace-all, or the newer `set`/
+# `unset` subcommands) sets or unsets core.hooksPath (case-insensitive
+# key). A bare read (`--get`/`--get-all`, or the key with no following
+# value and no write flag) is not a violation.
+seg_is_hookspath_config_violation() {
+  case "$1" in
+    "git config "*) ;;
+    *) return 1 ;;
+  esac
+  _hcv_key_pat="[Cc][Oo][Rr][Ee].[Hh][Oo][Oo][Kk][Ss][Pp][Aa][Tt][Hh]"
+  set -f
+  # shellcheck disable=SC2086
+  set -- $1
+  set +f
+  shift 2
+  _hcv_key_seen=0
+  _hcv_has_get=0
+  _hcv_has_write_flag=0
+  _hcv_subcmd=""
+  _hcv_tokens_after_key=0
+  _hcv_i=0
+  for _hcv_t in "$@"; do
+    _hcv_i=$((_hcv_i + 1))
+    case "$_hcv_t" in
+      --get|--get-all) _hcv_has_get=1 ;;
+      --unset|--unset-all|--replace-all) _hcv_has_write_flag=1 ;;
+    esac
+    if [ "$_hcv_i" -eq 1 ]; then
+      case "$_hcv_t" in
+        set|unset) _hcv_subcmd=$_hcv_t ;;
+      esac
+    fi
+    case "$_hcv_t" in
+      $_hcv_key_pat)
+        _hcv_key_seen=1
+        continue
+        ;;
+    esac
+    [ "$_hcv_key_seen" -eq 1 ] && _hcv_tokens_after_key=$((_hcv_tokens_after_key + 1))
+  done
+  [ "$_hcv_key_seen" -eq 1 ] || return 1
+
+  [ -n "$_hcv_subcmd" ] && return 0
+  [ "$_hcv_has_write_flag" -eq 1 ] && return 0
+  [ "$_hcv_has_get" -eq 1 ] && return 1
+  [ "$_hcv_tokens_after_key" -gt 0 ] && return 0
+  return 1
+}
+
+# seg_sets_hookspath_via_env SEG -- true when SEG carries a
+# GIT_CONFIG_KEY_n=core.hooksPath assignment, or a GIT_CONFIG_PARAMETERS
+# assignment mentioning hooksPath, ahead of a git invocation.
+seg_sets_hookspath_via_env() {
+  case "$1" in
+    *GIT_CONFIG_KEY_*=*)
+      case "$1" in
+        *[Cc][Oo][Rr][Ee].[Hh][Oo][Oo][Kk][Ss][Pp][Aa][Tt][Hh]*) return 0 ;;
+      esac
+      ;;
+  esac
+  case "$1" in
+    *GIT_CONFIG_PARAMETERS=*)
+      case "$1" in
+        *[Hh][Oo][Oo][Kk][Ss][Pp][Aa][Tt][Hh]*) return 0 ;;
+      esac
+      ;;
+  esac
+  return 1
+}
+
+guard_bash() {
+  _gb_command=$1
+  _gb_cwd=$2
+
+  compute_state_path "$_gb_cwd" || return 0
+  [ -f "$STATE_FILE" ] || return 0
+
+  _gb_stage=$(cfg_get active stage)
+
+  case "$_gb_command" in
+    *--no-verify*)
+      guard_block "the command uses --no-verify, which bypasses commit hooks; current stage is $_gb_stage. Never bypass hooks; use the normal commit flow."
+      return 2
+      ;;
+  esac
+
+  _gb_root=$(git -C "$_gb_cwd" rev-parse --show-toplevel 2>/dev/null)
+  _gb_branch=""
+  [ -n "$_gb_root" ] && _gb_branch=$(git -C "$_gb_root" rev-parse --abbrev-ref HEAD 2>/dev/null)
+
+  _gb_primary=$(cfg_get project primary_branch)
+  [ -n "$_gb_primary" ] || _gb_primary=main
+  _gb_release_authorized=$(cfg_get active release_authorized)
+  RELEASE_PATTERNS_RAW=$(yaml_nested_list guard release_patterns)
+
+  _gb_violation=""
+  _gb_violation_seg=""
+  # Effective branch per resolved repo directory, updated as earlier
+  # segments in the same command switch it -- keyed by directory (not just
+  # cwd) so a `-C <dir> checkout main && -C <dir> merge feat/x` chain is
+  # tracked too, not only a plain (no -C) `switch`/`checkout`. A tab
+  # separates the two columns; querying and updating are both plain
+  # string/awk operations, no associative arrays needed in POSIX sh.
+  _gb_tab=$(printf '\t')
+  _gb_root_canon=""
+  [ -n "$_gb_root" ] && _gb_root_canon=$(git -C "$_gb_root" rev-parse --show-toplevel 2>/dev/null)
+  [ -n "$_gb_root_canon" ] || _gb_root_canon=$_gb_root
+  _gb_dir_branches="$_gb_root_canon$_gb_tab$_gb_branch"
+
+  while IFS= read -r _gb_seg; do
+    [ -n "$_gb_seg" ] || continue
+
+    git_seg_info "$_gb_seg"
+    _gb_norm=$GIT_NORM
+
+    if [ -z "$_gb_violation" ] && [ "$GIT_HOOKSPATH_C" = "1" ]; then
+      _gb_violation="hookspath"
+      _gb_violation_seg=$_gb_seg
+    fi
+    if [ -z "$_gb_violation" ] && seg_sets_hookspath_via_env "$_gb_seg"; then
+      _gb_violation="hookspath"
+      _gb_violation_seg=$_gb_seg
+    fi
+    if [ -z "$_gb_violation" ] && seg_is_hookspath_config_violation "$_gb_norm"; then
+      _gb_violation="hookspath"
+      _gb_violation_seg=$_gb_seg
+    fi
+
+    if [ -n "$GIT_DASH_C_DIR" ]; then
+      case "$GIT_DASH_C_DIR" in
+        /*) _gb_seg_dir=$GIT_DASH_C_DIR ;;
+        *) _gb_seg_dir="$_gb_cwd/$GIT_DASH_C_DIR" ;;
+      esac
+      _gb_seg_canon=$(git -C "$_gb_seg_dir" rev-parse --show-toplevel 2>/dev/null)
+      [ -n "$_gb_seg_canon" ] || _gb_seg_canon=$_gb_seg_dir
+    else
+      _gb_seg_canon=$_gb_root_canon
+    fi
+
+    _gb_seg_branch=$(printf '%s\n' "$_gb_dir_branches" | awk -F"$_gb_tab" -v d="$_gb_seg_canon" '$1==d{v=$2} END{print v}')
+    if [ -z "$_gb_seg_branch" ]; then
+      _gb_seg_branch=$(git -C "$_gb_seg_canon" rev-parse --abbrev-ref HEAD 2>/dev/null)
+    fi
+
+    if [ -z "$_gb_violation" ] && seg_is_commit_dash_n "$_gb_norm"; then
+      _gb_violation="noverify"
+      _gb_violation_seg=$_gb_seg
+    fi
+    if [ -z "$_gb_violation" ] && seg_is_merge_block "$_gb_norm" "$_gb_seg_branch" "$_gb_primary" "$_gb_stage"; then
+      _gb_violation="merge"
+      _gb_violation_seg=$_gb_seg
+    fi
+    if [ -z "$_gb_violation" ] && seg_is_force_push "$_gb_norm" "$_gb_seg_branch" "$_gb_primary"; then
+      _gb_violation="forcepush"
+      _gb_violation_seg=$_gb_seg
+    fi
+    if [ -z "$_gb_violation" ] && seg_is_release "$(strip_env_prefix "$_gb_seg")"; then
+      if [ "$_gb_stage" != "release" ] || [ "$_gb_release_authorized" != "yes" ]; then
+        _gb_violation="release"
+        _gb_violation_seg=$_gb_seg
+      fi
+    fi
+
+    _gb_switch_to=$(seg_switch_target_branch "$_gb_norm") && _gb_dir_branches="$_gb_dir_branches
+$_gb_seg_canon$_gb_tab$_gb_switch_to"
+  done <<SEGEOF
+$(split_bash_segments "$_gb_command")
+SEGEOF
+
+  case "$_gb_violation" in
+    noverify)
+      guard_block "the command uses -n on git commit, which bypasses commit hooks; current stage is $_gb_stage. Never bypass hooks; use the normal commit flow."
+      return 2
+      ;;
+    hookspath)
+      guard_block "the command bypasses hooks via core.hooksPath (-c, git config, or a GIT_CONFIG_* environment override); current stage is $_gb_stage. Never bypass hooks; use the normal commit flow."
+      return 2
+      ;;
+    merge)
+      guard_block "git merge into $_gb_primary is only allowed during the merge stage; current stage is $_gb_stage. Advance the lifecycle to merge before merging."
+      return 2
+      ;;
+    forcepush)
+      guard_block "a force push to $_gb_primary is never allowed; current stage is $_gb_stage. Push a normal commit, or push a feature branch instead."
+      return 2
+      ;;
+    release)
+      guard_block "the command matches a release pattern ('$_gb_violation_seg'); release commands need the release stage with an authorized release. Current stage is $_gb_stage, release_authorized is $_gb_release_authorized. Advance the lifecycle to release and get owner authorization first."
+      return 2
+      ;;
+  esac
+  return 0
+}
+
+guard_product_edit() {
+  _gpe_target=$1
+  _gpe_cwd=$2
+
+  _gpe_full=$(abs_path "$_gpe_target" "$_gpe_cwd")
+  _gpe_dir=$(nearest_existing_dir "$(dirname "$_gpe_full")")
+  _gpe_root=$(git -C "$_gpe_dir" rev-parse --show-toplevel 2>/dev/null)
+  [ -n "$_gpe_root" ] || return 0
+
+  compute_state_path "$_gpe_root" || return 0
+  [ -f "$STATE_FILE" ] || return 0
+
+  _gpe_rel=$(rel_to_root "$_gpe_full" "$_gpe_root")
+
+  is_writable_path "$_gpe_rel" && return 0
+
+  _gpe_stage=$(cfg_get active stage)
+  _gpe_step0=$(cfg_get active step0_approved)
+  _gpe_feature_branch=$(cfg_get active feature_branch)
+  _gpe_branch=$(git -C "$_gpe_root" rev-parse --abbrev-ref HEAD 2>/dev/null)
+
+  if [ "$_gpe_stage" = "build" ] \
+    && [ "$_gpe_step0" != "no" ] \
+    && [ -n "$_gpe_feature_branch" ] \
+    && [ "$_gpe_feature_branch" != "none" ] \
+    && [ "$_gpe_branch" = "$_gpe_feature_branch" ]; then
+    return 0
+  fi
+
+  guard_block "product code changes only in the build stage after Step 0 approval on $_gpe_feature_branch; current stage is $_gpe_stage. Advance the lifecycle instead of editing."
+  return 2
+}
+
+cmd_guard() {
+  _g_json=$(cat)
+
+  if command -v jq >/dev/null 2>&1; then
+    _g_tool=$(printf '%s' "$_g_json" | jq -r '.tool_name // empty' 2>/dev/null)
+    _g_cwd=$(printf '%s' "$_g_json" | jq -r '.cwd // empty' 2>/dev/null)
+    _g_file=$(printf '%s' "$_g_json" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
+    _g_nb=$(printf '%s' "$_g_json" | jq -r '.tool_input.notebook_path // empty' 2>/dev/null)
+    _g_cmd=$(printf '%s' "$_g_json" | jq -r '.tool_input.command // empty' 2>/dev/null)
+  else
+    _g_tool=$(json_leaf "$_g_json" tool_name)
+    _g_cwd=$(json_leaf "$_g_json" cwd)
+    _g_file=$(json_leaf "$_g_json" file_path)
+    _g_nb=$(json_leaf "$_g_json" notebook_path)
+    _g_cmd=$(json_leaf "$_g_json" command)
+  fi
+
+  [ -n "$_g_cwd" ] || _g_cwd=$(pwd -P)
+
+  case "$_g_tool" in
+    Edit|Write|MultiEdit)
+      [ -n "$_g_file" ] || return 0
+      guard_product_edit "$_g_file" "$_g_cwd"
+      return $?
+      ;;
+    NotebookEdit)
+      [ -n "$_g_nb" ] || return 0
+      guard_product_edit "$_g_nb" "$_g_cwd"
+      return $?
+      ;;
+    Bash)
+      [ -n "$_g_cmd" ] || return 0
+      guard_bash "$_g_cmd" "$_g_cwd"
+      return $?
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+}
+
+# ---------------------------------------------------------------------------
+# pre-commit
+# ---------------------------------------------------------------------------
+
+cmd_pre_commit() {
+  _pc_cwd=$(pwd -P)
+
+  _pc_root=$(git -C "$_pc_cwd" rev-parse --show-toplevel 2>/dev/null)
+  [ -n "$_pc_root" ] || return 0
+
+  compute_state_path "$_pc_root" || return 0
+  [ -f "$STATE_FILE" ] || return 0
+
+  _pc_branch=$(git -C "$_pc_root" rev-parse --abbrev-ref HEAD 2>/dev/null)
+  _pc_primary=$(cfg_get project primary_branch)
+  [ -n "$_pc_primary" ] || _pc_primary=main
+  _pc_stage=$(cfg_get active stage)
+  _pc_step0=$(cfg_get active step0_approved)
+  _pc_feature_branch=$(cfg_get active feature_branch)
+
+  _pc_merging=1
+  git -C "$_pc_root" rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1 && _pc_merging=0
+
+  _pc_offending=""
+  while IFS= read -r _pc_path; do
+    [ -n "$_pc_path" ] || continue
+    if [ "$_pc_branch" = "$_pc_primary" ]; then
+      if [ "$_pc_merging" -eq 0 ] && [ "$_pc_stage" = "merge" ]; then
+        continue
+      fi
+      is_writable_path "$_pc_path" && continue
+      _pc_offending="$_pc_offending$_pc_path
+"
+    else
+      is_writable_path "$_pc_path" && continue
+      if [ "$_pc_stage" = "build" ] \
+        && [ "$_pc_step0" != "no" ] \
+        && [ -n "$_pc_feature_branch" ] \
+        && [ "$_pc_feature_branch" != "none" ] \
+        && [ "$_pc_branch" = "$_pc_feature_branch" ]; then
+        continue
+      fi
+      _pc_offending="$_pc_offending$_pc_path
+"
+    fi
+  done <<STAGEDEOF
+$(git -C "$_pc_root" diff --cached --name-only --diff-filter=ACMRD)
+STAGEDEOF
+
+  if [ -n "$_pc_offending" ]; then
+    {
+      printf 'ShowRunner pre-commit: staged changes are not allowed yet.\n'
+      printf 'Current stage is %s; advance the lifecycle before committing these paths (outside guard.writable_before_build, and not build-stage product edits on the feature branch):\n' "$_pc_stage"
+      printf '%s' "$_pc_offending"
+    } >&2
+    return 1
+  fi
+  return 0
+}
+
+# ---------------------------------------------------------------------------
+# check
+# ---------------------------------------------------------------------------
+
+pick_shasum_cmd() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    printf 'sha256sum'
+  elif command -v shasum >/dev/null 2>&1; then
+    printf 'shasum -a 256'
+  fi
+}
+
+cmd_check() {
+  if ! compute_state_path "."; then
+    printf 'showrunner check: no state ledger\n'
+    return 0
+  fi
+  if [ ! -f "$STATE_FILE" ]; then
+    printf 'showrunner check: no state ledger\n'
+    return 0
+  fi
+
+  _c_project_root=${STATE_FILE%/.claude/showrunner/state.md}
+  if [ "$_c_project_root" = "$STATE_FILE" ]; then
+    _c_project_root=$(dirname "$(dirname "$(dirname "$STATE_FILE")")")
+  fi
+  _c_shasum=$(pick_shasum_cmd)
+
+  awk -v project_root="$_c_project_root" -v shasum="$_c_shasum" '
+    BEGIN {
+      n = split("setup constitution intake roadmap spec design design-review handoff arc-plan step0 build verify security acceptance merge release close", stage_order, " ")
+      for (i = 1; i <= n; i++) stage_index[stage_order[i]] = i
+
+      n = split("constitution roadmap spec design design-review handoff acceptance merge release close", a, " ")
+      for (i = 1; i <= n; i++) owner_required[a[i]] = 1
+
+      n = split("intake step0 build verify", a, " ")
+      for (i = 1; i <= n; i++) showrunner_only[a[i]] = 1
+
+      n = split("passed approved not-applicable waived fix held released", a, " ")
+      for (i = 1; i <= n; i++) known_outcome[a[i]] = 1
+
+      n = split("passed approved not-applicable waived released", a, " ")
+      for (i = 1; i <= n; i++) generic_terminal[a[i]] = 1
+
+      in_yaml = 0
+      cur_top = ""
+      in_ledger = 0
+      ledger_count = 0
+      row_n = 0
+      errors = 0
+      warns = 0
+    }
+
+    /^```yaml[ \t]*$/ { in_yaml = 1; next }
+    in_yaml && /^```[ \t]*$/ { in_yaml = 0; next }
+    in_yaml {
+      if ($0 ~ /^[A-Za-z_][A-Za-z0-9_]*:/) {
+        cur_top = $0
+        sub(/:.*/, "", cur_top)
+        next
+      }
+      if (cur_top == "active" && $0 ~ /^  [a-z_]+:/) {
+        k = $0
+        sub(/^  /, "", k)
+        sub(/:.*/, "", k)
+        v = $0
+        sub("^  " k ":[ \t]*", "", v)
+        sub(/[ \t]*$/, "", v)
+        gsub(/^"|"$/, "", v)
+        active[k] = v
+      }
+      next
+    }
+
+    /^## Gate Ledger/ { in_ledger = 1; ledger_count = 0; next }
+    in_ledger && /^## / { in_ledger = 0 }
+    in_ledger && /^\|/ {
+      ledger_count++
+      if (ledger_count <= 2) next
+      line = $0
+      sub(/^\|/, "", line)
+      sub(/\|[ \t]*$/, "", line)
+      nf = split(line, cells, "|")
+      for (i = 1; i <= nf; i++) { gsub(/^[ \t]+/, "", cells[i]); gsub(/[ \t]+$/, "", cells[i]) }
+      row_n++
+      r_num[row_n] = cells[1]
+      r_init[row_n] = cells[2]
+      r_stage[row_n] = cells[3]
+      r_outcome[row_n] = cells[4]
+      r_approver[row_n] = cells[5]
+      r_artifact[row_n] = cells[7]
+      r_evidence[row_n] = cells[8]
+      next
+    }
+
+    function check_predecessor(initv, stg,    key, idxrow, oc) {
+      key = initv SUBSEP stg
+      if (!(key in latest)) {
+        print "ERROR: missing predecessor: " initv " " stg " has no gate row"
+        errors++
+        return
+      }
+      idxrow = latest[key]
+      oc = r_outcome[idxrow]
+      if (oc == "held") {
+        if (stg != "release") {
+          print "ERROR: predecessor not closed: " initv " " stg " latest outcome held is not terminal for this stage"
+          errors++
+        }
+        return
+      }
+      if (!(oc in generic_terminal)) {
+        print "ERROR: predecessor not closed: " initv " " stg " latest outcome " oc " is not terminal"
+        errors++
+      }
+    }
+
+    END {
+      for (i = 1; i <= row_n; i++) {
+        if (!(r_stage[i] in stage_index)) {
+          print "ERROR: row #" r_num[i] ": unknown stage " r_stage[i]
+          errors++
+        }
+        if (!(r_outcome[i] in known_outcome)) {
+          print "ERROR: row #" r_num[i] ": unknown outcome " r_outcome[i]
+          errors++
+        }
+
+        if (r_outcome[i] == "passed") {
+          if (r_approver[i] != "showrunner") {
+            print "ERROR: row #" r_num[i] ": outcome passed requires approver showrunner, got " r_approver[i]
+            errors++
+          }
+          if (r_stage[i] in owner_required) {
+            print "ERROR: row #" r_num[i] ": owner-gate stage " r_stage[i] " closed by showrunner"
+            errors++
+          }
+        } else if (r_outcome[i] == "fix") {
+          if (r_approver[i] != "showrunner") {
+            print "ERROR: row #" r_num[i] ": outcome fix requires approver showrunner, got " r_approver[i]
+            errors++
+          }
+        } else if (r_outcome[i] == "approved" || r_outcome[i] == "not-applicable" || r_outcome[i] == "waived" || r_outcome[i] == "held" || r_outcome[i] == "released") {
+          if (r_approver[i] != "owner") {
+            print "ERROR: row #" r_num[i] ": outcome " r_outcome[i] " requires approver owner, got " r_approver[i]
+            errors++
+          }
+        }
+
+        if (r_approver[i] == "owner" && index(r_evidence[i], "\"") == 0) {
+          print "ERROR: row #" r_num[i] ": owner evidence must be a quoted verbatim reply"
+          errors++
+        }
+
+        if (r_outcome[i] == "not-applicable" && r_stage[i] != "design" && r_stage[i] != "design-review") {
+          print "ERROR: row #" r_num[i] ": not-applicable is only allowed for design or design-review, got " r_stage[i]
+          errors++
+        }
+        if (r_outcome[i] == "waived" && (r_stage[i] == "setup" || r_stage[i] == "step0" || r_stage[i] == "verify" || r_stage[i] == "merge" || r_stage[i] == "release")) {
+          print "ERROR: row #" r_num[i] ": waived is not allowed for stage " r_stage[i]
+          errors++
+        }
+        if (r_outcome[i] == "held" && r_stage[i] != "release") {
+          print "ERROR: row #" r_num[i] ": held is only allowed for stage release, got " r_stage[i]
+          errors++
+        }
+        if (r_outcome[i] == "released" && r_stage[i] != "release") {
+          print "ERROR: row #" r_num[i] ": released is only allowed for stage release, got " r_stage[i]
+          errors++
+        }
+        if ((r_stage[i] in showrunner_only) && (r_outcome[i] == "approved" || r_outcome[i] == "not-applicable" || r_outcome[i] == "waived" || r_outcome[i] == "held" || r_outcome[i] == "released")) {
+          print "ERROR: row #" r_num[i] ": showrunner-owned stage " r_stage[i] " closed by owner"
+          errors++
+        }
+
+        latest[r_init[i] SUBSEP r_stage[i]] = i
+
+        art = r_artifact[i]
+        idx = index(art, "@sha256:")
+        if (idx > 0) {
+          path = substr(art, 1, idx - 1)
+          hexpart = substr(art, idx + 8)
+          gsub(/[ \t]+$/, "", hexpart)
+          if (hexpart ~ /^[0-9a-fA-F]+$/) {
+            digest_hex[path] = tolower(hexpart)
+            digest_seen[path] = 1
+          }
+        }
+      }
+
+      ai = active["initiative"]
+      as_ = active["stage"]
+      if (ai != "" && ai != "none") {
+        check_predecessor("project", "setup")
+        check_predecessor("project", "constitution")
+        if (as_ != "" && !(as_ in stage_index)) {
+          print "ERROR: active stage " as_ " is not a known stage"
+          errors++
+        } else if (as_ != "") {
+          idx2 = stage_index[as_]
+          for (j = 3; j < idx2; j++) check_predecessor(ai, stage_order[j])
+        }
+      } else if (as_ != "" && !(as_ in stage_index)) {
+        print "ERROR: active stage " as_ " is not a known stage"
+        errors++
+      }
+
+      if (as_ == "build" || as_ == "verify" || as_ == "security" || as_ == "acceptance" || as_ == "merge") {
+        s0 = active["step0_approved"]
+        fb = active["feature_branch"]
+        if (s0 == "" || s0 == "no") {
+          print "ERROR: stage " as_ " is active without an approved Step 0 digest"
+          errors++
+        }
+        if (fb == "" || fb == "none") {
+          print "ERROR: stage " as_ " is active without a feature branch"
+          errors++
+        }
+      }
+
+      if (shasum != "") {
+        for (p in digest_seen) {
+          full = project_root "/" p
+          rc = system("test -f \"" full "\"")
+          if (rc != 0) {
+            print "WARN: artifact missing: " p
+            warns++
+            continue
+          }
+          cmdline = shasum " \"" full "\" 2>/dev/null"
+          actual = ""
+          if ((cmdline | getline resline) > 0) {
+            split(resline, aa, " ")
+            actual = tolower(aa[1])
+          }
+          close(cmdline)
+          if (actual == "" || actual != digest_hex[p]) {
+            print "WARN: artifact digest mismatch: " p
+            warns++
+          }
+        }
+      }
+
+      print "showrunner check: " errors " errors, " warns " warnings"
+      if (errors > 0) exit 1
+      exit 0
+    }
+  ' "$STATE_FILE"
+  return $?
+}
+
+# ---------------------------------------------------------------------------
+# help / dispatch
+# ---------------------------------------------------------------------------
+
+cmd_help() {
+  cat <<'EOF'
+showrunner - ShowRunner lifecycle enforcement
+
+Usage:
+  showrunner context [--session]   One-paragraph stage reminder (SessionStart/UserPromptSubmit).
+  showrunner guard                 Read a PreToolUse hook payload on stdin; exit 2 to block.
+  showrunner pre-commit            Validate staged paths against the current stage; exit 1 to reject.
+  showrunner check                 Validate the state ledger; exit 1 if any error is found.
+  showrunner help                  Show this message.
+
+See core/enforcement.md for the full rules.
+EOF
+}
+
+main() {
+  _m_cmd=${1:-}
+  case "$_m_cmd" in
+    context)
+      shift
+      cmd_context "$@"
+      ;;
+    guard) cmd_guard ;;
+    pre-commit) cmd_pre_commit ;;
+    check) cmd_check ;;
+    help|--help|-h|"") cmd_help ;;
+    *)
+      cmd_help >&2
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"
