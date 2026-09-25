@@ -109,6 +109,7 @@ install_guarded() {
 install_guarded "$script_dir/hooks/commit-msg" "$hooks_dir/commit-msg"
 install_guarded "$script_dir/hooks/pre-commit" "$hooks_dir/pre-commit"
 install_guarded "$script_dir/showrunner" "$hooks_dir/showrunner"
+install_guarded "$script_dir/showrunner-sources" "$hooks_dir/showrunner-sources"
 
 prefixes_target="$hooks_dir/showrunner-commit-prefixes"
 {
@@ -131,6 +132,7 @@ fi
 echo "Installed commit-msg hook at $hooks_dir/commit-msg"
 echo "Installed pre-commit hook at $hooks_dir/pre-commit"
 echo "Installed showrunner script at $hooks_dir/showrunner"
+echo "Installed showrunner-sources script at $hooks_dir/showrunner-sources"
 echo "Installed commit prefix allowlist at $prefixes_target"
 
 if [ "$do_claude" -eq 1 ]; then

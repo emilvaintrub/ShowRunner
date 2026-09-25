@@ -17,6 +17,8 @@ unset CLAUDE_PROJECT_DIR 2>/dev/null || true
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 SHOWRUNNER="$ROOT_DIR/showrunner/scripts/showrunner"
 INSTALL_SH="$ROOT_DIR/showrunner/scripts/install-hooks.sh"
+INSTALL_PS1="$ROOT_DIR/showrunner/scripts/install-hooks.ps1"
+SOURCES="$ROOT_DIR/showrunner/scripts/showrunner-sources"
 
 pass_count=0
 fail_count=0
@@ -137,6 +139,7 @@ guard_json_bash() {
 # ===========================================================================
 
 for f in "$ROOT_DIR/showrunner/scripts/showrunner" \
+         "$ROOT_DIR/showrunner/scripts/showrunner-sources" \
          "$ROOT_DIR/showrunner/scripts/hooks/pre-commit" \
          "$ROOT_DIR/showrunner/scripts/install-hooks.sh" \
          "$ROOT_DIR/tests/run.sh"; do
@@ -150,6 +153,7 @@ done
 
 if command -v dash >/dev/null 2>&1; then
   for f in "$ROOT_DIR/showrunner/scripts/showrunner" \
+           "$ROOT_DIR/showrunner/scripts/showrunner-sources" \
            "$ROOT_DIR/showrunner/scripts/hooks/pre-commit" \
            "$ROOT_DIR/showrunner/scripts/install-hooks.sh"; do
     if dash -n "$f" 2>/tmp/synerr.$$; then
@@ -429,6 +433,25 @@ rc=$?
 { [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "without an approved Step 0 digest"; } \
   && pass "build without step0 error" || fail "build without step0 error" "exit=$rc out=$out"
 
+# step0_approved is a digit-bearing key ("step0_approved"); check's active-key
+# reader must not silently drop it (arc A-2 regression: an approved digest at
+# build/verify/security/acceptance/merge must not be treated as unapproved).
+repo=$(new_repo)
+write_state "$repo" build digest123 feat/x no
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors"; } \
+  && pass "step0_approved digit key recognized: approved digest at build passes" \
+  || fail "step0_approved digit key recognized: approved digest at build passes" "exit=$rc out=$out"
+
+repo=$(new_repo)
+write_state "$repo" verify digest123 feat/x no
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors"; } \
+  && pass "step0_approved digit key recognized: approved digest at verify passes" \
+  || fail "step0_approved digit key recognized: approved digest at verify passes" "exit=$rc out=$out"
+
 repo=$(new_repo)
 write_state "$repo" setup no none no
 mkdir -p "$repo/docs"
@@ -451,6 +474,90 @@ out=$(cd "$repo" && "$SHOWRUNNER" check)
 rc=$?
 { [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "is not a known stage"; } \
   && pass "unknown stage error" || fail "unknown stage error" "exit=$rc out=$out"
+
+# ===========================================================================
+# 5b. Project stages P1-P5 (arc A-2): discovery, assessment, business-docs
+# ===========================================================================
+
+# Owner-required: discovery/assessment/business-docs closed by showrunner
+# (outcome "passed") must error, like the other owner-gate project stages.
+for stg in discovery assessment business-docs; do
+  repo=$(new_repo)
+  write_state "$repo" intake no none no
+  append_row "$repo" "| 1 | project | $stg | passed | showrunner | 2026-01-01 | commit:abc | ok |"
+  out=$(cd "$repo" && "$SHOWRUNNER" check)
+  rc=$?
+  { [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "owner-gate stage $stg closed by showrunner"; } \
+    && pass "owner-required: project $stg closed by showrunner errors" \
+    || fail "owner-required: project $stg closed by showrunner errors" "exit=$rc out=$out"
+done
+
+# All five project stages need a terminal row under initiative "project"
+# while an initiative is active, even one placed well past business-docs.
+repo=$(new_repo)
+write_state "$repo" roadmap no none no
+sed -i 's/initiative: "none"/initiative: "I-001"/' "$repo/.claude/showrunner/state.md"
+append_row "$repo" '| 1 | project | setup | passed | showrunner | 2026-01-01 | commit:abc | ok |'
+append_row "$repo" '| 2 | project | discovery | approved | owner | 2026-01-01 | commit:abc | "go" |'
+append_row "$repo" '| 3 | project | assessment | approved | owner | 2026-01-01 | commit:abc | "proceed" |'
+append_row "$repo" '| 4 | project | constitution | approved | owner | 2026-01-01 | commit:abc | "ok" |'
+append_row "$repo" '| 5 | I-001 | intake | passed | showrunner | 2026-01-01 | commit:abc | opened |'
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "missing predecessor: project business-docs"; } \
+  && pass "all five project stages required while an initiative is active (business-docs missing)" \
+  || fail "all five project stages required while an initiative is active (business-docs missing)" "exit=$rc out=$out"
+
+append_row "$repo" '| 6 | project | business-docs | approved | owner | 2026-01-01 | commit:abc | "none" |'
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors"; } \
+  && pass "all five project stages satisfied while an initiative is active" \
+  || fail "all five project stages satisfied while an initiative is active" "exit=$rc out=$out"
+
+# NEW: when active.stage is itself a project stage, every EARLIER project
+# stage needs a terminal row, regardless of active.initiative.
+repo=$(new_repo)
+write_state "$repo" assessment no none no
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 1 ] \
+    && printf '%s' "$out" | grep -q "missing predecessor: project setup" \
+    && printf '%s' "$out" | grep -q "missing predecessor: project discovery"; } \
+  && pass "project-stage predecessor check while a project stage is active (missing)" \
+  || fail "project-stage predecessor check while a project stage is active (missing)" "exit=$rc out=$out"
+
+repo=$(new_repo)
+write_state "$repo" assessment no none no
+append_row "$repo" '| 1 | project | setup | passed | showrunner | 2026-01-01 | commit:abc | ok |'
+append_row "$repo" '| 2 | project | discovery | approved | owner | 2026-01-01 | commit:abc | "go" |'
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors"; } \
+  && pass "project-stage predecessor check while a project stage is active (satisfied)" \
+  || fail "project-stage predecessor check while a project stage is active (satisfied)" "exit=$rc out=$out"
+
+# context: project stages print "project <stage> (P<n>)"; initiative stages
+# keep "<stage> (n/15)".
+for pair in "setup:P1" "discovery:P2" "assessment:P3" "constitution:P4" "business-docs:P5"; do
+  stg=${pair%%:*}
+  pn=${pair##*:}
+  repo=$(new_repo)
+  write_state "$repo" "$stg" no none no
+  out=$(cd "$repo" && "$SHOWRUNNER" context)
+  case "$out" in
+    *"project $stg ($pn)"*) pass "context labels project stage $stg as $pn" ;;
+    *) fail "context labels project stage $stg as $pn" "out=[$out]" ;;
+  esac
+done
+
+repo=$(new_repo)
+write_state "$repo" spec no none no
+out=$(cd "$repo" && "$SHOWRUNNER" context)
+case "$out" in
+  *"spec (3/15)"*) pass "context keeps <stage> (n/15) for initiative stages" ;;
+  *) fail "context keeps <stage> (n/15) for initiative stages" "out=[$out]" ;;
+esac
 
 # ===========================================================================
 # 6. Worktree resolution
@@ -487,9 +594,10 @@ ok=1
 [ -x "$proj/.githooks/commit-msg" ] || ok=0
 [ -x "$proj/.githooks/pre-commit" ] || ok=0
 [ -x "$proj/.githooks/showrunner" ] || ok=0
+[ -x "$proj/.githooks/showrunner-sources" ] || ok=0
 [ -f "$proj/.githooks/showrunner-commit-prefixes" ] || ok=0
 [ "$(git -C "$proj" config --get core.hooksPath)" = ".githooks" ] || ok=0
-[ "$ok" -eq 1 ] && pass "install-hooks.sh sets hooksPath and copies 4 files executable" || fail "install-hooks.sh sets hooksPath and copies 4 files executable" "$out"
+[ "$ok" -eq 1 ] && pass "install-hooks.sh sets hooksPath and copies 5 files executable" || fail "install-hooks.sh sets hooksPath and copies 5 files executable" "$out"
 
 out=$("$INSTALL_SH" --project-root "$proj" --claude 2>&1)
 rc=$?
@@ -518,6 +626,59 @@ if command -v jq >/dev/null 2>&1; then
       "before=$before_count after=$after_count other_ok=$other_ok out=$out"
 else
   fail "re-run with --force --claude does not duplicate entries and preserves unrelated settings" "jq not available in this environment"
+fi
+
+# ===========================================================================
+# 7b. install-hooks.ps1 -ClaudeSettings under PowerShell (PS5.1 hardening)
+# ===========================================================================
+
+PWSH_BIN=${PWSH:-}
+if [ -z "$PWSH_BIN" ] && [ -x /tmp/claude-0/pwsh/pwsh ]; then
+  PWSH_BIN=/tmp/claude-0/pwsh/pwsh
+fi
+
+if [ -z "$PWSH_BIN" ] || [ ! -x "$PWSH_BIN" ] || ! command -v jq >/dev/null 2>&1; then
+  printf 'SKIP: install-hooks.ps1 -ClaudeSettings pwsh regression (no $PWSH / /tmp/claude-0/pwsh/pwsh, or no jq)\n'
+else
+  pproj=$(new_repo)
+  mkdir -p "$pproj/.claude"
+  cat > "$pproj/.claude/settings.json" <<'EOF'
+{
+  "otherSetting": true,
+  "hooks": {
+    "PostToolUse": [
+      { "hooks": [ { "type": "command", "command": "echo unrelated" } ] }
+    ]
+  }
+}
+EOF
+  out=$("$PWSH_BIN" -NoProfile -File "$INSTALL_PS1" -ProjectRoot "$pproj" -ClaudeSettings 2>&1)
+  rc1=$?
+  out2=$("$PWSH_BIN" -NoProfile -File "$INSTALL_PS1" -ProjectRoot "$pproj" -Force -ClaudeSettings 2>&1)
+  rc2=$?
+
+  ok=1
+  [ "$rc1" -eq 0 ] || ok=0
+  [ "$rc2" -eq 0 ] || ok=0
+  [ -x "$pproj/.githooks/commit-msg" ] || ok=0
+  [ -x "$pproj/.githooks/pre-commit" ] || ok=0
+  [ -x "$pproj/.githooks/showrunner" ] || ok=0
+  [ -x "$pproj/.githooks/showrunner-sources" ] || ok=0
+  [ -f "$pproj/.githooks/showrunner-commit-prefixes" ] || ok=0
+
+  other_ok=$(jq -e '.otherSetting == true and (.hooks.PostToolUse[0].hooks[0].command == "echo unrelated")' "$pproj/.claude/settings.json" >/dev/null 2>&1 && echo yes || echo no)
+  [ "$other_ok" = "yes" ] || ok=0
+
+  pretooluse_count=$(jq '[.hooks.PreToolUse[] | select(.hooks[]?.command | test("showrunner"))] | length' "$pproj/.claude/settings.json")
+  [ "$pretooluse_count" -eq 1 ] || ok=0
+
+  arrays_ok=$(jq -e '[.hooks | to_entries[] | .value | type == "array"] | all' "$pproj/.claude/settings.json" >/dev/null 2>&1 && echo yes || echo no)
+  [ "$arrays_ok" = "yes" ] || ok=0
+
+  [ "$ok" -eq 1 ] \
+    && pass "install-hooks.ps1 -ClaudeSettings (pwsh): 5 files, no duplicates, unrelated settings kept, hooks are arrays" \
+    || fail "install-hooks.ps1 -ClaudeSettings (pwsh): 5 files, no duplicates, unrelated settings kept, hooks are arrays" \
+      "rc1=$rc1 rc2=$rc2 other_ok=$other_ok pretooluse_count=$pretooluse_count arrays_ok=$arrays_ok out=$out out2=$out2"
 fi
 
 # ===========================================================================
@@ -670,6 +831,513 @@ out=$(guard_json_bash "git -C $repo checkout main && git -C $repo merge feat/x" 
 rc=$?
 [ "$rc" -eq 2 ] && pass "F9: -C-scoped checkout-then-merge onto primary blocked (per-directory effective branch)" \
   || fail "F9: -C-scoped checkout-then-merge onto primary blocked (per-directory effective branch)" "exit=$rc out=$out"
+
+# ===========================================================================
+# 10. showrunner-sources (arc A-2 research linter)
+# ===========================================================================
+
+new_plain_repo() {
+  d=$(mktemp -d)
+  track_tmp "$d"
+  (cd "$d" && git init -q -b main && git config user.email test@example.com && git config user.name Test) >/dev/null 2>&1
+  printf '%s\n' "$d"
+}
+
+empty_registers() {
+  # $1=path
+  cat > "$1" <<'REGEOF'
+## Sources
+
+| ID | Title | Publisher | URL | Published | Accessed | Type | Excerpt |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+
+## Search Log
+
+| ID | Date | Tool | Query | Results opened | Notes |
+| --- | --- | --- | --- | --- | --- |
+
+## Assumptions
+
+| ID | Assumption | Value | Rationale | Based on | Sensitivity | Owner status |
+| --- | --- | --- | --- | --- | --- | --- |
+REGEOF
+}
+
+one_source_registers() {
+  # $1=path $2=accessed date (default: today via SHOWRUNNER_TODAY-friendly recent date)
+  accessed=${2:-2026-09-01}
+  cat > "$1" <<REGEOF
+## Sources
+
+| ID | Title | Publisher | URL | Published | Accessed | Type | Excerpt |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| S1 | Pricing page | Acme | https://acme.example/pricing | 2025 | $accessed | primary | "Plans start at \$12/user/month" |
+| S4 | Market report | Analyst Co | https://analyst.example/report | 2025 | $accessed | secondary | "3.0M households" |
+
+## Search Log
+
+| ID | Date | Tool | Query | Results opened | Notes |
+| --- | --- | --- | --- | --- | --- |
+
+## Assumptions
+
+| ID | Assumption | Value | Rationale | Based on | Sensitivity | Owner status |
+| --- | --- | --- | --- | --- | --- | --- |
+| A1 | Growth rate | 20% | Analyst consensus | judgment | swings +/-10% | proposed |
+REGEOF
+}
+
+# --- clean doc passes -------------------------------------------------------
+
+repo=$(new_plain_repo)
+one_source_registers "$repo/registers.md"
+cat > "$repo/doc.md" <<'EOF'
+# Assessment
+
+Acme's plans start at $12/user/month [S1].
+
+Growth is projected at 20% next year [ASSUMPTION A1].
+EOF
+out=$("$SOURCES" lint --registers "$repo/registers.md" "$repo/doc.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors, 0 warnings"; } \
+  && pass "clean labeled doc passes" || fail "clean labeled doc passes" "exit=$rc out=$out"
+
+# --- untagged currency / percent / magnitude: table cell and prose ---------
+
+repo=$(new_plain_repo)
+one_source_registers "$repo/registers.md"
+cat > "$repo/tbl.md" <<'EOF'
+| Segment | Revenue |
+| --- | --- |
+| Enterprise | $1,200 |
+EOF
+out=$("$SOURCES" lint --registers "$repo/registers.md" "$repo/tbl.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "figure without a label in table cell"; } \
+  && pass "untagged currency in a table cell errors" || fail "untagged currency in a table cell errors" "exit=$rc out=$out"
+
+cat > "$repo/pct.md" <<'EOF'
+Growth is projected at 20% next year.
+EOF
+out=$("$SOURCES" lint --registers "$repo/registers.md" "$repo/pct.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "figure without a label"; } \
+  && pass "untagged percent in prose errors" || fail "untagged percent in prose errors" "exit=$rc out=$out"
+
+cat > "$repo/mag.md" <<'EOF'
+The market is estimated at 3.2M households.
+EOF
+out=$("$SOURCES" lint --registers "$repo/registers.md" "$repo/mag.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "figure without a label"; } \
+  && pass "untagged magnitude (3.2M) in prose errors" || fail "untagged magnitude (3.2M) in prose errors" "exit=$rc out=$out"
+
+# --- plain integer / year not flagged ---------------------------------------
+
+repo=$(new_plain_repo)
+one_source_registers "$repo/registers.md"
+cat > "$repo/plain.md" <<'EOF'
+We interviewed 42 customers in 2024.
+EOF
+out=$("$SOURCES" lint --registers "$repo/registers.md" "$repo/plain.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors"; } \
+  && pass "plain integer and year are not figures" || fail "plain integer and year are not figures" "exit=$rc out=$out"
+
+# --- <placeholder> ignored ---------------------------------------------------
+
+cat > "$repo/placeholder.md" <<'EOF'
+Template example: revenue is <45%> of total.
+EOF
+out=$("$SOURCES" lint --registers "$repo/registers.md" "$repo/placeholder.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors"; } \
+  && pass "placeholder text inside <...> is ignored" || fail "placeholder text inside <...> is ignored" "exit=$rc out=$out"
+
+# --- fenced code and HTML comments ignored ----------------------------------
+
+cat > "$repo/fenced.md" <<'EOF'
+Some prose here.
+
+```
+This has $50 with no label but is code.
+```
+
+<!-- This has 30% inside a comment, no label -->
+
+More prose without figures.
+EOF
+out=$("$SOURCES" lint --registers "$repo/registers.md" "$repo/fenced.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors"; } \
+  && pass "fenced code blocks and HTML comments are not scanned" || fail "fenced code blocks and HTML comments are not scanned" "exit=$rc out=$out"
+
+# --- label in a different sentence does not count ---------------------------
+
+cat > "$repo/diffsent.md" <<'EOF'
+Revenue is $5M. This claim comes from the pricing page [S1].
+EOF
+out=$("$SOURCES" lint --registers "$repo/registers.md" "$repo/diffsent.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "figure without a label"; } \
+  && pass "a label in a different sentence does not cover an earlier figure" \
+  || fail "a label in a different sentence does not cover an earlier figure" "exit=$rc out=$out"
+
+# --- paragraph/list wrap correction (architect correction on arc A-2) ------
+
+cat > "$repo/wrap_a.md" <<'EOF'
+Acme's plans start at $12/user/month
+[S1].
+EOF
+out=$("$SOURCES" lint --registers "$repo/registers.md" "$repo/wrap_a.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors"; } \
+  && pass "wrap (a): figure on one line, label on the next line of the same sentence PASSES" \
+  || fail "wrap (a): figure on one line, label on the next line of the same sentence PASSES" "exit=$rc out=$out"
+
+cat > "$repo/wrap_b.md" <<'EOF'
+Acme's plans start at $12/user/month. See details [S1].
+EOF
+out=$("$SOURCES" lint --registers "$repo/registers.md" "$repo/wrap_b.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "wrap_b.md:1: figure without a label"; } \
+  && pass "wrap (b): figure in one sentence, label only in the next sentence FAILS (same line)" \
+  || fail "wrap (b): figure in one sentence, label only in the next sentence FAILS (same line)" "exit=$rc out=$out"
+
+cat > "$repo/wrap_c.md" <<'EOF'
+- Acme's plans start at $12/user/month
+  [S1].
+EOF
+out=$("$SOURCES" lint --registers "$repo/registers.md" "$repo/wrap_c.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors"; } \
+  && pass "wrap (c): a list item wrapped onto a continuation line with the label there PASSES" \
+  || fail "wrap (c): a list item wrapped onto a continuation line with the label there PASSES" "exit=$rc out=$out"
+
+cat > "$repo/wrap_d.md" <<'EOF'
+- Acme's plans start at $12/user/month.
+- See details [S1].
+EOF
+out=$("$SOURCES" lint --registers "$repo/registers.md" "$repo/wrap_d.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "wrap_d.md:1: figure without a label"; } \
+  && pass "wrap (d): two separate list items - figure in the first, label in the second - FAILS" \
+  || fail "wrap (d): two separate list items - figure in the first, label in the second - FAILS" "exit=$rc out=$out"
+
+# --- bracket-list labels -----------------------------------------------------
+
+cat > "$repo/bl1.md" <<'EOF'
+Revenue is $5M combining two sources [S1, S4].
+EOF
+out=$("$SOURCES" lint --registers "$repo/registers.md" "$repo/bl1.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors"; } \
+  && pass "bracket list [S1, S4] accepted" || fail "bracket list [S1, S4] accepted" "exit=$rc out=$out"
+
+cat > "$repo/bl2.md" <<'EOF'
+Revenue is $5M combining two sources [S1,S4].
+EOF
+out=$("$SOURCES" lint --registers "$repo/registers.md" "$repo/bl2.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors"; } \
+  && pass "bracket list [S1,S4] (no space) accepted" || fail "bracket list [S1,S4] (no space) accepted" "exit=$rc out=$out"
+
+# --- DERIVED with nested labels ---------------------------------------------
+
+cat > "$repo/derived.md" <<'EOF'
+SAM 1.2M households [DERIVED: 3.0M [S4] x 40% [ASSUMPTION A1]].
+EOF
+out=$("$SOURCES" lint --registers "$repo/registers.md" "$repo/derived.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors"; } \
+  && pass "DERIVED label with nested S/A ids is accepted and ids are collected" \
+  || fail "DERIVED label with nested S/A ids is accepted and ids are collected" "exit=$rc out=$out"
+
+# --- missing S/A/Q id errors --------------------------------------------------
+
+cat > "$repo/missingid.md" <<'EOF'
+Revenue is $5M [S9].
+EOF
+out=$("$SOURCES" lint --registers "$repo/registers.md" "$repo/missingid.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "cited id S9 not found in the registers"; } \
+  && pass "citing an unknown S id errors" || fail "citing an unknown S id errors" "exit=$rc out=$out"
+
+cat > "$repo/missingq.md" <<'EOF'
+No evidence found in web search [search log Q9].
+EOF
+out=$("$SOURCES" lint --registers "$repo/registers.md" "$repo/missingq.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "cited id Q9 not found in the registers"; } \
+  && pass "a 'search log Q<n>' reference to an unknown id errors" \
+  || fail "a 'search log Q<n>' reference to an unknown id errors" "exit=$rc out=$out"
+
+# --- register row structural errors -----------------------------------------
+
+repo=$(new_plain_repo)
+cat > "$repo/regs_bad.md" <<'EOF'
+## Sources
+
+| ID | Title | Publisher | URL | Published | Accessed | Type | Excerpt |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| S1 | A | Pub |  | 2025 |  | primary |  |
+
+## Search Log
+
+| ID | Date | Tool | Query | Results opened | Notes |
+| --- | --- | --- | --- | --- | --- |
+
+## Assumptions
+
+| ID | Assumption | Value | Rationale | Based on | Sensitivity | Owner status |
+| --- | --- | --- | --- | --- | --- | --- |
+EOF
+printf 'x\n' > "$repo/noop.md"
+out=$("$SOURCES" lint --registers "$repo/regs_bad.md" "$repo/noop.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 1 ] \
+    && printf '%s' "$out" | grep -q "missing a valid Accessed date" \
+    && printf '%s' "$out" | grep -q "URL must be http(s) unless Type is owner" \
+    && printf '%s' "$out" | grep -q "excerpt must be a non-empty quoted string"; } \
+  && pass "a Sources row missing URL/Accessed/excerpt errors on each" \
+  || fail "a Sources row missing URL/Accessed/excerpt errors on each" "exit=$rc out=$out"
+
+# --- owner-type row with a file path is OK ----------------------------------
+
+repo=$(new_plain_repo)
+cat > "$repo/regs_owner.md" <<'EOF'
+## Sources
+
+| ID | Title | Publisher | URL | Published | Accessed | Type | Excerpt |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| S1 | Internal deck | Owner | docs/owner-notes.pdf | 2025 | 2026-09-01 | owner | "internal figure" |
+
+## Search Log
+
+| ID | Date | Tool | Query | Results opened | Notes |
+| --- | --- | --- | --- | --- | --- |
+
+## Assumptions
+
+| ID | Assumption | Value | Rationale | Based on | Sensitivity | Owner status |
+| --- | --- | --- | --- | --- | --- | --- |
+EOF
+printf 'x\n' > "$repo/noop.md"
+out=$("$SOURCES" lint --registers "$repo/regs_owner.md" "$repo/noop.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors"; } \
+  && pass "owner-type Sources row with a file path in URL is OK" \
+  || fail "owner-type Sources row with a file path in URL is OK" "exit=$rc out=$out"
+
+# --- duplicate id errors -----------------------------------------------------
+
+repo=$(new_plain_repo)
+cat > "$repo/regs_dup.md" <<'EOF'
+## Sources
+
+| ID | Title | Publisher | URL | Published | Accessed | Type | Excerpt |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| S1 | A | Pub | https://example.com/a | 2025 | 2026-09-01 | primary | "hello" |
+| S1 | B | Pub | https://example.com/b | 2025 | 2026-09-01 | primary | "world" |
+
+## Search Log
+
+| ID | Date | Tool | Query | Results opened | Notes |
+| --- | --- | --- | --- | --- | --- |
+
+## Assumptions
+
+| ID | Assumption | Value | Rationale | Based on | Sensitivity | Owner status |
+| --- | --- | --- | --- | --- | --- | --- |
+EOF
+printf 'x\n' > "$repo/noop.md"
+out=$("$SOURCES" lint --registers "$repo/regs_dup.md" "$repo/noop.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "duplicate Sources id S1"; } \
+  && pass "a duplicate Sources id errors" || fail "a duplicate Sources id errors" "exit=$rc out=$out"
+
+# --- stale source warns (SHOWRUNNER_TODAY) ----------------------------------
+
+repo=$(new_plain_repo)
+one_source_registers "$repo/registers.md" "2026-01-01"
+cat > "$repo/doc.md" <<'EOF'
+Acme's plans start at $12/user/month [S1].
+EOF
+out=$(SHOWRUNNER_TODAY=2027-06-01 "$SOURCES" lint --registers "$repo/registers.md" "$repo/doc.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "WARN:.*cited source S1 was accessed 2026-01-01, older than the freshness window"; } \
+  && pass "a stale cited source warns (via SHOWRUNNER_TODAY)" \
+  || fail "a stale cited source warns (via SHOWRUNNER_TODAY)" "exit=$rc out=$out"
+
+out=$(SHOWRUNNER_TODAY=2026-02-01 "$SOURCES" lint --registers "$repo/registers.md" "$repo/doc.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors, 0 warnings"; } \
+  && pass "a fresh cited source does not warn (via SHOWRUNNER_TODAY)" \
+  || fail "a fresh cited source does not warn (via SHOWRUNNER_TODAY)" "exit=$rc out=$out"
+
+# --- EVIDENCE PENDING warns --------------------------------------------------
+
+repo=$(new_plain_repo)
+one_source_registers "$repo/registers.md"
+cat > "$repo/pending.md" <<'EOF'
+Market size is unknown. EVIDENCE PENDING for competitor pricing.
+EVIDENCE PENDING also for regulatory scope.
+EOF
+out=$("$SOURCES" lint --registers "$repo/registers.md" "$repo/pending.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 0 ] \
+    && printf '%s' "$out" | grep -q "pending.md:1: EVIDENCE PENDING marker found" \
+    && printf '%s' "$out" | grep -q "pending.md:2: EVIDENCE PENDING marker found"; } \
+  && pass "each EVIDENCE PENDING occurrence warns with file:line" \
+  || fail "each EVIDENCE PENDING occurrence warns with file:line" "exit=$rc out=$out"
+
+# --- --fetch via SHOWRUNNER_FETCH_CMD stub ----------------------------------
+
+repo=$(new_plain_repo)
+one_source_registers "$repo/registers.md"
+cat > "$repo/doc.md" <<'EOF'
+Acme's plans start at $12/user/month [S1].
+EOF
+
+cat > "$repo/fetch_ok.sh" <<'EOF'
+#!/bin/sh
+printf 'Our pricing page says: Plans start at $12/user/month for everyone.'
+EOF
+chmod +x "$repo/fetch_ok.sh"
+out=$(SHOWRUNNER_FETCH_CMD="$repo/fetch_ok.sh" "$SOURCES" lint --registers "$repo/registers.md" --fetch "$repo/doc.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "| S1 | https://acme.example/pricing | confirmed |"; } \
+  && pass "--fetch via stub: confirmed when the excerpt is present" \
+  || fail "--fetch via stub: confirmed when the excerpt is present" "exit=$rc out=$out"
+
+{ [ "$rc" -eq 0 ] \
+    && printf '%s' "$out" | grep -q "^showrunner-sources: 0 errors, 0 warnings" \
+    && ! printf '%s' "$out" | grep -q "^WARN:.*source S1"; } \
+  && pass "--fetch: a confirmed result emits no WARN and no warning count" \
+  || fail "--fetch: a confirmed result emits no WARN and no warning count" "exit=$rc out=$out"
+
+cat > "$repo/fetch_nf.sh" <<'EOF'
+#!/bin/sh
+printf 'Totally unrelated content.'
+EOF
+chmod +x "$repo/fetch_nf.sh"
+out=$(SHOWRUNNER_FETCH_CMD="$repo/fetch_nf.sh" "$SOURCES" lint --registers "$repo/registers.md" --fetch "$repo/doc.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "| S1 | https://acme.example/pricing | excerpt-not-found |"; } \
+  && pass "--fetch via stub: excerpt-not-found when the page loads without the excerpt" \
+  || fail "--fetch via stub: excerpt-not-found when the page loads without the excerpt" "exit=$rc out=$out"
+
+{ [ "$rc" -eq 0 ] \
+    && printf '%s' "$out" | grep -qF "WARN: $repo/doc.md:1: source S1 excerpt-not-found (https://acme.example/pricing)" \
+    && printf '%s' "$out" | grep -q "^showrunner-sources: 0 errors, 1 warnings"; } \
+  && pass "--fetch: excerpt-not-found emits a WARN and counts as a warning" \
+  || fail "--fetch: excerpt-not-found emits a WARN and counts as a warning" "exit=$rc out=$out"
+
+cat > "$repo/fetch_fail.sh" <<'EOF'
+#!/bin/sh
+exit 1
+EOF
+chmod +x "$repo/fetch_fail.sh"
+out=$(SHOWRUNNER_FETCH_CMD="$repo/fetch_fail.sh" "$SOURCES" lint --registers "$repo/registers.md" --fetch "$repo/doc.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "| S1 | https://acme.example/pricing | unreachable |"; } \
+  && pass "--fetch via stub: unreachable when the fetch command fails" \
+  || fail "--fetch via stub: unreachable when the fetch command fails" "exit=$rc out=$out"
+
+{ [ "$rc" -eq 0 ] \
+    && printf '%s' "$out" | grep -qF "WARN: $repo/doc.md:1: source S1 unreachable (https://acme.example/pricing)" \
+    && printf '%s' "$out" | grep -q "^showrunner-sources: 0 errors, 1 warnings"; } \
+  && pass "--fetch: unreachable emits a WARN and counts as a warning" \
+  || fail "--fetch: unreachable emits a WARN and counts as a warning" "exit=$rc out=$out"
+
+# --fetch never turns into an ERROR / never affects the error count.
+out=$(SHOWRUNNER_FETCH_CMD="$repo/fetch_fail.sh" "$SOURCES" lint --registers "$repo/registers.md" --fetch "$repo/doc.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "^showrunner-sources: 0 errors,"; } \
+  && pass "--fetch results never contribute to the error count" \
+  || fail "--fetch results never contribute to the error count" "exit=$rc out=$out"
+
+# a source cited by two documents gets one WARN per document that cites it.
+cat > "$repo/doc2.md" <<'EOF'
+See also the same pricing page [S1].
+EOF
+out=$(SHOWRUNNER_FETCH_CMD="$repo/fetch_fail.sh" "$SOURCES" lint --registers "$repo/registers.md" --fetch "$repo/doc.md" "$repo/doc2.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 0 ] \
+    && printf '%s' "$out" | grep -qF "WARN: $repo/doc.md:1: source S1 unreachable (https://acme.example/pricing)" \
+    && printf '%s' "$out" | grep -qF "WARN: $repo/doc2.md:1: source S1 unreachable (https://acme.example/pricing)" \
+    && printf '%s' "$out" | grep -q "^showrunner-sources: 0 errors, 2 warnings"; } \
+  && pass "--fetch: a source cited by two documents warns once per document" \
+  || fail "--fetch: a source cited by two documents warns once per document" "exit=$rc out=$out"
+
+# --- --fetch: curl missing is warned once and counted ----------------------
+
+repo=$(new_plain_repo)
+one_source_registers "$repo/registers.md"
+cat > "$repo/doc.md" <<'EOF'
+Acme's plans start at $12/user/month [S1].
+EOF
+nocurl_bin=$(mktemp -d)
+track_tmp "$nocurl_bin"
+for t in git awk sed date mktemp grep cat tr; do
+  tpath=$(command -v "$t" 2>/dev/null) && ln -s "$tpath" "$nocurl_bin/$t"
+done
+out=$(PATH="$nocurl_bin" "$SOURCES" lint --registers "$repo/registers.md" --fetch "$repo/doc.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 0 ] \
+    && printf '%s' "$out" | grep -q "^WARN:.*curl is not available" \
+    && printf '%s' "$out" | grep -q "^showrunner-sources: 0 errors, 1 warnings"; } \
+  && pass "--fetch: missing curl warns once and is counted as a warning" \
+  || fail "--fetch: missing curl warns once and is counted as a warning" "exit=$rc out=$out"
+
+# --- registers resolved from config / missing registers errors -------------
+
+repo=$(new_plain_repo)
+mkdir -p "$repo/.claude/showrunner"
+one_source_registers "$repo/registers.md"
+cat > "$repo/.claude/showrunner/config.md" <<'EOF'
+```yaml
+business:
+  registers: "registers.md"
+  research:
+    freshness_days: 365
+```
+EOF
+cat > "$repo/doc.md" <<'EOF'
+Acme's plans start at $12/user/month [S1].
+EOF
+out=$(cd "$repo" && "$SOURCES" lint "$repo/doc.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors"; } \
+  && pass "registers resolved from business.registers in config.md" \
+  || fail "registers resolved from business.registers in config.md" "exit=$rc out=$out"
+
+repo=$(new_plain_repo)
+cat > "$repo/doc.md" <<'EOF'
+Plain text with $5 and no label.
+EOF
+out=$(cd "$repo" && "$SOURCES" lint "$repo/doc.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "ERROR:.*business.registers not found"; } \
+  && pass "missing/unresolvable registers is an ERROR, exit 1" \
+  || fail "missing/unresolvable registers is an ERROR, exit 1" "exit=$rc out=$out"
+
+# --- usage errors exit 2 -----------------------------------------------------
+
+repo=$(new_plain_repo)
+one_source_registers "$repo/registers.md"
+out=$("$SOURCES" lint --registers "$repo/registers.md" 2>&1)
+rc=$?
+[ "$rc" -eq 2 ] && pass "usage error (no DOCUMENT) exits 2" || fail "usage error (no DOCUMENT) exits 2" "exit=$rc out=$out"
+
+out=$("$SOURCES" 2>&1)
+rc=$?
+[ "$rc" -eq 2 ] && pass "usage error (no subcommand) exits 2" || fail "usage error (no subcommand) exits 2" "exit=$rc out=$out"
+
+out=$("$SOURCES" bogus --registers "$repo/registers.md" "$repo/noop.md" 2>&1)
+rc=$?
+[ "$rc" -eq 2 ] && pass "usage error (unknown subcommand) exits 2" || fail "usage error (unknown subcommand) exits 2" "exit=$rc out=$out"
 
 # ===========================================================================
 # Summary
