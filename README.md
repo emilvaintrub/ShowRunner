@@ -1,6 +1,6 @@
 # ShowRunner
 
-Forge the direction. Arc the build. Sentry the risk. Bible the system.
+Forge the direction. Pitch the business. Arc the build. Sentry the risk. Bible the system.
 
 ShowRunner is a project-neutral workflow skill for AI-assisted software
 delivery. It turns fuzzy requests into approved direction, verified
@@ -8,7 +8,7 @@ implementation arcs, security posture, penetration-test governance, browser
 evidence, and architecture synthesis.
 
 ![Status](https://img.shields.io/badge/status-ready-2ea44f)
-![Policies](https://img.shields.io/badge/policies-Forge%20%7C%20Arc%20%7C%20Sentry%20%7C%20Bible-5B6CFF)
+![Policies](https://img.shields.io/badge/policies-Forge%20%7C%20Pitch%20%7C%20Arc%20%7C%20Sentry%20%7C%20Bible-5B6CFF)
 ![Context](https://img.shields.io/badge/context-hygiene-5B6CFF)
 ![Codex](https://img.shields.io/badge/Codex-skill-111827)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-skill-111827)
@@ -73,7 +73,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Target cursor
 
 | Policy | Job | Command family |
 | --- | --- | --- |
-| Forge | Product direction, planning, specs, design, decisions. | `/forge init|discover|plan|spec|decide|design` |
+| Forge | Discovery, idea assessment, product direction, planning, specs, design, decisions. | `/forge init|discover|assess|plan|spec|design|design-review|decide` |
+| Pitch | Evidence-backed business documents: decisions, competitors, financials, investor deck. | `/pitch init|select|decisions|competitors|financials|deck|refresh|audit` |
 | Arc | Implementation planning, Step 0, branch work, verification, merge stop. | `/arc init|plan|run|verify|merge` |
 | Sentry | Security sweeps, fixes, dependency triage, external scanner ingestion, pen-test governance. | `/sentry init|sweep|fix|verify|accept|deps|pen-test|monthly|refresh-knowledge|merge` |
 | Bible | Evidence-bound architecture and capability synthesis. | `/bible init|sync|merge` |
@@ -174,13 +175,18 @@ The short version:
    config and the state ledger, and installs the safety hooks.
 2. Tell it what you want in plain words. You are the business owner; ShowRunner
    is the conductor.
-3. ShowRunner runs every stage in order - intake, roadmap, spec, design,
+3. First it examines the idea with you: a deep discovery interview (guiding a
+   newcomer or challenging an experienced owner), an evidence-backed
+   viability assessment, the product constitution, and the business
+   documents you choose (business decisions, competitor analysis, financial
+   plan, investor deck), with no unsourced figures.
+4. Then, for each piece of work, ShowRunner runs every stage in order - intake, roadmap, spec, design,
    design review, handoff, build plan, Step 0, build, verify, security,
    acceptance, merge, release, close - and moves on by itself.
-4. It stops only for your decisions: product calls, approvals, the returned
+5. It stops only for your decisions: product calls, approvals, the returned
    design, your acceptance test, merge approval, and your release
    instructions.
-5. It never skips a stage on its own, never merges without your approval, and
+6. It never skips a stage on its own, never merges without your approval, and
    never releases or deploys without your instructions.
 
 ## Design Is Expert-Led

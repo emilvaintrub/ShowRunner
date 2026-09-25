@@ -64,7 +64,7 @@ later stage finds that their conclusions no longer hold.
 
 | # | Stage id | Policy | Owner gate | Exit record |
 | --- | --- | --- | --- | --- |
-| P1 | `setup` | all `init` | only unevidenced policy bindings and any disabled policy | config valid, every policy `ready` or owner-approved `disabled`, hooks installed, state ledger created |
+| P1 | `setup` | all `init` | business bindings only: compliance posture, data classification, risk appetite, operational ownership, any binding the repository cannot evidence, and any disabled policy - always asked, never inferred | config valid, every policy `ready` or owner-approved `disabled`, hooks installed, state ledger created |
 | P2 | `discovery` | Forge `discover` (interview) | yes | owner profile recorded; discovery brief confirmed by the owner; inquiry coverage complete |
 | P3 | `assessment` | Forge `assess` | yes | viability assessment with cited research; owner's verdict (proceed, validate first, pivot, or stop) |
 | P4 | `constitution` | Forge `discover` (constitution) | yes | constitution approved; Forge re-validated to `ready` |

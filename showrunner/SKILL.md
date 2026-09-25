@@ -1,6 +1,6 @@
 ---
 name: showrunner
-description: Conduct software work from the owner's idea to release through one enforced lifecycle - setup, constitution, intake, roadmap, spec, design, design review, handoff, Arc plan, Step 0, build, verify, security, acceptance, merge, release, and close - using the Forge, Arc, Sentry, and Bible policies as instruments. Use for any request to build, change, fix, secure, release, or document software in a repository that has or should have `.claude/showrunner/config.md`, for status or "what next" questions, and when resuming interrupted work.
+description: Conduct a product from the owner's idea to release through one enforced lifecycle - setup, discovery, assessment, constitution, business documents, then per initiative intake, roadmap, spec, design, design review, handoff, Arc plan, Step 0, build, verify, security, acceptance, merge, release, and close - using the Forge, Pitch, Arc, Sentry, and Bible policies as instruments. Use for any new product idea, any request to build, change, fix, secure, release, or document software, any business document request (business decisions, competitor analysis, financial plan, investor deck) in a repository that has or should have `.claude/showrunner/config.md`, for status or "what next" questions, and when resuming interrupted work.
 ---
 
 # ShowRunner
@@ -32,7 +32,9 @@ decide or supply something, and it never skips a stage on its own.
 | Stage | Load |
 | --- | --- |
 | `setup` | every present policy's `SKILL.md` and `method.md` (`init`), [core/config.schema.md](core/config.schema.md), [core/commit-hooks.md](core/commit-hooks.md), [core/enforcement.md](core/enforcement.md), [core/templates/state.md](core/templates/state.md) |
-| `constitution`, `roadmap`, `spec`, `design`, `design-review`, `handoff` | [forge/SKILL.md](forge/SKILL.md), [forge/method.md](forge/method.md), the command's template, [gates/wow-check.md](gates/wow-check.md) for GATE-OUT when enabled |
+| `discovery`, `assessment` | [forge/SKILL.md](forge/SKILL.md), [forge/discovery.md](forge/discovery.md), [forge/knowledge/inquiry-bank.md](forge/knowledge/inquiry-bank.md), [core/evidence.md](core/evidence.md), the stage's template |
+| `business-docs` | [pitch/SKILL.md](pitch/SKILL.md), [pitch/method.md](pitch/method.md), [core/evidence.md](core/evidence.md), the document's template |
+| `constitution`, `roadmap`, `spec`, `design`, `design-review`, `handoff` | [forge/SKILL.md](forge/SKILL.md), [forge/method.md](forge/method.md), the command's template, [gates/wow-check.md](gates/wow-check.md) for GATE-OUT when enabled; for `roadmap`, also [forge/discovery.md](forge/discovery.md) section 5 |
 | `arc-plan`, `step0`, `build` | [arc/SKILL.md](arc/SKILL.md), [arc/method.md](arc/method.md), [core/dispatch.md](core/dispatch.md), [core/tdd.md](core/tdd.md), [core/debugging.md](core/debugging.md) |
 | `verify` | Arc files above, [core/merge.md](core/merge.md), [gates/audit.md](gates/audit.md), [gates/wow-check.md](gates/wow-check.md) for UI work when enabled |
 | `security` | [sentry/SKILL.md](sentry/SKILL.md), [sentry/method.md](sentry/method.md), [sentry/knowledge/catalog.md](sentry/knowledge/catalog.md) |
@@ -46,8 +48,11 @@ after compaction.
 
 ## Policies
 
-- **Forge** - conceive with the owner; recommend, ask, then write direction.
-  Stages `constitution` through `handoff`.
+- **Forge** - understand, question, and challenge the owner's idea; assess it
+  with real evidence; then write direction. Project stages `discovery`,
+  `assessment`, `constitution`; initiative stages `roadmap` through `handoff`.
+- **Pitch** - the business documents the owner selects, every fact sourced.
+  Project stage `business-docs`, re-opened on request.
 - **Arc** - build autonomously through verification. Stages `arc-plan`
   through `verify`.
 - **Sentry** - secure the change and the project; preserve accepted-risk
@@ -64,7 +69,8 @@ The owner never needs a command. Commands exist as overrides and are routed
 through the lifecycle (lifecycle section 10):
 
 - `/showrunner status|next|resume`
-- `/forge init|discover|plan|spec|design|design-review|decide`
+- `/forge init|discover|assess|plan|spec|design|design-review|decide`
+- `/pitch init|select|decisions|competitors|financials|deck|refresh|audit`
 - `/arc init|plan|run|verify|merge`
 - `/sentry init|sweep|fix|verify|accept|deps|pen-test|monthly|refresh-knowledge|merge`
 - `/bible init|sync|merge`
@@ -84,6 +90,10 @@ recorded in the ledger.
   never be waived.
 - Only a ledger row completes a stage.
 - Ask the owner only business questions; answer technical ones from evidence.
+- Question deeply before writing: no brief, constitution, or spec until the
+  inquiry is covered; adapt to a guide-me or challenge-me owner.
+- No fact about the world without a real, dated source; no figure without a
+  label ([core/evidence.md](core/evidence.md)).
 - Require ShowRunner's Step 0 approval before implementation edits.
 - Never widen scope silently.
 - Commit and push implementation only on the feature branch.

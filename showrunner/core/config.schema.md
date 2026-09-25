@@ -349,6 +349,9 @@ sentry:
     digest_destination: "<path or disabled>"
     accepted_risk_max_age_days: 90
 
+pitch:
+  status: "ready | uninitialized | disabled"
+
 bible:
   status: "ready | uninitialized | disabled"
   sources:

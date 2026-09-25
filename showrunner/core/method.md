@@ -65,7 +65,10 @@ technical bindings (test commands, hook paths, branch patterns) from the
 repository and record them as defaults.
 
 Never silently infer product policy, compliance posture, a destructive
-migration policy, or a human approval ceremony.
+migration policy, or a human approval ceremony. "No regulated data seen in the
+repository" is evidence to present, not an answer: ask the owner to confirm
+compliance posture and data classification, with that evidence and a
+recommendation. Respect `questions.max_per_round` in every round.
 
 ## 3. Classify Decisions
 

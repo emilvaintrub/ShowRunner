@@ -7,14 +7,15 @@ separate.
 ShowRunner is the conductor: it runs the whole process from your idea to
 release, and you act as the business owner.
 
-## The Four Policies
+## The Five Policies
 
-ShowRunner uses four policies as instruments. You do not pick between them;
+ShowRunner uses five policies as instruments. You do not pick between them;
 the stage decides.
 
 | Policy | Stages | It produces |
 | --- | --- | --- |
-| Forge | Constitution, roadmap, spec, design, design review, handoff | Constitution, project plan, spec, design brief, decision log. |
+| Forge | Discovery, assessment, constitution, roadmap, spec, design, design review, handoff | Discovery brief, viability assessment, constitution, project plan, spec, design brief, decision log. |
+| Pitch | Business documents | Business decisions document, competitor analysis, financial plan and model, investor deck - all evidence-backed. |
 | Arc | Build plan, Step 0, build, verify | Step 0 contract, implementation plan, branch work, verification, ship report. |
 | Sentry | Security, plus read-only sweeps and monthly cycles | Sweep reports, findings, accepted-risk records, security ship reports. |
 | Bible | Close | A read-only architecture/capabilities document bound to evidence. |
@@ -71,7 +72,10 @@ changes: a one-line fix gets a short spec, not a skipped one.
 | # | Stage | What happens | What you do |
 | --- | --- | --- | --- |
 | P1 | Setup (once) | ShowRunner reads your repository, fills its config, installs its safety hooks. | Answer only the business questions it cannot work out. |
-| P2 | Constitution (once) | ShowRunner interviews you about the product's purpose, people, voice, and limits. | Approve each lasting claim. |
+| P2 | Discovery (once) | A deep interview about your idea: goals, problem, customers, alternatives, business model, distribution, legal, operations, team, risks, success measures. Research runs alongside. | Answer, a few questions at a time; confirm the brief. |
+| P3 | Assessment (once) | An honest, researched verdict on the idea: market, competitors, unit economics, roadblocks, riskiest assumptions, pre-mortem, alternatives. | Decide: proceed, validate first, pivot, or stop. |
+| P4 | Constitution (once) | The product's lasting purpose, voice, and limits, drawn from discovery. | Approve each lasting claim. |
+| P5 | Business documents (optional) | Any of: business decisions document, competitor analysis, financial research and plan, investor presentation. | Choose none, some, or all; set each one's scope; approve each. |
 | 1 | Intake | Your request is recorded in your own words. | Nothing. |
 | 2 | Roadmap | The request is placed in the plan: phase, success evidence, screens and flows affected. | Approve. |
 | 3 | Spec | Product decisions are laid out with options and a recommendation, then written up. | Decide, then redline. |
@@ -88,9 +92,66 @@ changes: a one-line fix gets a short spec, not a skipped one.
 | 14 | Release | ShowRunner asks how, when, and where to release. It never decides this for you. | Tell it: now, scheduled, or hold; where; who runs it; how to check and roll back. |
 | 15 | Close | The architecture document and project state are updated; the next item is proposed. | Approve the close. |
 
+## Your Idea, Examined
+
+Before anything is built, ShowRunner makes sure the idea is understood and
+worth building. It first asks how you want to work:
+
+- **Guide me** - you have an idea but not a plan. ShowRunner explains each
+  step in plain words, offers options with a recommendation, and shows you the
+  road from idea to launch: what you will need, in money, time, skills, and
+  legal steps.
+- **Challenge me** - you know what you want. ShowRunner restates your thesis
+  at its strongest, then tests it: what has to be true, the strongest
+  competitor, the likely failure modes, and at least one alternative worth
+  considering.
+- **Both** - guidance where you are new, challenge where you are sure.
+
+Either way, the interview covers twelve areas and does not end until each one
+is answered, researched, marked as something to validate, or deliberately
+deferred by you. The assessment that follows is candid: if the evidence says
+the idea is weak, ShowRunner says so and suggests a pivot or cheap experiments
+before any building. You make the call.
+
+Each new feature later gets a shorter version of the same questioning: what
+problem it solves, how we will know it worked, the smallest version, and what
+could go wrong.
+
+## Business Documents
+
+After the constitution, ShowRunner offers four documents. Pick none, some,
+or all, now or later:
+
+- **Business decisions document** - every material decision, why it was made,
+  what was rejected, and what is still open.
+- **Competitor analysis** - direct competitors, alternatives, and the status
+  quo, each profiled from their own current pages, with a comparison matrix
+  and an honest view of your differentiation.
+- **Financial research and plan** - market size (two independent methods),
+  pricing benchmarks, costs, unit economics, three-scenario projections,
+  sensitivity, and funding need, with a spreadsheet model.
+- **Investor presentation** - a 10-15 slide deck with speaker notes and the
+  hard questions to expect. It introduces no fact that is not already sourced
+  in the other documents.
+
+### No Made-Up Numbers
+
+Every figure in these documents carries a label: a source ShowRunner actually
+opened (with its web address, access date, and the exact words quoted), your
+own input, a named assumption you have accepted, or a calculation with the
+formula shown. A checker rejects any unlabeled figure, and an independent pass
+re-opens every source to confirm the quote is really there. If research is not
+possible in a session, the section says "evidence pending" and tells you what
+is needed. It never falls back to a guess.
+
+These documents support your decisions; they are not legal, tax, or
+investment advice.
+
 ## Who Decides What
 
-You decide: product direction, scope, brand, voice, privacy, pricing, design,
+You decide: how you want to be guided or challenged, the idea's verdict,
+which business documents to produce and their assumptions, product
+direction, scope, brand, voice, privacy, pricing, design,
 risk acceptance, the acceptance test result, merging, releasing, and whether
 to skip anything.
 

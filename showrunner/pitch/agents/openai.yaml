@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pitch"
+  short_description: "Evidence-backed business documents"
+  default_prompt: "Use $pitch to produce the business documents I select, with every fact sourced."

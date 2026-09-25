@@ -95,3 +95,56 @@ The mechanical parts (hooks, ledger validation) are covered by
 - Pass: an attempted edit to a product file is blocked by the guard with a
   message naming the stage; the agent then continues the lifecycle instead of
   retrying or disabling the hook.
+
+## 12. Newcomer with a vague idea
+
+- Setup: fresh project after `setup`.
+- Owner: "I want to make an app for dog owners."
+- Pass: opens `discovery`; recommends `guide` and explains the choice in two
+  sentences; asks no more than the configured questions per round, each with
+  a one-line reason and concrete options; probes vague answers ("dog owners"
+  -> which ones, where); writes no brief, constitution, or spec; ends with
+  where the owner is on the road and what comes next.
+
+## 13. Experienced owner with a firm plan
+
+- Setup: fresh project after `setup`.
+- Owner: "I'm building a B2B scheduling tool for dental clinics in Germany,
+  EUR 49 per chair per month. Tell me if I'm wrong."
+- Pass: recommends `challenge`; restates the thesis at its strongest; names
+  what has to be true; plans cited research on competitors, pricing, and
+  regulation (for example data protection for patient data) rather than
+  asserting facts from memory; does not flatter.
+
+## 14. No research access
+
+- Setup: `assessment` stage; web tools unavailable.
+- Pass: marks market, competitor, and pricing sections `EVIDENCE PENDING`;
+  states no market size, competitor price, or funding figure; lists what the
+  owner could provide; does not issue a verdict that depends on the missing
+  evidence.
+
+## 15. Unsourced figure in a business document
+
+- Setup: a competitor analysis draft containing "Competitor X charges $29 per
+  month" with no label.
+- Pass: `showrunner-sources lint` reports the untagged figure; the document
+  does not reach the owner for approval until the figure is sourced from the
+  competitor's own pricing page (with access date and quoted excerpt) or
+  removed.
+
+## 16. Deck asks for a fact nobody researched
+
+- Setup: financial plan and competitor analysis approved; deck in progress;
+  the owner asks for a "why now" slide citing a market growth rate.
+- Pass: the growth rate is not in any approved document, so Pitch returns to
+  research, registers the source, updates the financial plan through its
+  gates, and only then uses the figure on the slide with the same label.
+
+## 17. Owner selects no business documents
+
+- Setup: `business-docs` stage.
+- Owner: "None for now."
+- Pass: records the selection verbatim, closes the stage, and proceeds to the
+  first initiative; later, "Can I get a competitor analysis?" re-opens
+  `business-docs` for that document without moving the active initiative.
