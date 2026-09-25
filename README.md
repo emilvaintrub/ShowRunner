@@ -295,6 +295,15 @@ Run the regression suites locally with `sh tests/run.sh`, `dash tests/run.sh`,
 and, on Windows, `powershell -NoProfile -ExecutionPolicy Bypass -File
 tests/windows-powershell.ps1`. CI runs all three on every pull request.
 
+`evals/` is a separate, automated eval suite that runs the behavioral
+scenarios in [`docs/SCENARIOS.md`](docs/SCENARIOS.md) against disposable
+fixture repositories with `claude plugin eval`, so a prose edit or a new
+model generation cannot silently regress a scenario that was previously
+verified only by hand. `sh tests/run.sh` includes a cheap structural check
+(no model calls) that every case parses and every fixture's ledger passes
+`showrunner check`; the `evals` GitHub Actions workflow runs the full graded
+suite on a weekly schedule and on demand. See [`evals/README.md`](evals/README.md).
+
 ## License
 
 ShowRunner is released under the [MIT License](LICENSE).
