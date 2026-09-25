@@ -2,6 +2,40 @@
 
 All notable public changes to ShowRunner are documented here.
 
+## v1.2.0 - 2026-09-25
+
+ShowRunner now examines the idea before building it, and can produce the
+owner's business documents without made-up numbers.
+
+- Added project stages `discovery`, `assessment`, and `business-docs`
+  (P2, P3, P5) around the constitution (now P4).
+- Forge discovery is a deep, adaptive interview across twelve business
+  domains (`forge/knowledge/inquiry-bank.md`), in guide, challenge, or both
+  modes, with specificity probes and a running discovery brief. It cannot
+  close until every domain is answered, researched, marked to validate, or
+  deferred by the owner.
+- Forge assessment gives a candid, researched verdict - proceed, validate
+  first, pivot, or stop - with an assumptions map, roadblocks, pre-mortem,
+  alternatives, unit-economics sketch, validation experiments, and a path to
+  realization for newcomers.
+- Every initiative now answers an initiative inquiry at `roadmap`.
+- Added the Pitch policy: business decisions document, competitor analysis,
+  financial research and plan (with a spreadsheet model), and investor
+  presentation. The owner selects none, some, or all, now or later.
+- Added the evidence standard (`core/evidence.md`): every figure is labeled
+  as a cited source, owner input, named assumption, or shown derivation;
+  research uses sources actually opened, with excerpts and access dates;
+  assumptions never stand in for researchable facts; no research access means
+  `EVIDENCE PENDING`, never memory.
+- Added `showrunner-sources lint [--fetch]`, which rejects unlabeled figures
+  and unknown ids and re-fetches sources to confirm their excerpts, plus an
+  independent citation audit before owner approval.
+- Tightened the conductor from scenario runs: one owner gate at a time with
+  no drafting ahead, no suggested waivers, compliance and data classification
+  always confirmed at setup, and a defined first challenge-mode reply.
+- Fixed `showrunner check` ignoring an approved Step 0 digest.
+- Hardened the PowerShell installer for Windows PowerShell 5.1 JSON arrays.
+
 ## v1.1.0 - 2026-09-25
 
 ShowRunner becomes the conductor of the whole process, from the owner's idea
