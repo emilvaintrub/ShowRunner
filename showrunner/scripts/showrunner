@@ -855,6 +855,10 @@ cmd_check() {
           print "ERROR: row #" r_num[i] ": released is only allowed for stage release, got " r_stage[i]
           errors++
         }
+        if ((r_stage[i] in showrunner_only) && (r_outcome[i] == "approved" || r_outcome[i] == "not-applicable" || r_outcome[i] == "waived" || r_outcome[i] == "held" || r_outcome[i] == "released")) {
+          print "ERROR: row #" r_num[i] ": showrunner-owned stage " r_stage[i] " closed by owner"
+          errors++
+        }
 
         latest[r_init[i] SUBSEP r_stage[i]] = i
 
