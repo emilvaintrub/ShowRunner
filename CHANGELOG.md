@@ -22,6 +22,8 @@ The owner's picture can grow during the work.
   arrives.
 - Added CI: the enforcement suite on Linux (`sh` and `dash`) and the
   installer on Windows PowerShell 5.1.
+- CI checkout moved to `actions/checkout@v5` (Node 24 runtime) after GitHub's
+  Node 20 deprecation warning.
 
 ## v1.2.0 - 2026-09-25
 
