@@ -485,6 +485,112 @@ seg_is_release() {
   return 1
 }
 
+seg_switch_target_branch() {
+  # $1=a git-global-normalized segment (starts with "git "). Prints the
+  # branch name a plain `git switch <b>` / `git switch -c|-C <b>` /
+  # `git checkout <b>` (bare branch argument only -- not -b/-B, not a
+  # `--`-marked path, not a multi-token pathspec form) switches to.
+  # Returns 1 when the segment isn't one of those recognized forms.
+  case "$1" in
+    "git switch -c "*) _sstb_t=${1#git switch -c } ;;
+    "git switch -C "*) _sstb_t=${1#git switch -C } ;;
+    "git switch "*)
+      _sstb_t=${1#git switch }
+      case "$_sstb_t" in
+        -*|*" "*) return 1 ;;
+      esac
+      ;;
+    "git checkout "*)
+      _sstb_t=${1#git checkout }
+      case "$_sstb_t" in
+        -*|*" "*) return 1 ;;
+      esac
+      ;;
+    *) return 1 ;;
+  esac
+  case "$_sstb_t" in
+    *" "*) _sstb_t=${_sstb_t%% *} ;;
+  esac
+  [ -n "$_sstb_t" ] || return 1
+  printf '%s' "$_sstb_t"
+}
+
+# strip_env_prefix SEG -- strips a leading `env` wrapper and/or leading
+# NAME=value assignments (`FOO=1 BAR=2 vercel --prod` -> `vercel --prod`),
+# so release-pattern prefix matching sees through them.
+strip_env_prefix() {
+  _sep_s=$1
+  while :; do
+    case "$_sep_s" in
+      "env "*)
+        _sep_s=${_sep_s#env }
+        continue
+        ;;
+    esac
+    case "$_sep_s" in
+      *" "*) _sep_head=${_sep_s%% *} ;;
+      *) _sep_head=$_sep_s ;;
+    esac
+    case "$_sep_head" in
+      [A-Za-z_]*=*)
+        case "$_sep_s" in
+          *" "*) _sep_s=${_sep_s#* } ;;
+          *) _sep_s="" ;;
+        esac
+        continue
+        ;;
+    esac
+    break
+  done
+  printf '%s' "$_sep_s"
+}
+
+# git_seg_info SEG -- sets GIT_NORM (SEG with recognized leading global
+# git options stripped: -C <dir>, -c <k=v>, --git-dir=..., --work-tree=...,
+# --no-pager; unchanged when SEG isn't a git invocation) and
+# GIT_DASH_C_DIR (the raw argument to a leading -C, or empty). Uses a
+# single awk pass, purely prefix-stripping by regex so the untouched
+# remainder (which may hold quoted arguments) is never re-tokenized.
+git_seg_info() {
+  GIT_NORM=""
+  GIT_DASH_C_DIR=""
+  _gsi_n=0
+  while IFS= read -r _gsi_line; do
+    _gsi_n=$((_gsi_n + 1))
+    if [ "$_gsi_n" -eq 1 ]; then
+      GIT_DASH_C_DIR=$_gsi_line
+    else
+      GIT_NORM=$_gsi_line
+    fi
+  done <<GSIEOF
+$(printf '%s\n' "$1" | awk '
+    {
+      rest = $0
+      if (rest !~ /^git([ \t]|$)/) { print ""; print rest; exit }
+      sub(/^git[ \t]*/, "", rest)
+      dir = ""
+      while (1) {
+        if (rest ~ /^-C[ \t]+/) {
+          sub(/^-C[ \t]+/, "", rest)
+          if (match(rest, /^[^ \t]+/)) {
+            dir = substr(rest, RSTART, RLENGTH)
+            rest = substr(rest, RSTART + RLENGTH)
+            sub(/^[ \t]+/, "", rest)
+          }
+          continue
+        }
+        if (rest ~ /^-c[ \t]+[^ \t]+[ \t]*/) { sub(/^-c[ \t]+[^ \t]+[ \t]*/, "", rest); continue }
+        if (rest ~ /^(--git-dir=|--work-tree=)[^ \t]*[ \t]*/) { sub(/^(--git-dir=|--work-tree=)[^ \t]*[ \t]*/, "", rest); continue }
+        if (rest ~ /^--no-pager[ \t]*/) { sub(/^--no-pager[ \t]*/, "", rest); continue }
+        break
+      }
+      print dir
+      print "git " rest
+    }
+  ')
+GSIEOF
+}
+
 guard_bash() {
   _gb_command=$1
   _gb_cwd=$2
@@ -512,26 +618,49 @@ guard_bash() {
 
   _gb_violation=""
   _gb_violation_seg=""
+  # The branch later segments effectively run against, updated as earlier
+  # segments in the same command switch it (finding: `git switch main &&
+  # git merge feat/x` from a feature branch must be checked as running on
+  # main, not on the branch the command started on).
+  _gb_effective_branch=$_gb_branch
 
   while IFS= read -r _gb_seg; do
     [ -n "$_gb_seg" ] || continue
-    if [ -z "$_gb_violation" ] && seg_is_commit_dash_n "$_gb_seg"; then
+
+    git_seg_info "$_gb_seg"
+    _gb_norm=$GIT_NORM
+
+    if [ -n "$GIT_DASH_C_DIR" ]; then
+      case "$GIT_DASH_C_DIR" in
+        /*) _gb_seg_dir=$GIT_DASH_C_DIR ;;
+        *) _gb_seg_dir="$_gb_cwd/$GIT_DASH_C_DIR" ;;
+      esac
+      _gb_seg_branch=$(git -C "$_gb_seg_dir" rev-parse --abbrev-ref HEAD 2>/dev/null)
+    else
+      _gb_seg_branch=$_gb_effective_branch
+    fi
+
+    if [ -z "$_gb_violation" ] && seg_is_commit_dash_n "$_gb_norm"; then
       _gb_violation="noverify"
       _gb_violation_seg=$_gb_seg
     fi
-    if [ -z "$_gb_violation" ] && seg_is_merge_block "$_gb_seg" "$_gb_branch" "$_gb_primary" "$_gb_stage"; then
+    if [ -z "$_gb_violation" ] && seg_is_merge_block "$_gb_norm" "$_gb_seg_branch" "$_gb_primary" "$_gb_stage"; then
       _gb_violation="merge"
       _gb_violation_seg=$_gb_seg
     fi
-    if [ -z "$_gb_violation" ] && seg_is_force_push "$_gb_seg" "$_gb_branch" "$_gb_primary"; then
+    if [ -z "$_gb_violation" ] && seg_is_force_push "$_gb_norm" "$_gb_seg_branch" "$_gb_primary"; then
       _gb_violation="forcepush"
       _gb_violation_seg=$_gb_seg
     fi
-    if [ -z "$_gb_violation" ] && seg_is_release "$_gb_seg"; then
+    if [ -z "$_gb_violation" ] && seg_is_release "$(strip_env_prefix "$_gb_seg")"; then
       if [ "$_gb_stage" != "release" ] || [ "$_gb_release_authorized" != "yes" ]; then
         _gb_violation="release"
         _gb_violation_seg=$_gb_seg
       fi
+    fi
+
+    if [ -z "$GIT_DASH_C_DIR" ]; then
+      _gb_switch_to=$(seg_switch_target_branch "$_gb_norm") && _gb_effective_branch=$_gb_switch_to
     fi
   done <<SEGEOF
 $(split_bash_segments "$_gb_command")
