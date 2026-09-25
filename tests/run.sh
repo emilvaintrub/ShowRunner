@@ -1211,6 +1211,12 @@ rc=$?
   && pass "--fetch via stub: confirmed when the excerpt is present" \
   || fail "--fetch via stub: confirmed when the excerpt is present" "exit=$rc out=$out"
 
+{ [ "$rc" -eq 0 ] \
+    && printf '%s' "$out" | grep -q "^showrunner-sources: 0 errors, 0 warnings" \
+    && ! printf '%s' "$out" | grep -q "^WARN:.*source S1"; } \
+  && pass "--fetch: a confirmed result emits no WARN and no warning count" \
+  || fail "--fetch: a confirmed result emits no WARN and no warning count" "exit=$rc out=$out"
+
 cat > "$repo/fetch_nf.sh" <<'EOF'
 #!/bin/sh
 printf 'Totally unrelated content.'
@@ -1221,6 +1227,12 @@ rc=$?
 { [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "| S1 | https://acme.example/pricing | excerpt-not-found |"; } \
   && pass "--fetch via stub: excerpt-not-found when the page loads without the excerpt" \
   || fail "--fetch via stub: excerpt-not-found when the page loads without the excerpt" "exit=$rc out=$out"
+
+{ [ "$rc" -eq 0 ] \
+    && printf '%s' "$out" | grep -qF "WARN: $repo/doc.md:1: source S1 excerpt-not-found (https://acme.example/pricing)" \
+    && printf '%s' "$out" | grep -q "^showrunner-sources: 0 errors, 1 warnings"; } \
+  && pass "--fetch: excerpt-not-found emits a WARN and counts as a warning" \
+  || fail "--fetch: excerpt-not-found emits a WARN and counts as a warning" "exit=$rc out=$out"
 
 cat > "$repo/fetch_fail.sh" <<'EOF'
 #!/bin/sh
@@ -1233,12 +1245,51 @@ rc=$?
   && pass "--fetch via stub: unreachable when the fetch command fails" \
   || fail "--fetch via stub: unreachable when the fetch command fails" "exit=$rc out=$out"
 
+{ [ "$rc" -eq 0 ] \
+    && printf '%s' "$out" | grep -qF "WARN: $repo/doc.md:1: source S1 unreachable (https://acme.example/pricing)" \
+    && printf '%s' "$out" | grep -q "^showrunner-sources: 0 errors, 1 warnings"; } \
+  && pass "--fetch: unreachable emits a WARN and counts as a warning" \
+  || fail "--fetch: unreachable emits a WARN and counts as a warning" "exit=$rc out=$out"
+
 # --fetch never turns into an ERROR / never affects the error count.
 out=$(SHOWRUNNER_FETCH_CMD="$repo/fetch_fail.sh" "$SOURCES" lint --registers "$repo/registers.md" --fetch "$repo/doc.md" 2>&1)
 rc=$?
 { [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "^showrunner-sources: 0 errors,"; } \
   && pass "--fetch results never contribute to the error count" \
   || fail "--fetch results never contribute to the error count" "exit=$rc out=$out"
+
+# a source cited by two documents gets one WARN per document that cites it.
+cat > "$repo/doc2.md" <<'EOF'
+See also the same pricing page [S1].
+EOF
+out=$(SHOWRUNNER_FETCH_CMD="$repo/fetch_fail.sh" "$SOURCES" lint --registers "$repo/registers.md" --fetch "$repo/doc.md" "$repo/doc2.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 0 ] \
+    && printf '%s' "$out" | grep -qF "WARN: $repo/doc.md:1: source S1 unreachable (https://acme.example/pricing)" \
+    && printf '%s' "$out" | grep -qF "WARN: $repo/doc2.md:1: source S1 unreachable (https://acme.example/pricing)" \
+    && printf '%s' "$out" | grep -q "^showrunner-sources: 0 errors, 2 warnings"; } \
+  && pass "--fetch: a source cited by two documents warns once per document" \
+  || fail "--fetch: a source cited by two documents warns once per document" "exit=$rc out=$out"
+
+# --- --fetch: curl missing is warned once and counted ----------------------
+
+repo=$(new_plain_repo)
+one_source_registers "$repo/registers.md"
+cat > "$repo/doc.md" <<'EOF'
+Acme's plans start at $12/user/month [S1].
+EOF
+nocurl_bin=$(mktemp -d)
+track_tmp "$nocurl_bin"
+for t in git awk sed date mktemp grep cat tr; do
+  tpath=$(command -v "$t" 2>/dev/null) && ln -s "$tpath" "$nocurl_bin/$t"
+done
+out=$(PATH="$nocurl_bin" "$SOURCES" lint --registers "$repo/registers.md" --fetch "$repo/doc.md" 2>&1)
+rc=$?
+{ [ "$rc" -eq 0 ] \
+    && printf '%s' "$out" | grep -q "^WARN:.*curl is not available" \
+    && printf '%s' "$out" | grep -q "^showrunner-sources: 0 errors, 1 warnings"; } \
+  && pass "--fetch: missing curl warns once and is counted as a warning" \
+  || fail "--fetch: missing curl warns once and is counted as a warning" "exit=$rc out=$out"
 
 # --- registers resolved from config / missing registers errors -------------
 
