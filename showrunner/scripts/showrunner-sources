@@ -187,7 +187,12 @@ cutoff=$(compute_cutoff "$today" "$freshness_days") || cutoff=""
 
 awk_out=$(mktemp)
 fetch_out=$(mktemp)
-trap 'rm -f "$awk_out" "$fetch_out"' EXIT
+citations_out=$(mktemp)
+fetch_warn_out=$(mktemp)
+fetch_table_out=$(mktemp)
+trap 'rm -f "$awk_out" "$fetch_out" "$citations_out" "$fetch_warn_out" "$fetch_table_out"' EXIT
+: > "$fetch_warn_out"
+: > "$fetch_table_out"
 
 : > "$awk_out"
 
@@ -206,6 +211,7 @@ awk -v registers_path="$registers_path" \
     -v cutoff="$cutoff" \
     -v fetch_flag="$fetch" \
     -v fetch_out="$fetch_out" \
+    -v citations_out="$citations_out" \
 '
 function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
 
@@ -366,8 +372,16 @@ function has_label(text) {
   return 0
 }
 
-function note_ref_id(id, lineno) {
+function note_ref_id(id, lineno,    citekey) {
   if (!(id in ref_id_line)) { ref_id_line[id] = lineno; ref_id_file[id] = FILENAME }
+  citekey = id SUBSEP FILENAME
+  if (!(citekey in cite_seen)) {
+    cite_seen[citekey] = 1
+    cite_n++
+    cite_id[cite_n] = id
+    cite_file[cite_n] = FILENAME
+    cite_line[cite_n] = lineno
+  }
 }
 
 function collect_ids(text, lineno,    i, n, depth, start, j, ch2, span, low, pos, tail, rest, pos2) {
@@ -603,6 +617,12 @@ END {
       }
     }
     close(fetch_out)
+    if (citations_out != "") {
+      for (i = 1; i <= cite_n; i++) {
+        print cite_id[i] "\t" cite_file[i] "\t" cite_line[i] >> citations_out
+      }
+      close(citations_out)
+    }
   }
 }
 ' "$@" >> "$awk_out"
@@ -635,10 +655,10 @@ if [ "$fetch" -eq 1 ]; then
     fetch_available=0
   fi
   if [ "$fetch_available" -eq 0 ]; then
-    printf 'WARN: showrunner-sources: curl is not available; skipping --fetch\n'
+    printf 'WARN: showrunner-sources: curl is not available; skipping --fetch\n' >> "$fetch_warn_out"
   elif [ -s "$fetch_out" ]; then
-    printf '| ID | URL | Result |\n'
-    printf '| --- | --- | --- |\n'
+    printf '| ID | URL | Result |\n' >> "$fetch_table_out"
+    printf '| --- | --- | --- |\n' >> "$fetch_table_out"
     while IFS="$(printf '\t')" read -r f_id f_url f_excerpt; do
       [ -n "$f_id" ] || continue
       if [ -n "${SHOWRUNNER_FETCH_CMD:-}" ]; then
@@ -665,20 +685,29 @@ __SR_HTTP_CODE__%{http_code}' -- "$f_url" 2>/dev/null)
           *) f_result="excerpt-not-found" ;;
         esac
       fi
-      printf '| %s | %s | %s |\n' "$f_id" "$f_url" "$f_result"
+      printf '| %s | %s | %s |\n' "$f_id" "$f_url" "$f_result" >> "$fetch_table_out"
+      # Non-confirmed results are warnings (enforcement.md section 3): one
+      # WARN per document that actually cites this source, at that
+      # document's first citation of it.
+      if [ "$f_result" != "confirmed" ] && [ -s "$citations_out" ]; then
+        while IFS="$(printf '\t')" read -r c_id c_file c_line; do
+          [ "$c_id" = "$f_id" ] || continue
+          printf 'WARN: %s:%s: source %s %s (%s)\n' "$c_file" "$c_line" "$f_id" "$f_result" "$f_url" >> "$fetch_warn_out"
+        done < "$citations_out"
+      fi
     done < "$fetch_out"
   fi
 fi
+
+cat "$fetch_warn_out"
+cat "$fetch_table_out"
 
 # ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 
 err_count=$(grep -c '^ERROR:' "$awk_out")
-warn_count=$(grep -c '^WARN:' "$awk_out")
-if [ "$fetch" -eq 1 ] && [ "${fetch_available:-1}" -eq 0 ]; then
-  warn_count=$((warn_count + 1))
-fi
+warn_count=$(( $(grep -c '^WARN:' "$awk_out") + $(grep -c '^WARN:' "$fetch_warn_out") ))
 
 printf 'showrunner-sources: %s errors, %s warnings\n' "$err_count" "$warn_count"
 [ "$err_count" -gt 0 ] && exit 1
