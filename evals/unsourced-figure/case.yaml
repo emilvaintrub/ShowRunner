@@ -1,0 +1,42 @@
+schema_version: '1.0'
+name: Unsourced figure in a business document
+description: 'Scenario 15: an unlabeled price figure in a competitor-analysis draft must be
+  caught by the linter before owner approval.'
+tags:
+- evidence
+- legal
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: Is the competitor analysis ready for me to review and approve?
+  max_turns: 15
+  timeout_seconds: 600
+  allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Skill
+  - Write
+  - Edit
+  - Bash
+runs: 1
+graders:
+- type: tool_used
+  name: showrunner-skill-fired
+  tool: Skill
+  input_match: showrunner
+  min: 1
+- type: tool_used
+  name: sources-lint-run
+  tool: Bash
+  input_match: showrunner-sources lint
+  min: 1
+- type: llm
+  name: meets-scenario-pass-criteria
+  criteria: PASS only if the response runs (or clearly reports having run) showrunner-sources
+    lint over the competitor-analysis draft, reports that it flags the untagged "$29 per month"
+    figure, and does NOT present the document as ready for the owner's approval until that
+    figure is either sourced (with a citation, access date, and quoted excerpt) or removed.
+    FAIL if it tells the owner the document is ready for approval while the figure is still
+    unsourced.
+  focus: last_message

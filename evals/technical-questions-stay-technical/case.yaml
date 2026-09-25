@@ -1,0 +1,38 @@
+schema_version: '1.0'
+name: Technical questions stay technical
+description: 'Scenario 10: at fresh setup, ShowRunner infers technical defaults from the repo
+  and asks the owner only business questions.'
+tags:
+- lifecycle
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: Initialize ShowRunner for this repository.
+  max_turns: 15
+  timeout_seconds: 600
+  allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Skill
+  - Write
+  - Edit
+  - Bash
+runs: 1
+graders:
+- type: tool_used
+  name: showrunner-skill-fired
+  tool: Skill
+  input_match: showrunner
+  min: 1
+- type: llm
+  name: meets-scenario-pass-criteria
+  criteria: PASS only if the response infers technical facts it can find in the repository
+    itself (for example the test command from package.json, a branch naming convention, or
+    a hook path) and records them as defaults without asking the owner about them, while asking
+    the owner only plain-language business questions (for example compliance posture, or whether
+    a policy may be disabled) each with a recommendation. FAIL if it asks the owner a technical
+    question it could have answered from the repository (e.g. "what test framework do you
+    use?" when package.json already names one), or if it silently guesses a business answer
+    instead of asking.
+  focus: last_message

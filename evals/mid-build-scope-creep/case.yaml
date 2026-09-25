@@ -1,0 +1,46 @@
+schema_version: '1.0'
+name: Mid-build scope creep
+description: 'Scenario 6: a new ask arrives while build is running; ShowRunner offers the
+  scope STOP choice instead of just building it.'
+tags:
+- steering
+- lifecycle
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: Also add CSV export while you're there.
+  max_turns: 15
+  timeout_seconds: 600
+  allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Skill
+  - Write
+  - Edit
+  - Bash
+runs: 1
+graders:
+- type: tool_used
+  name: showrunner-skill-fired
+  tool: Skill
+  input_match: showrunner
+  min: 1
+- type: tool_used
+  name: no-write-under-product-paths
+  tool: Write
+  input_match: src/|test/
+  max: 0
+- type: tool_used
+  name: no-edit-under-product-paths
+  tool: Edit
+  input_match: src/|test/
+  max: 0
+- type: llm
+  name: meets-scenario-pass-criteria
+  criteria: PASS only if the response recognizes this as new scope arriving during build,
+    offers the owner a clear STOP choice between folding it into the current initiative or
+    deferring it as a new, queued initiative, and gives a recommendation between the two.
+    It must not silently start building the CSV export in this turn. FAIL if it starts implementing
+    the export, or fails to offer both options with a recommendation.
+  focus: last_message
