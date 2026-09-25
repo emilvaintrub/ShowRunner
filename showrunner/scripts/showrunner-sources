@@ -1,0 +1,685 @@
+#!/bin/sh
+# ShowRunner research/evidence linter. POSIX sh; see core/enforcement.md
+# section 3 and core/evidence.md. A separate script from `showrunner` on
+# purpose, so the guard stays small and fast.
+#
+# Known simplifications (documented, not bugs):
+#  - Figure/label scanning uses awk with byte-oriented regex (mawk is the
+#    reference implementation): multi-byte currency symbols (EUR/GBP/JPY/
+#    INR/ILS) are matched as literal byte sequences via string search, not
+#    a Unicode-aware character class.
+#  - A prose "unit" (paragraph or list item) is reconstructed heuristically
+#    by joining consecutive lines with a single space; Setext-style
+#    headings, blockquotes, and definition lists are not specially
+#    recognized and fall back to plain-paragraph handling.
+#  - An ISO currency code is matched as a plain substring next to a number
+#    without a trailing word-boundary check, so a code that happens to
+#    prefix a longer word adjacent to a number (rare) can over-match.
+#  - Freshness cutoff dates are computed with GNU `date -d`, falling back
+#    to BSD `date -j`; a `date` with neither flag skips freshness warnings.
+#  - `--fetch` reachability additionally asks curl for the HTTP status via
+#    `-w`, since "-sSL --max-time 20 -A ..." alone cannot see 4xx/5xx.
+
+set -u
+
+usage() {
+  cat <<'EOF'
+Usage: showrunner-sources lint [--registers FILE] [--fetch] DOCUMENT...
+
+  --registers FILE   Registers file (core/templates/research-registers.md
+                      shape). Defaults to business.registers in
+                      <repo root>/.claude/showrunner/config.md.
+  --fetch             Fetch every cited http(s) source and report whether
+                      its excerpt is still present (warnings only).
+
+See core/enforcement.md section 3 and core/evidence.md.
+EOF
+}
+
+[ $# -ge 1 ] || { usage >&2; exit 2; }
+cmd=$1
+shift
+case "$cmd" in
+  lint) ;;
+  help|-h|--help) usage; exit 0 ;;
+  *)
+    echo "showrunner-sources: unknown command: $cmd" >&2
+    usage >&2
+    exit 2
+    ;;
+esac
+
+registers_opt=""
+fetch=0
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --registers) registers_opt=$2; shift 2 ;;
+    --registers=*) registers_opt=${1#--registers=}; shift ;;
+    --fetch) fetch=1; shift ;;
+    --) shift; break ;;
+    -*)
+      echo "showrunner-sources: unknown option: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+    *) break ;;
+  esac
+done
+
+[ $# -ge 1 ] || {
+  echo "showrunner-sources: at least one DOCUMENT is required" >&2
+  usage >&2
+  exit 2
+}
+
+# ---------------------------------------------------------------------------
+# Repo root / registers / freshness resolution
+# ---------------------------------------------------------------------------
+
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
+[ -n "$repo_root" ] || repo_root=$(pwd -P)
+
+resolve_against_root() {
+  case "$1" in
+    /*) printf '%s' "$1" ;;
+    *) printf '%s/%s' "$repo_root" "$1" ;;
+  esac
+}
+
+# cfg_business_scalar CONFIG KEY -- prints "  KEY: value" under top-level
+# "business:" in CONFIG's fenced ```yaml block, quotes stripped.
+cfg_business_scalar() {
+  awk -v key="$2" '
+    /^```yaml[ \t]*$/ { infence = 1; next }
+    infence && /^```[ \t]*$/ { exit }
+    !infence { next }
+    /^[A-Za-z_][A-Za-z0-9_]*:/ {
+      top = $0
+      sub(/:.*/, "", top)
+      insect = (top == "business")
+      next
+    }
+    insect && $0 ~ ("^  " key ":") {
+      v = $0
+      sub("^  " key ":[ \t]*", "", v)
+      sub(/[ \t]*$/, "", v)
+      val = v
+    }
+    END { print val }
+  ' "$1"
+}
+
+# cfg_business_research_scalar CONFIG KEY -- prints "    KEY: value" under
+# top-level "business:" > "  research:".
+cfg_business_research_scalar() {
+  awk -v key="$2" '
+    /^```yaml[ \t]*$/ { infence = 1; next }
+    infence && /^```[ \t]*$/ { exit }
+    !infence { next }
+    /^[A-Za-z_][A-Za-z0-9_]*:/ {
+      top = $0
+      sub(/:.*/, "", top)
+      insect = (top == "business")
+      insub = 0
+      next
+    }
+    insect && $0 ~ /^  [A-Za-z_][A-Za-z0-9_]*:/ {
+      k = $0
+      sub(/^  /, "", k)
+      sub(/:.*/, "", k)
+      insub = (k == "research")
+      next
+    }
+    insect && insub && $0 ~ ("^    " key ":") {
+      v = $0
+      sub("^    " key ":[ \t]*", "", v)
+      sub(/[ \t]*$/, "", v)
+      val = v
+    }
+    END { print val }
+  ' "$1"
+}
+
+strip_quotes() {
+  _sq_v=$1
+  case "$_sq_v" in
+    \"*\") _sq_v=${_sq_v#\"}; _sq_v=${_sq_v%\"} ;;
+  esac
+  printf '%s' "$_sq_v"
+}
+
+config_path="$repo_root/.claude/showrunner/config.md"
+registers_unresolved=0
+
+if [ -n "$registers_opt" ]; then
+  registers_path=$(resolve_against_root "$registers_opt")
+else
+  reg_value=""
+  if [ -f "$config_path" ]; then
+    reg_value=$(strip_quotes "$(cfg_business_scalar "$config_path" registers)")
+  fi
+  if [ -n "$reg_value" ]; then
+    registers_path=$(resolve_against_root "$reg_value")
+  else
+    registers_path=""
+    registers_unresolved=1
+  fi
+fi
+
+freshness_days=365
+if [ -f "$config_path" ]; then
+  _fd=$(cfg_business_research_scalar "$config_path" freshness_days)
+  case "$_fd" in
+    ''|*[!0-9]*) ;;
+    *) freshness_days=$_fd ;;
+  esac
+fi
+
+today=${SHOWRUNNER_TODAY:-$(date +%Y-%m-%d)}
+
+compute_cutoff() {
+  _co_out=$(date -d "$1 -${2} days" +%Y-%m-%d 2>/dev/null) && { printf '%s' "$_co_out"; return 0; }
+  _co_out=$(date -j -v-"${2}"d -f %Y-%m-%d "$1" +%Y-%m-%d 2>/dev/null) && { printf '%s' "$_co_out"; return 0; }
+  return 1
+}
+cutoff=$(compute_cutoff "$today" "$freshness_days") || cutoff=""
+
+awk_out=$(mktemp)
+fetch_out=$(mktemp)
+trap 'rm -f "$awk_out" "$fetch_out"' EXIT
+
+: > "$awk_out"
+
+if [ "$registers_unresolved" -eq 1 ]; then
+  printf 'ERROR: %s: business.registers not found; pass --registers or set business.registers in config.md\n' "$config_path" >> "$awk_out"
+elif [ ! -f "$registers_path" ]; then
+  printf 'ERROR: %s: registers file not found\n' "$registers_path" >> "$awk_out"
+  registers_path=""
+fi
+
+# ---------------------------------------------------------------------------
+# Main scan (registers + documents)
+# ---------------------------------------------------------------------------
+
+awk -v registers_path="$registers_path" \
+    -v cutoff="$cutoff" \
+    -v fetch_flag="$fetch" \
+    -v fetch_out="$fetch_out" \
+'
+function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
+
+function emit_error(file, lineno, msg) { print "ERROR: " file ":" lineno ": " msg }
+function emit_warn(file, lineno, msg) { print "WARN: " file ":" lineno ": " msg }
+
+function split_row(line,    tmp, i) {
+  tmp = line
+  sub(/^[ \t]*\|/, "", tmp)
+  sub(/\|[ \t]*$/, "", tmp)
+  ncell = split(tmp, cell, "|")
+  for (i = 1; i <= ncell; i++) cell[i] = trim(cell[i])
+  return ncell
+}
+
+function validate_source_row(lineno,    id, url, accessed, type, excerpt, is_owner) {
+  id = cell[1]; url = cell[4]; accessed = cell[6]; type = cell[7]; excerpt = cell[8]
+  if (id !~ /^S[0-9]+$/) {
+    emit_error(registers_path, lineno, "Sources row has an invalid or missing ID: \047" id "\047")
+  } else if (id in source_seen) {
+    emit_error(registers_path, lineno, "duplicate Sources id " id)
+  } else {
+    source_seen[id] = 1
+    source_accessed[id] = accessed
+    source_url[id] = url
+    source_excerpt_raw[id] = excerpt
+  }
+  if (accessed !~ /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/) {
+    emit_error(registers_path, lineno, "Sources row " id " is missing a valid Accessed date (YYYY-MM-DD)")
+  }
+  is_owner = (tolower(type) == "owner")
+  if (!is_owner && url !~ /^https?:\/\//) {
+    emit_error(registers_path, lineno, "Sources row " id " URL must be http(s) unless Type is owner")
+  }
+  if (is_owner && trim(url) == "") {
+    emit_error(registers_path, lineno, "Sources row " id " (Type owner) needs a file path or description in the URL column")
+  }
+  if (!(excerpt ~ /^"[^"]+"$/)) {
+    emit_error(registers_path, lineno, "Sources row " id " excerpt must be a non-empty quoted string")
+  }
+}
+
+function validate_search_row(lineno,    id, query) {
+  id = cell[1]; query = cell[4]
+  if (id !~ /^Q[0-9]+$/) {
+    emit_error(registers_path, lineno, "Search Log row has an invalid or missing ID: \047" id "\047")
+  } else if (id in search_seen) {
+    emit_error(registers_path, lineno, "duplicate Search Log id " id)
+  } else {
+    search_seen[id] = 1
+  }
+  if (trim(query) == "") {
+    emit_error(registers_path, lineno, "Search Log row " id " is missing a query")
+  }
+}
+
+function validate_assumption_row(lineno,    id, value, rationale, sensitivity) {
+  id = cell[1]; value = cell[3]; rationale = cell[4]; sensitivity = cell[6]
+  if (id !~ /^A[0-9]+$/) {
+    emit_error(registers_path, lineno, "Assumptions row has an invalid or missing ID: \047" id "\047")
+  } else if (id in assump_seen) {
+    emit_error(registers_path, lineno, "duplicate Assumptions id " id)
+  } else {
+    assump_seen[id] = 1
+  }
+  if (trim(value) == "") emit_error(registers_path, lineno, "Assumptions row " id " is missing a Value")
+  if (trim(rationale) == "") emit_error(registers_path, lineno, "Assumptions row " id " is missing a Rationale")
+  if (trim(sensitivity) == "") emit_error(registers_path, lineno, "Assumptions row " id " is missing a Sensitivity")
+}
+
+function parse_registers(path,    line, lineno, mode, hc) {
+  lineno = 0
+  mode = ""
+  hc = 0
+  while ((getline line < path) > 0) {
+    lineno++
+    if (line ~ /^## Sources/) { mode = "sources"; hc = 0; continue }
+    if (line ~ /^## Search Log/) { mode = "search"; hc = 0; continue }
+    if (line ~ /^## Assumptions/) { mode = "assumptions"; hc = 0; continue }
+    if (line ~ /^## /) { mode = ""; continue }
+    if (mode == "") continue
+    if (line !~ /^\|/) continue
+    hc++
+    if (hc <= 2) continue
+    split_row(line)
+    if (mode == "sources") validate_source_row(lineno)
+    else if (mode == "search") validate_search_row(lineno)
+    else if (mode == "assumptions") validate_assumption_row(lineno)
+  }
+  close(path)
+}
+
+function currency_adjacent(text, sym, is_dollar,    safe, pat) {
+  safe = is_dollar ? "[$]" : sym
+  pat = safe "[ ]?[0-9]|[0-9][ ]?" safe
+  return (text ~ pat) ? 1 : 0
+}
+
+function has_currency(text) {
+  if (currency_adjacent(text, "$", 1)) return 1
+  if (currency_adjacent(text, EURO, 0)) return 1
+  if (currency_adjacent(text, POUND, 0)) return 1
+  if (currency_adjacent(text, YEN, 0)) return 1
+  if (currency_adjacent(text, RUPEE, 0)) return 1
+  if (currency_adjacent(text, SHEKEL, 0)) return 1
+  return 0
+}
+
+function has_iso(text,    codes, n, i, code, up, pat) {
+  up = toupper(text)
+  n = split("USD EUR GBP JPY ILS INR CAD AUD CHF CNY", codes, " ")
+  for (i = 1; i <= n; i++) {
+    code = codes[i]
+    pat = "[0-9][ ]?" code "|" code "[ ]?[0-9]"
+    if (up ~ pat) return 1
+  }
+  return 0
+}
+
+function has_percent(text) {
+  return (text ~ /[0-9][ ]?%/) ? 1 : 0
+}
+
+function has_magnitude(text,    up, suffixes, n, i, sfx, searchfrom, rest, abs_start, endpos, nextch, pat, ulen) {
+  up = toupper(text)
+  ulen = length(up)
+  n = split("K M MM B BN THOUSAND MILLION BILLION TRILLION", suffixes, " ")
+  for (i = 1; i <= n; i++) {
+    sfx = suffixes[i]
+    searchfrom = 1
+    while (searchfrom <= ulen) {
+      rest = substr(up, searchfrom)
+      pat = "[0-9][ ]?" sfx
+      if (!match(rest, pat)) break
+      abs_start = searchfrom + RSTART - 1
+      endpos = abs_start + RLENGTH - 1
+      nextch = substr(up, endpos + 1, 1)
+      if (nextch !~ /[A-Z0-9]/) return 1
+      searchfrom = abs_start + 1
+    }
+  }
+  return 0
+}
+
+function has_any_figure(text) {
+  if (has_currency(text)) return 1
+  if (has_iso(text)) return 1
+  if (has_percent(text)) return 1
+  if (has_magnitude(text)) return 1
+  return 0
+}
+
+function has_label(text) {
+  if (text ~ /\[S[0-9]+/) return 1
+  if (text ~ /\[OWNER\]/) return 1
+  if (text ~ /\[ASSUMPTION A[0-9]+/) return 1
+  if (text ~ /\[DERIVED:/) return 1
+  return 0
+}
+
+function note_ref_id(id, lineno) {
+  if (!(id in ref_id_line)) { ref_id_line[id] = lineno; ref_id_file[id] = FILENAME }
+}
+
+function collect_ids(text, lineno,    i, n, depth, start, j, ch2, span, low, pos, tail, rest, pos2) {
+  n = length(text)
+  i = 1
+  while (i <= n) {
+    if (substr(text, i, 1) == "[") {
+      depth = 1
+      start = i
+      j = i + 1
+      while (j <= n && depth > 0) {
+        ch2 = substr(text, j, 1)
+        if (ch2 == "[") depth++
+        else if (ch2 == "]") depth--
+        j++
+      }
+      span = substr(text, start, j - start)
+      rest = span
+      while (match(rest, /[SAQ][0-9]+/)) {
+        note_ref_id(substr(rest, RSTART, RLENGTH), lineno)
+        rest = substr(rest, RSTART + RLENGTH)
+      }
+      i = j
+    } else {
+      i++
+    }
+  }
+  low = tolower(text)
+  pos = index(low, "search log")
+  while (pos > 0) {
+    tail = substr(text, pos)
+    if (match(tail, /[Qq][0-9]+/)) note_ref_id(toupper(substr(tail, RSTART, RLENGTH)), lineno)
+    pos2 = index(substr(low, pos + 1), "search log")
+    pos = (pos2 > 0) ? pos + pos2 : 0
+  }
+}
+
+function scan_evidence_pending(text, lineno,    pos, rest) {
+  rest = text
+  while ((pos = index(rest, "EVIDENCE PENDING")) > 0) {
+    emit_warn(FILENAME, lineno, "EVIDENCE PENDING marker found")
+    rest = substr(rest, pos + 16)
+  }
+}
+
+function start_unit() {
+  unit_n = 0
+}
+
+function add_to_unit(text, lineno) {
+  unit_n++
+  unit_line[unit_n] = text
+  unit_lineno[unit_n] = lineno
+}
+
+function check_sentence(sentence, sent_start, sent_end,    stripped, li, found_line, s) {
+  stripped = sentence
+  gsub(/<[^>]*>/, "", stripped)
+  if (!has_any_figure(stripped)) return
+  if (has_label(stripped)) return
+  found_line = 0
+  for (li = 1; li <= unit_n; li++) {
+    if (line_end_offset[li] < sent_start) continue
+    if (line_start_offset[li] > sent_end) break
+    s = unit_line[li]
+    gsub(/<[^>]*>/, "", s)
+    if (has_any_figure(s)) { found_line = unit_lineno[li]; break }
+    if (found_line == 0) found_line = unit_lineno[li]
+  }
+  if (found_line == 0) found_line = unit_lineno[1]
+  emit_error(FILENAME, found_line, "figure without a label")
+}
+
+function flush_unit(    joined, li, seg, seglen, pos, n, p, two, sent_start, sentence, sent_end) {
+  if (unit_n == 0) return
+  joined = ""
+  pos = 0
+  for (li = 1; li <= unit_n; li++) {
+    seg = unit_line[li]
+    seglen = length(seg)
+    line_start_offset[li] = pos + 1
+    pos += seglen
+    line_end_offset[li] = pos
+    if (li < unit_n) { pos++; joined = joined seg " " } else joined = joined seg
+  }
+  n = length(joined)
+  sent_start = 1
+  p = 1
+  while (p <= n) {
+    two = substr(joined, p, 2)
+    if (two == ". " || two == "; " || two == "? " || two == "! ") {
+      sentence = substr(joined, sent_start, p - sent_start + 1)
+      sent_end = sent_start + length(sentence) - 1
+      check_sentence(sentence, sent_start, sent_end)
+      p += 2
+      sent_start = p
+      continue
+    }
+    p++
+  }
+  if (sent_start <= n) {
+    sentence = substr(joined, sent_start, n - sent_start + 1)
+    sent_end = sent_start + length(sentence) - 1
+    check_sentence(sentence, sent_start, sent_end)
+  }
+  unit_n = 0
+}
+
+function check_table_row(line, lineno,    i, stripped) {
+  split_row(line)
+  for (i = 1; i <= ncell; i++) {
+    if (cell[i] ~ /^:?-{3,}:?$/) continue
+    stripped = cell[i]
+    gsub(/<[^>]*>/, "", stripped)
+    if (stripped == "") continue
+    if (has_any_figure(stripped) && !has_label(stripped)) {
+      emit_error(FILENAME, lineno, "figure without a label in table cell: \047" trim(cell[i]) "\047")
+    }
+  }
+}
+
+function strip_fence_and_comment(raw,    v, idx1, idx2) {
+  SKIP_LINE = 0
+  if (in_fence) {
+    if (raw ~ /^```/) in_fence = 0
+    SKIP_LINE = 1
+    return ""
+  }
+  if (raw ~ /^```/) {
+    in_fence = 1
+    SKIP_LINE = 1
+    return ""
+  }
+  v = raw
+  if (in_comment) {
+    idx2 = index(v, "-->")
+    if (idx2 == 0) { SKIP_LINE = 1; return "" }
+    v = substr(v, idx2 + 3)
+    in_comment = 0
+  }
+  while (1) {
+    idx1 = index(v, "<!--")
+    if (idx1 == 0) break
+    idx2 = index(substr(v, idx1), "-->")
+    if (idx2 == 0) {
+      v = substr(v, 1, idx1 - 1)
+      in_comment = 1
+      break
+    }
+    v = substr(v, 1, idx1 - 1) substr(v, idx1 + idx2 + 2)
+  }
+  return v
+}
+
+function process_doc_line(raw, lineno,    visible, trimmed) {
+  visible = strip_fence_and_comment(raw)
+  if (SKIP_LINE) return
+
+  scan_evidence_pending(visible, lineno)
+  collect_ids(visible, lineno)
+
+  trimmed = visible
+  gsub(/^[ \t]+|[ \t]+$/, "", trimmed)
+
+  if (trimmed == "") { flush_unit(); return }
+
+  if (visible ~ /^\|/) {
+    flush_unit()
+    check_table_row(visible, lineno)
+    return
+  }
+
+  if (visible ~ /^#+[ \t]/) {
+    flush_unit()
+    start_unit()
+    add_to_unit(visible, lineno)
+    flush_unit()
+    return
+  }
+
+  if (visible ~ /^[ \t]*([-*+][ \t]+|[0-9]+\.[ \t]+)/) {
+    flush_unit()
+    start_unit()
+    add_to_unit(visible, lineno)
+    return
+  }
+
+  if (unit_n == 0) start_unit()
+  add_to_unit(visible, lineno)
+}
+
+BEGIN {
+  EURO = "\342\202\254"
+  POUND = "\302\243"
+  YEN = "\302\245"
+  RUPEE = "\342\202\271"
+  SHEKEL = "\342\202\252"
+  in_fence = 0
+  in_comment = 0
+  unit_n = 0
+  if (registers_path != "") parse_registers(registers_path)
+}
+
+FNR == 1 {
+  if (NR > 1) flush_unit()
+  in_fence = 0
+  in_comment = 0
+}
+
+{ process_doc_line($0, FNR) }
+
+END {
+  flush_unit()
+  for (id in ref_id_line) {
+    prefix = substr(id, 1, 1)
+    ok = 0
+    if (prefix == "S" && (id in source_seen)) ok = 1
+    if (prefix == "A" && (id in assump_seen)) ok = 1
+    if (prefix == "Q" && (id in search_seen)) ok = 1
+    if (!ok) emit_error(ref_id_file[id], ref_id_line[id], "cited id " id " not found in the registers")
+  }
+  if (cutoff != "") {
+    for (id in source_seen) {
+      if ((id in ref_id_line) && source_accessed[id] != "" && source_accessed[id] < cutoff) {
+        emit_warn(ref_id_file[id], ref_id_line[id], "cited source " id " was accessed " source_accessed[id] ", older than the freshness window")
+      }
+    }
+  }
+  if (fetch_flag == "1" && fetch_out != "") {
+    for (id in source_seen) {
+      if ((id in ref_id_line) && source_url[id] ~ /^https?:\/\//) {
+        print id "\t" source_url[id] "\t" source_excerpt_raw[id] >> fetch_out
+      }
+    }
+    close(fetch_out)
+  }
+}
+' "$@" >> "$awk_out"
+
+cat "$awk_out"
+
+# ---------------------------------------------------------------------------
+# --fetch: reachability / excerpt check (network isolated from the awk pass)
+# ---------------------------------------------------------------------------
+
+normalize_html() {
+  printf '%s' "$1" \
+    | sed -e 's/<[^>]*>//g' \
+    | sed -e 's/&nbsp;/ /g' -e 's/&quot;/"/g' -e "s/\&#39;/'/g" -e 's/&lt;/</g' -e 's/&gt;/>/g' -e 's/&amp;/\&/g' \
+    | tr '[:upper:]' '[:lower:]' \
+    | tr -s '[:space:]' ' '
+}
+
+normalize_excerpt() {
+  _ne_v=$1
+  case "$_ne_v" in
+    \"*\") _ne_v=${_ne_v#\"}; _ne_v=${_ne_v%\"} ;;
+  esac
+  normalize_html "$_ne_v"
+}
+
+if [ "$fetch" -eq 1 ]; then
+  fetch_available=1
+  if [ -z "${SHOWRUNNER_FETCH_CMD:-}" ] && ! command -v curl >/dev/null 2>&1; then
+    fetch_available=0
+  fi
+  if [ "$fetch_available" -eq 0 ]; then
+    printf 'WARN: showrunner-sources: curl is not available; skipping --fetch\n'
+  elif [ -s "$fetch_out" ]; then
+    printf '| ID | URL | Result |\n'
+    printf '| --- | --- | --- |\n'
+    while IFS="$(printf '\t')" read -r f_id f_url f_excerpt; do
+      [ -n "$f_id" ] || continue
+      if [ -n "${SHOWRUNNER_FETCH_CMD:-}" ]; then
+        f_body=$($SHOWRUNNER_FETCH_CMD "$f_url" 2>/dev/null)
+        f_rc=$?
+        f_code=200
+      else
+        f_raw=$(curl -sSL --max-time 20 -A "showrunner-sources" -w '
+__SR_HTTP_CODE__%{http_code}' -- "$f_url" 2>/dev/null)
+        f_rc=$?
+        f_code=$(printf '%s' "$f_raw" | sed -n 's/.*__SR_HTTP_CODE__//p')
+        f_body=$(printf '%s' "$f_raw" | sed 's/__SR_HTTP_CODE__[0-9]*$//')
+        case "$f_code" in
+          ''|*[!0-9]*) f_code=0 ;;
+        esac
+      fi
+      if [ "$f_rc" -ne 0 ] || [ "$f_code" -ge 400 ] 2>/dev/null; then
+        f_result="unreachable"
+      else
+        f_norm_body=$(normalize_html "$f_body")
+        f_norm_excerpt=$(normalize_excerpt "$f_excerpt")
+        case "$f_norm_body" in
+          *"$f_norm_excerpt"*) f_result="confirmed" ;;
+          *) f_result="excerpt-not-found" ;;
+        esac
+      fi
+      printf '| %s | %s | %s |\n' "$f_id" "$f_url" "$f_result"
+    done < "$fetch_out"
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
+
+err_count=$(grep -c '^ERROR:' "$awk_out")
+warn_count=$(grep -c '^WARN:' "$awk_out")
+if [ "$fetch" -eq 1 ] && [ "${fetch_available:-1}" -eq 0 ]; then
+  warn_count=$((warn_count + 1))
+fi
+
+printf 'showrunner-sources: %s errors, %s warnings\n' "$err_count" "$warn_count"
+[ "$err_count" -gt 0 ] && exit 1
+exit 0
