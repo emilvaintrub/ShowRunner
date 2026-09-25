@@ -303,9 +303,13 @@ cmd_context() {
   _ctx_status=$(cfg_get active status)
   _ctx_awaiting=$(cfg_get active awaiting)
 
-  _ctx_line="ShowRunner: $_ctx_initiative \"$_ctx_title\" is at stage $(stage_label "$_ctx_stage"), $_ctx_status"
-  if [ -n "$_ctx_awaiting" ] && [ "$_ctx_awaiting" != "none" ]; then
-    _ctx_line="$_ctx_line, waiting on the owner for: $_ctx_awaiting"
+  if [ -z "$_ctx_initiative" ] || [ "$_ctx_initiative" = "none" ]; then
+    _ctx_line="ShowRunner: no active initiative; project stage $(stage_label "$_ctx_stage")"
+  else
+    _ctx_line="ShowRunner: $_ctx_initiative \"$_ctx_title\" is at stage $(stage_label "$_ctx_stage"), $_ctx_status"
+    if [ -n "$_ctx_awaiting" ] && [ "$_ctx_awaiting" != "none" ]; then
+      _ctx_line="$_ctx_line, waiting on the owner for: $_ctx_awaiting"
+    fi
   fi
   _ctx_line="$_ctx_line. Route this message through the ShowRunner conductor (core/lifecycle.md section 4) before acting. Product code changes only in the build stage."
   printf '%s\n' "$_ctx_line"
