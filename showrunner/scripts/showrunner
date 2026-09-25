@@ -551,24 +551,30 @@ strip_env_prefix() {
 # GIT_DASH_C_DIR (the raw argument to a leading -C, or empty). Uses a
 # single awk pass, purely prefix-stripping by regex so the untouched
 # remainder (which may hold quoted arguments) is never re-tokenized.
+# git_seg_info SEG -- as above, plus GIT_HOOKSPATH_C: "1" when a leading
+# `-c` global option's key (case-insensitive) is core.hooksPath, which
+# disables hooks for the invocation exactly like --no-verify, regardless
+# of the subcommand that follows.
 git_seg_info() {
   GIT_NORM=""
   GIT_DASH_C_DIR=""
+  GIT_HOOKSPATH_C=""
   _gsi_n=0
   while IFS= read -r _gsi_line; do
     _gsi_n=$((_gsi_n + 1))
-    if [ "$_gsi_n" -eq 1 ]; then
-      GIT_DASH_C_DIR=$_gsi_line
-    else
-      GIT_NORM=$_gsi_line
-    fi
+    case "$_gsi_n" in
+      1) GIT_DASH_C_DIR=$_gsi_line ;;
+      2) GIT_HOOKSPATH_C=$_gsi_line ;;
+      *) GIT_NORM=$_gsi_line ;;
+    esac
   done <<GSIEOF
 $(printf '%s\n' "$1" | awk '
     {
       rest = $0
-      if (rest !~ /^git([ \t]|$)/) { print ""; print rest; exit }
+      if (rest !~ /^git([ \t]|$)/) { print ""; print ""; print rest; exit }
       sub(/^git[ \t]*/, "", rest)
       dir = ""
+      hookspath_c = ""
       while (1) {
         if (rest ~ /^-C[ \t]+/) {
           sub(/^-C[ \t]+/, "", rest)
@@ -579,16 +585,99 @@ $(printf '%s\n' "$1" | awk '
           }
           continue
         }
-        if (rest ~ /^-c[ \t]+[^ \t]+[ \t]*/) { sub(/^-c[ \t]+[^ \t]+[ \t]*/, "", rest); continue }
+        if (rest ~ /^-c[ \t]+[^ \t]+[ \t]*/) {
+          tmp = rest
+          sub(/^-c[ \t]+/, "", tmp)
+          if (match(tmp, /^[^ \t]+/)) {
+            kv = substr(tmp, RSTART, RLENGTH)
+            key = kv
+            sub(/=.*/, "", key)
+            if (tolower(key) == "core.hookspath") hookspath_c = "1"
+          }
+          sub(/^-c[ \t]+[^ \t]+[ \t]*/, "", rest)
+          continue
+        }
         if (rest ~ /^(--git-dir=|--work-tree=)[^ \t]*[ \t]*/) { sub(/^(--git-dir=|--work-tree=)[^ \t]*[ \t]*/, "", rest); continue }
         if (rest ~ /^--no-pager[ \t]*/) { sub(/^--no-pager[ \t]*/, "", rest); continue }
         break
       }
       print dir
+      print hookspath_c
       print "git " rest
     }
   ')
 GSIEOF
+}
+
+# seg_is_hookspath_config_violation NORM_SEG -- true when a `git config`
+# invocation (old syntax, --unset*/--replace-all, or the newer `set`/
+# `unset` subcommands) sets or unsets core.hooksPath (case-insensitive
+# key). A bare read (`--get`/`--get-all`, or the key with no following
+# value and no write flag) is not a violation.
+seg_is_hookspath_config_violation() {
+  case "$1" in
+    "git config "*) ;;
+    *) return 1 ;;
+  esac
+  _hcv_key_pat="[Cc][Oo][Rr][Ee].[Hh][Oo][Oo][Kk][Ss][Pp][Aa][Tt][Hh]"
+  set -f
+  # shellcheck disable=SC2086
+  set -- $1
+  set +f
+  shift 2
+  _hcv_key_seen=0
+  _hcv_has_get=0
+  _hcv_has_write_flag=0
+  _hcv_subcmd=""
+  _hcv_tokens_after_key=0
+  _hcv_i=0
+  for _hcv_t in "$@"; do
+    _hcv_i=$((_hcv_i + 1))
+    case "$_hcv_t" in
+      --get|--get-all) _hcv_has_get=1 ;;
+      --unset|--unset-all|--replace-all) _hcv_has_write_flag=1 ;;
+    esac
+    if [ "$_hcv_i" -eq 1 ]; then
+      case "$_hcv_t" in
+        set|unset) _hcv_subcmd=$_hcv_t ;;
+      esac
+    fi
+    case "$_hcv_t" in
+      $_hcv_key_pat)
+        _hcv_key_seen=1
+        continue
+        ;;
+    esac
+    [ "$_hcv_key_seen" -eq 1 ] && _hcv_tokens_after_key=$((_hcv_tokens_after_key + 1))
+  done
+  [ "$_hcv_key_seen" -eq 1 ] || return 1
+
+  [ -n "$_hcv_subcmd" ] && return 0
+  [ "$_hcv_has_write_flag" -eq 1 ] && return 0
+  [ "$_hcv_has_get" -eq 1 ] && return 1
+  [ "$_hcv_tokens_after_key" -gt 0 ] && return 0
+  return 1
+}
+
+# seg_sets_hookspath_via_env SEG -- true when SEG carries a
+# GIT_CONFIG_KEY_n=core.hooksPath assignment, or a GIT_CONFIG_PARAMETERS
+# assignment mentioning hooksPath, ahead of a git invocation.
+seg_sets_hookspath_via_env() {
+  case "$1" in
+    *GIT_CONFIG_KEY_*=*)
+      case "$1" in
+        *[Cc][Oo][Rr][Ee].[Hh][Oo][Oo][Kk][Ss][Pp][Aa][Tt][Hh]*) return 0 ;;
+      esac
+      ;;
+  esac
+  case "$1" in
+    *GIT_CONFIG_PARAMETERS=*)
+      case "$1" in
+        *[Hh][Oo][Oo][Kk][Ss][Pp][Aa][Tt][Hh]*) return 0 ;;
+      esac
+      ;;
+  esac
+  return 1
 }
 
 guard_bash() {
@@ -636,6 +725,19 @@ guard_bash() {
     git_seg_info "$_gb_seg"
     _gb_norm=$GIT_NORM
 
+    if [ -z "$_gb_violation" ] && [ "$GIT_HOOKSPATH_C" = "1" ]; then
+      _gb_violation="hookspath"
+      _gb_violation_seg=$_gb_seg
+    fi
+    if [ -z "$_gb_violation" ] && seg_sets_hookspath_via_env "$_gb_seg"; then
+      _gb_violation="hookspath"
+      _gb_violation_seg=$_gb_seg
+    fi
+    if [ -z "$_gb_violation" ] && seg_is_hookspath_config_violation "$_gb_norm"; then
+      _gb_violation="hookspath"
+      _gb_violation_seg=$_gb_seg
+    fi
+
     if [ -n "$GIT_DASH_C_DIR" ]; then
       case "$GIT_DASH_C_DIR" in
         /*) _gb_seg_dir=$GIT_DASH_C_DIR ;;
@@ -680,6 +782,10 @@ SEGEOF
   case "$_gb_violation" in
     noverify)
       guard_block "the command uses -n on git commit, which bypasses commit hooks; current stage is $_gb_stage. Never bypass hooks; use the normal commit flow."
+      return 2
+      ;;
+    hookspath)
+      guard_block "the command bypasses hooks via core.hooksPath (-c, git config, or a GIT_CONFIG_* environment override); current stage is $_gb_stage. Never bypass hooks; use the normal commit flow."
       return 2
       ;;
     merge)
