@@ -472,6 +472,90 @@ rc=$?
   && pass "unknown stage error" || fail "unknown stage error" "exit=$rc out=$out"
 
 # ===========================================================================
+# 5b. Project stages P1-P5 (arc A-2): discovery, assessment, business-docs
+# ===========================================================================
+
+# Owner-required: discovery/assessment/business-docs closed by showrunner
+# (outcome "passed") must error, like the other owner-gate project stages.
+for stg in discovery assessment business-docs; do
+  repo=$(new_repo)
+  write_state "$repo" intake no none no
+  append_row "$repo" "| 1 | project | $stg | passed | showrunner | 2026-01-01 | commit:abc | ok |"
+  out=$(cd "$repo" && "$SHOWRUNNER" check)
+  rc=$?
+  { [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "owner-gate stage $stg closed by showrunner"; } \
+    && pass "owner-required: project $stg closed by showrunner errors" \
+    || fail "owner-required: project $stg closed by showrunner errors" "exit=$rc out=$out"
+done
+
+# All five project stages need a terminal row under initiative "project"
+# while an initiative is active, even one placed well past business-docs.
+repo=$(new_repo)
+write_state "$repo" roadmap no none no
+sed -i 's/initiative: "none"/initiative: "I-001"/' "$repo/.claude/showrunner/state.md"
+append_row "$repo" '| 1 | project | setup | passed | showrunner | 2026-01-01 | commit:abc | ok |'
+append_row "$repo" '| 2 | project | discovery | approved | owner | 2026-01-01 | commit:abc | "go" |'
+append_row "$repo" '| 3 | project | assessment | approved | owner | 2026-01-01 | commit:abc | "proceed" |'
+append_row "$repo" '| 4 | project | constitution | approved | owner | 2026-01-01 | commit:abc | "ok" |'
+append_row "$repo" '| 5 | I-001 | intake | passed | showrunner | 2026-01-01 | commit:abc | opened |'
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "missing predecessor: project business-docs"; } \
+  && pass "all five project stages required while an initiative is active (business-docs missing)" \
+  || fail "all five project stages required while an initiative is active (business-docs missing)" "exit=$rc out=$out"
+
+append_row "$repo" '| 6 | project | business-docs | approved | owner | 2026-01-01 | commit:abc | "none" |'
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors"; } \
+  && pass "all five project stages satisfied while an initiative is active" \
+  || fail "all five project stages satisfied while an initiative is active" "exit=$rc out=$out"
+
+# NEW: when active.stage is itself a project stage, every EARLIER project
+# stage needs a terminal row, regardless of active.initiative.
+repo=$(new_repo)
+write_state "$repo" assessment no none no
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 1 ] \
+    && printf '%s' "$out" | grep -q "missing predecessor: project setup" \
+    && printf '%s' "$out" | grep -q "missing predecessor: project discovery"; } \
+  && pass "project-stage predecessor check while a project stage is active (missing)" \
+  || fail "project-stage predecessor check while a project stage is active (missing)" "exit=$rc out=$out"
+
+repo=$(new_repo)
+write_state "$repo" assessment no none no
+append_row "$repo" '| 1 | project | setup | passed | showrunner | 2026-01-01 | commit:abc | ok |'
+append_row "$repo" '| 2 | project | discovery | approved | owner | 2026-01-01 | commit:abc | "go" |'
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors"; } \
+  && pass "project-stage predecessor check while a project stage is active (satisfied)" \
+  || fail "project-stage predecessor check while a project stage is active (satisfied)" "exit=$rc out=$out"
+
+# context: project stages print "project <stage> (P<n>)"; initiative stages
+# keep "<stage> (n/15)".
+for pair in "setup:P1" "discovery:P2" "assessment:P3" "constitution:P4" "business-docs:P5"; do
+  stg=${pair%%:*}
+  pn=${pair##*:}
+  repo=$(new_repo)
+  write_state "$repo" "$stg" no none no
+  out=$(cd "$repo" && "$SHOWRUNNER" context)
+  case "$out" in
+    *"project $stg ($pn)"*) pass "context labels project stage $stg as $pn" ;;
+    *) fail "context labels project stage $stg as $pn" "out=[$out]" ;;
+  esac
+done
+
+repo=$(new_repo)
+write_state "$repo" spec no none no
+out=$(cd "$repo" && "$SHOWRUNNER" context)
+case "$out" in
+  *"spec (3/15)"*) pass "context keeps <stage> (n/15) for initiative stages" ;;
+  *) fail "context keeps <stage> (n/15) for initiative stages" "out=[$out]" ;;
+esac
+
+# ===========================================================================
 # 6. Worktree resolution
 # ===========================================================================
 
