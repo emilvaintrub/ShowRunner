@@ -601,6 +601,77 @@ rc=$?
   || fail "F7: showrunner-only stage closed by an owner outcome is an error" "exit=$rc out=$out"
 
 # ===========================================================================
+# 9. Reviewer findings round 2 (verdict on tip c615713)
+# ===========================================================================
+
+# F8 (HIGH): a git config bypass that disables hooks (core.hooksPath) must
+# be blocked exactly like --no-verify, in all its forms, while a bare read
+# of the setting stays allowed.
+repo=$(new_repo)
+write_state "$repo" spec no none no
+
+out=$(guard_json_bash "git config --get core.hooksPath" "$repo" | "$SHOWRUNNER" guard 2>&1)
+rc=$?
+[ "$rc" -eq 0 ] && pass "F8: git config --get core.hooksPath (read) allowed" \
+  || fail "F8: git config --get core.hooksPath (read) allowed" "exit=$rc out=$out"
+
+out=$(guard_json_bash "git config core.hooksPath" "$repo" | "$SHOWRUNNER" guard 2>&1)
+rc=$?
+[ "$rc" -eq 0 ] && pass "F8: git config core.hooksPath (bare read, no value) allowed" \
+  || fail "F8: git config core.hooksPath (bare read, no value) allowed" "exit=$rc out=$out"
+
+out=$(guard_json_bash "git config core.hooksPath /dev/null" "$repo" | "$SHOWRUNNER" guard 2>&1)
+rc=$?
+[ "$rc" -eq 2 ] && pass "F8: git config core.hooksPath VALUE (set, old syntax) blocked" \
+  || fail "F8: git config core.hooksPath VALUE (set, old syntax) blocked" "exit=$rc out=$out"
+
+out=$(guard_json_bash "git config set core.hooksPath /dev/null" "$repo" | "$SHOWRUNNER" guard 2>&1)
+rc=$?
+[ "$rc" -eq 2 ] && pass "F8: git config set core.hooksPath VALUE (new syntax) blocked" \
+  || fail "F8: git config set core.hooksPath VALUE (new syntax) blocked" "exit=$rc out=$out"
+
+out=$(guard_json_bash "git config --unset core.hooksPath" "$repo" | "$SHOWRUNNER" guard 2>&1)
+rc=$?
+[ "$rc" -eq 2 ] && pass "F8: git config --unset core.hooksPath blocked" \
+  || fail "F8: git config --unset core.hooksPath blocked" "exit=$rc out=$out"
+
+out=$(guard_json_bash "git config --local core.hooksPath /dev/null" "$repo" | "$SHOWRUNNER" guard 2>&1)
+rc=$?
+[ "$rc" -eq 2 ] && pass "F8: git config --local core.hooksPath VALUE blocked" \
+  || fail "F8: git config --local core.hooksPath VALUE blocked" "exit=$rc out=$out"
+
+out=$(guard_json_bash "git -c core.hooksPath=/dev/null commit -m x" "$repo" | "$SHOWRUNNER" guard 2>&1)
+rc=$?
+[ "$rc" -eq 2 ] && pass "F8: git -c core.hooksPath=... commit blocked" \
+  || fail "F8: git -c core.hooksPath=... commit blocked" "exit=$rc out=$out"
+
+out=$(guard_json_bash "git -c core.hookspath=/dev/null log" "$repo" | "$SHOWRUNNER" guard 2>&1)
+rc=$?
+[ "$rc" -eq 2 ] && pass "F8: git -c core.hookspath=... blocked for any subcommand (case-insensitive key)" \
+  || fail "F8: git -c core.hookspath=... blocked for any subcommand (case-insensitive key)" "exit=$rc out=$out"
+
+out=$(guard_json_bash "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/dev/null git commit -m x" "$repo" | "$SHOWRUNNER" guard 2>&1)
+rc=$?
+[ "$rc" -eq 2 ] && pass "F8: GIT_CONFIG_KEY_n=core.hooksPath env override blocked" \
+  || fail "F8: GIT_CONFIG_KEY_n=core.hooksPath env override blocked" "exit=$rc out=$out"
+
+out=$(guard_json_bash "GIT_CONFIG_PARAMETERS='core.hooksPath=/dev/null' git commit -m x" "$repo" | "$SHOWRUNNER" guard 2>&1)
+rc=$?
+[ "$rc" -eq 2 ] && pass "F8: GIT_CONFIG_PARAMETERS=...hooksPath... env override blocked" \
+  || fail "F8: GIT_CONFIG_PARAMETERS=...hooksPath... env override blocked" "exit=$rc out=$out"
+
+# F9 (LOW): effective-branch tracking must key off the resolved directory,
+# not just the cwd, so a -C-scoped checkout/switch updates the branch a
+# later -C-scoped segment targeting the same repo sees.
+repo=$(new_repo)
+(cd "$repo" && git checkout -q -b feat/x)
+write_state "$repo" spec no none no
+out=$(guard_json_bash "git -C $repo checkout main && git -C $repo merge feat/x" "$repo" | "$SHOWRUNNER" guard 2>&1)
+rc=$?
+[ "$rc" -eq 2 ] && pass "F9: -C-scoped checkout-then-merge onto primary blocked (per-directory effective branch)" \
+  || fail "F9: -C-scoped checkout-then-merge onto primary blocked (per-directory effective branch)" "exit=$rc out=$out"
+
+# ===========================================================================
 # Summary
 # ===========================================================================
 
