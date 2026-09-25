@@ -429,6 +429,25 @@ rc=$?
 { [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "without an approved Step 0 digest"; } \
   && pass "build without step0 error" || fail "build without step0 error" "exit=$rc out=$out"
 
+# step0_approved is a digit-bearing key ("step0_approved"); check's active-key
+# reader must not silently drop it (arc A-2 regression: an approved digest at
+# build/verify/security/acceptance/merge must not be treated as unapproved).
+repo=$(new_repo)
+write_state "$repo" build digest123 feat/x no
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors"; } \
+  && pass "step0_approved digit key recognized: approved digest at build passes" \
+  || fail "step0_approved digit key recognized: approved digest at build passes" "exit=$rc out=$out"
+
+repo=$(new_repo)
+write_state "$repo" verify digest123 feat/x no
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors"; } \
+  && pass "step0_approved digit key recognized: approved digest at verify passes" \
+  || fail "step0_approved digit key recognized: approved digest at verify passes" "exit=$rc out=$out"
+
 repo=$(new_repo)
 write_state "$repo" setup no none no
 mkdir -p "$repo/docs"
