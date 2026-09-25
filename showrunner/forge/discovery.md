@@ -70,7 +70,25 @@ description, explain the difference in two sentences, and record the choice as
 
 ### Challenge Mode
 
-- Start by restating the owner's thesis in its strongest form, then test it.
+The first challenge-mode reply always contains, before any questions:
+
+1. **The thesis at its strongest**: the owner's idea restated as a crisp,
+   testable claim, with the best case for it (including the owner's own
+   experience, labeled `[OWNER]`).
+2. **What has to be true**: three to six conditions the idea depends on
+   (for example "practices will switch from their current system", "the
+   price covers acquisition cost", "patient-data rules allow this
+   architecture"), each tagged with how it will be checked: research, owner
+   evidence, or a validation experiment.
+3. **Roadblock areas to research**: the regulatory, competitive,
+   distribution, and cost areas most likely to block the idea in its named
+   market, stated as research to do, not as facts.
+
+No praise or verdict on the idea before the assessment: not "promising",
+"fundable", or "strong". Domain experience is valuable evidence of the
+owner's own pain and credibility; say what it does and does not prove.
+
+- Then test the thesis domain by domain.
 - For each domain, ask "what has to be true for this to work?" and check the
   evidence for each condition.
 - Bring the strongest competitor, the most likely failure mode, and the
