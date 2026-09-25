@@ -95,6 +95,15 @@ and shows what was looked for but not found.
 Assumptions are allowed; hidden assumptions are not. The owner sees every
 assumption that moves a headline number and accepts or replaces it.
 
+An assumption is for something that cannot be known yet: a future conversion
+rate, churn, growth, adoption speed, or the owner's own plans. It is never a
+stand-in for a fact that could be looked up - a vendor's fee, a published
+price, a salary level, a market size, a tax or regulatory rule. When such a
+fact cannot be researched in the session, it stays `EVIDENCE PENDING` until it
+is researched or the owner supplies it; it does not become an assumption with
+a remembered value. An assumption's `Based on` column cites the sources that
+informed it, or says `judgment` with the reasoning in `Rationale`.
+
 ## 4. Research Rules
 
 - **Real access or no claim.** Use the session's web search and fetch tools.
