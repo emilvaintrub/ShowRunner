@@ -82,7 +82,9 @@ The first challenge-mode reply always contains, before any questions:
    evidence, or a validation experiment.
 3. **Roadblock areas to research**: the regulatory, competitive,
    distribution, and cost areas most likely to block the idea in its named
-   market, stated as research to do, not as facts.
+   market, phrased as questions to research ("Do practices already get
+   scheduling inside their practice-management system?"), never as remembered
+   facts or trends ("dentists are hard to sell to", "groups are growing").
 
 No praise or verdict on the idea before the assessment: not "promising",
 "fundable", or "strong". Domain experience is valuable evidence of the
@@ -101,8 +103,11 @@ owner's own pain and credibility; say what it does and does not prove.
 
 ## 3. The Discovery Stage (P2)
 
-1. **Open.** Ask for the idea in the owner's own words. Record it verbatim.
-   Recommend and confirm the owner profile.
+1. **Open.** Ask for the idea in the owner's own words. Create the discovery
+   brief from [templates/discovery-brief.md](templates/discovery-brief.md)
+   with status `interviewing`, record the idea verbatim, set the ledger's
+   `active.status` and `resume`, and commit. Recommend and confirm the owner
+   profile.
 2. **Interview.** Walk the inquiry bank domains D1-D12 in the order the
    conversation suggests, usually goals, problem, customers, alternatives,
    solution, model, distribution, then the rest. Probe every vague answer.
@@ -114,10 +119,12 @@ owner's own pain and credibility; say what it does and does not prove.
 4. **Track coverage.** Keep the coverage table in the discovery brief current:
    each domain `answered`, `researched`, `open - to validate`, or `deferred by
    owner`. Share it at each recap so the owner sees progress.
-5. **Brief.** When every domain has a coverage state, write
-   [templates/discovery-brief.md](templates/discovery-brief.md): the owner's
-   idea in their words, the answers per domain, open questions, assumptions,
-   and the evidence gathered so far.
+5. **Brief.** The brief is a working document from the first turn: after
+   every round, record the owner's answers (quoted where it matters), the
+   coverage state per domain, and the recap log, and commit, so nothing the
+   owner said is lost between sessions. When every domain has a coverage
+   state, complete it: answers per domain, open questions, assumptions, and
+   the evidence gathered so far.
 6. **Confirm.** Ask the owner to confirm the brief as an accurate account of
    their idea and intentions, not as a judgment of it. Record the
    owner-quoted `discovery` ledger row and move to `assessment` in the same
