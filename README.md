@@ -23,6 +23,9 @@ AI coding agents are fast, but speed is not the same as control. ShowRunner
 adds a disciplined lifecycle around them:
 
 - Product decisions are explicit;
+- One conductor runs every stage from idea to release, in order, without
+  waiting to be told the next step;
+- The owner makes business calls; the agent handles the technical ones;
 - Implementation starts only after Step 0 approval;
 - Security findings are triaged instead of blindly accepted from scanners;
 - Design gets research and expert synthesis when the user is not a specialist;
@@ -30,7 +33,9 @@ adds a disciplined lifecycle around them:
 - Architecture docs are generated from evidence, not vibes;
 - Long sessions can use an optional context optimizer before the work gets
   fuzzy;
-- Every build or fix stops before `main`.
+- Every build or fix stops before `main`, and release is always the owner's
+  call;
+- Git and Claude Code hooks enforce the key gates mechanically.
 
 ## TL;DR
 
@@ -165,13 +170,18 @@ Read the full [user guide](docs/USER_GUIDE.md).
 
 The short version:
 
-1. Run `/forge init` or ask the agent to initialize ShowRunner.
-2. Use Forge to discover, plan, specify, design, and record decisions.
-3. Use Arc only after direction is approved.
-4. Use Sentry for security posture, external scanner triage, dependency review,
-   pen-test governance, and verified security fixes.
-5. Use Bible to synthesize architecture and capabilities from current evidence.
-6. Stop before merge. Always.
+1. Ask the agent to initialize ShowRunner for your repository. It writes the
+   config and the state ledger, and installs the safety hooks.
+2. Tell it what you want in plain words. You are the business owner; ShowRunner
+   is the conductor.
+3. ShowRunner runs every stage in order - intake, roadmap, spec, design,
+   design review, handoff, build plan, Step 0, build, verify, security,
+   acceptance, merge, release, close - and moves on by itself.
+4. It stops only for your decisions: product calls, approvals, the returned
+   design, your acceptance test, merge approval, and your release
+   instructions.
+5. It never skips a stage on its own, never merges without your approval, and
+   never releases or deploys without your instructions.
 
 ## Design Is Expert-Led
 
