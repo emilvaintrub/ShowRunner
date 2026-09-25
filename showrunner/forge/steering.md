@@ -59,7 +59,11 @@ Without stopping the active build, Forge works out:
    - *invalidated*: the build pauses now at a commit boundary, and work on the
      affected part stops until the steer is decided.
 4. **Fit**: how it sits with the constitution and the assessment verdict,
-   in plain words, without verdicts that need research not yet done.
+   in plain words, without verdicts that need research not yet done. Anything
+   about markets, customers, buyers, or competitors that has not been
+   researched is phrased as a question for the steer session ("Do libraries
+   and schools require due dates?"), never as a remembered fact ("they
+   typically want due dates"), per [../core/evidence.md](../core/evidence.md).
 
 ## 4. The Owner's Choice - One Gate
 
