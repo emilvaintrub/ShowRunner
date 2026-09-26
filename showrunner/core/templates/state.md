@@ -24,6 +24,7 @@ active:
   fix_loops: 0
   release_authorized: "no"
   resume: "none"
+people: []
 queue: []
 parked: []
 guard:

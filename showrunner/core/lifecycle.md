@@ -20,6 +20,22 @@ decisions, in plain language, with a recommendation.
 **Implementer** - the cold-context worker defined in
 [dispatch.md](dispatch.md). Builds only after ShowRunner approves Step 0.
 
+**Delegates** - people the owner names to approve specific gates on the
+owner's behalf: a co-founder, a design lead, a technical partner, an advisor.
+The owner lists each delegate in the ledger's `people` section with the
+stages they may approve. A delegate's approval counts exactly like the owner's
+for those stages and no others.
+
+These decisions stay with the owner and can never be delegated: the
+`constitution`, the `assessment` verdict, `release`, any waiver, and risk
+acceptance. The owner may take back any delegation at any time; the change is
+recorded in the ledger.
+
+When two approvers disagree - a delegate and the owner, or two delegates -
+ShowRunner records both positions verbatim and brings the disagreement to the
+owner, who decides. A gate never closes on a split, and never on whichever
+answer arrived first.
+
 ### Who Approves What
 
 | Decision | Owner | ShowRunner |

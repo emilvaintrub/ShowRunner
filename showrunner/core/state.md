@@ -41,6 +41,8 @@ active:
   fix_loops: 0
   release_authorized: "no | yes"
   resume: "<exact next action if a turn stopped mid-stage, or none>"
+people:
+  - "<name> | <role> | <comma-separated stages this person may approve>"
 queue:
   - "<id> - <title>"
 parked:
@@ -97,6 +99,11 @@ with the experiment id in the Initiative column.
 
 Outcomes:
 
+The Approver column is `showrunner`, `owner`, or `delegate:<name>` where
+`<name>` matches a `people` entry exactly. In the tables below, "owner" means
+the owner or a delegate listed for that stage; `constitution`, `assessment`,
+`release`, and every `waived` outcome accept `owner` only.
+
 | Outcome | Meaning | Allowed approver |
 | --- | --- | --- |
 | `passed` | a ShowRunner-owned stage met its exit record | `showrunner` |
@@ -137,6 +144,9 @@ fails when:
   needs one);
 - an owner-gate stage is closed by `showrunner`, or an owner row has no quoted
   evidence;
+- a `delegate:<name>` row names someone not in `people`, a stage not
+  delegated to them, or a stage that can never be delegated, or is a `waived`
+  outcome;
 - `not-applicable` is used outside `design` and `design-review`;
 - a non-waivable stage is `waived`;
 - `build` or a later implementation stage is active without an approved
