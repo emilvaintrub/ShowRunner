@@ -59,7 +59,10 @@ An `init` command must:
 10. Inventory every external service the repository evidences into the
     accounts register and ask the owner to confirm who controls each
     ([ownership.md](ownership.md)).
-11. Report inferred values, human-provided values, disabled capabilities, and
+11. When the repository already holds a product, a deployment, or product
+    documents, run setup in adoption mode ([adoption.md](adoption.md)):
+    stabilize and inventory before anything else.
+12. Report inferred values, human-provided values, disabled capabilities, and
     unresolved risks, including every account marked at risk.
 
 Ask the owner only for bindings that are business decisions or cannot be

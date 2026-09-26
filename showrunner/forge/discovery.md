@@ -130,9 +130,12 @@ owner's own pain and credibility; say what it does and does not prove.
    owner-quoted `discovery` ledger row and move to `assessment` in the same
    turn.
 
-An existing project that adopts ShowRunner still runs `discovery`: Forge
-reads existing documents first, pre-fills what they answer, and interviews
-only for the gaps.
+An existing project that adopts ShowRunner still runs `discovery`, in adoption
+mode ([../core/adoption.md](../core/adoption.md) section 4): Forge uses the
+inventory and existing documents to pre-fill domains marked `reconstructed`,
+asks concrete questions about what was built versus intended, and interviews
+for the gaps. The assessment then adds the health report and the adoption
+verdicts (section 5 there).
 
 ## 4. The Assessment Stage (P3)
 

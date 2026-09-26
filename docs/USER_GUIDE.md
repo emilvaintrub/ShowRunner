@@ -117,6 +117,29 @@ Each new feature later gets a shorter version of the same questioning: what
 problem it solves, how we will know it worked, the smallest version, and what
 could go wrong.
 
+## Bringing ShowRunner Into Work Already Under Way
+
+If you already have a product - built by you, a freelancer, an agency, or
+another tool - or you're stuck mid-development and need direction, ShowRunner
+doesn't start over. It:
+
+1. **Stabilizes first**: anything broken in production, accounts you don't
+   control, exposed passwords, and missing backups come before any planning.
+2. **Takes stock**, without changing anything: what the product is made of,
+   what works, what's half-built, what's broken, security and licence issues,
+   and every branch and piece of unfinished work. Nothing is deleted.
+3. **Works out with you what was intended**, asking concrete questions about
+   what it found.
+4. **Gives you an honest health report**, in plain words, with a
+   recommendation for each piece: keep, finish, fix, rebuild, or drop - and for
+   the product overall: continue, refocus, or rebuild parts.
+5. **Brings the work you keep into the normal process where it actually
+   stands**: specs are reconstructed from what was built, existing designs are
+   reviewed, and existing code is checked like new code before it counts as
+   done.
+6. **Gives you a rescue roadmap**: stop the bleeding, stabilize, finish what's
+   worth finishing, then move forward.
+
 ## New Ideas Along The Way
 
 You don't need the full picture at the start. When a new idea or a change of
@@ -215,6 +238,32 @@ is needed. It never falls back to a guess.
 
 These documents support your decisions; they are not legal, tax, or
 investment advice.
+
+## What Your Customers Say
+
+Paste or forward what customers tell you - support emails, reviews, interview
+notes, survey results - and ShowRunner logs it (with personal details
+removed), groups repeated themes, and routes each item: an emergency goes to
+incident mode, a bug becomes a fix, a request becomes an idea for you to
+decide on, and insights become evidence for your assessment and outcome
+reviews. It only uses the channels you hand over and never contacts customers.
+
+## What It Costs
+
+Every finished piece of work ends with a cost and time line: agent usage as
+reported by the platform (or "unavailable" - never guessed), any paid runs,
+new monthly service costs, and how long it took. You can set a budget per
+piece of work or per month; at 80% ShowRunner warns you, and at 100% it stops
+and asks you to raise the budget, narrow the work, or pause - it never skips a
+required step to save money.
+
+## Working With A Team
+
+You can name people to approve specific decisions for you - a co-founder for
+product specs, a designer for design output. Some decisions always stay with
+you: the product constitution, the verdict on the idea, releasing, skipping
+any stage, and accepting a risk. When two approvers disagree, ShowRunner
+records both views and brings the decision to you.
 
 ## Who Decides What
 

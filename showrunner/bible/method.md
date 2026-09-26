@@ -47,6 +47,7 @@ Apply the shared decision classifier:
    - Run `sync` at the new primary tip on a `docs/bible-<initiative>` branch.
      When `bible.status` is `disabled` by an owner waiver, say so and skip only
      this step.
+   - Report the initiative's cost and time line ([../core/cost.md](../core/cost.md)).
    - Schedule the outcome review ([../core/outcomes.md](../core/outcomes.md)):
      add the Outcome Reviews row with metric, target, source, and review
      date, and offer a reminder when the platform supports one.
