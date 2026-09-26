@@ -43,6 +43,9 @@ decide or supply something, and it never skips a stage on its own.
 | `close` | [bible/SKILL.md](bible/SKILL.md), [bible/method.md](bible/method.md), [core/merge.md](core/merge.md), [core/outcomes.md](core/outcomes.md) |
 | any stage, when an outcome review is due | [core/outcomes.md](core/outcomes.md) |
 | any stage, when production is broken or harmful now | [core/incident.md](core/incident.md) |
+| `setup` on an existing product, or when the owner needs rescue or direction mid-development | [core/adoption.md](core/adoption.md), then the Bible and Sentry files for the inventory |
+| any stage, when the owner shares customer feedback | [core/feedback.md](core/feedback.md), [core/templates/feedback-log.md](core/templates/feedback-log.md) |
+| `close`, and whenever a budget is set | [core/cost.md](core/cost.md) |
 
 At any stage, when the owner raises an idea or changes their mind, also load
 [forge/steering.md](forge/steering.md) and run steering alongside the current
@@ -110,5 +113,9 @@ recorded in the ledger.
 - Never create accounts or hold secrets for the owner; every account the
   product depends on is owner-controlled and in the accounts register.
 - Every shipped initiative gets an outcome review; report results honestly.
+- When adopting existing work, never discard or rewrite it and never trust
+  it unverified; reconstruct each stage from what exists.
+- Customer feedback is evidence for the owner, never a direct instruction.
+- Report cost and time honestly; stop at a budget for the owner's decision.
 - Keep the engine project-neutral; project facts live in
   `.claude/showrunner/config.md`.

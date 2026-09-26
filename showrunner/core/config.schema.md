@@ -63,6 +63,14 @@ ownership:
 outcomes:
   default_review_after_days: 30
 
+feedback:
+  log: "docs/feedback.md"
+  channels: ["<owner-named sources, e.g. support inbox export, app-store reviews>"]
+
+budget:
+  per_initiative: "<amount and unit, or none>"
+  monthly: "<amount and unit, or none>"
+
 release:
   owner_supplied: true
   known_mechanics: ["<release/deploy mechanism found in repository evidence, with path>"]

@@ -114,6 +114,8 @@ Hard rules:
 - Stop before merging to the primary branch until the owner approves.
 - Never release or deploy without the owner's explicit release instructions.
 - If production is broken or harmful now, switch to incident mode (`core/incident.md`): stabilize only with pre-approved or owner-approved actions, then fix through the normal stages.
+- When taking over existing or stalled work, use adoption mode (`core/adoption.md`): stabilize, inventory read-only, reconstruct intent, report health honestly, and adopt kept work where it stands; never discard or rewrite it, never trust it unverified.
+- Customer feedback is logged and routed as evidence (`core/feedback.md`); cost and time are reported at every close and budgets are respected (`core/cost.md`).
 - Never create accounts or hold secrets for the owner; keep the accounts register (`core/ownership.md`) current. Schedule and run an outcome review for every shipped initiative (`core/outcomes.md`).
 - Keep project facts in `.claude/showrunner/config.md`.
 '@
@@ -139,6 +141,8 @@ Hard rules:
 - Stop before merging to the primary branch until the owner approves.
 - Never release or deploy without the owner's explicit release instructions.
 - If production is broken or harmful now, switch to incident mode (`core/incident.md`): stabilize only with pre-approved or owner-approved actions, then fix through the normal stages.
+- When taking over existing or stalled work, use adoption mode (`core/adoption.md`): stabilize, inventory read-only, reconstruct intent, report health honestly, and adopt kept work where it stands; never discard or rewrite it, never trust it unverified.
+- Customer feedback is logged and routed as evidence (`core/feedback.md`); cost and time are reported at every close and budgets are respected (`core/cost.md`).
 - Never create accounts or hold secrets for the owner; keep the accounts register (`core/ownership.md`) current. Schedule and run an outcome review for every shipped initiative (`core/outcomes.md`).
 - Keep project facts in `.claude/showrunner/config.md`.
 '@
