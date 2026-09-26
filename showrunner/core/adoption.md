@@ -53,6 +53,13 @@ In this order, before any planning:
    the repository by someone new? Record the baseline as it is - red tests,
    missing steps, manual deploys - without fixing anything yet.
 
+The first report to the owner covers stabilization and the inventory, and
+asks only what stabilization needs (account control, backups, data
+classification, where the code should live). Do not ask the owner to decide
+the fate of in-flight work yet: list it, and bring each piece back with a
+recommendation in the health report (section 5), once the owner's intent is
+reconstructed.
+
 Never discard, reset, rebase, force-push, or delete anything during adoption:
 no `git reset --hard`, `git clean`, branch deletion, or history rewrite.
 Before any later cleanup the owner approves, tag or archive what would be
@@ -74,7 +81,11 @@ Build a factual picture, citing repository paths and commands:
   half-wired routes or screens, `TODO`/`FIXME` clusters, and issues or tickets
   the owner shares.
 - **Intent sources**: existing specs, designs, tickets, decks, notes, and
-  contracts the owner provides - listed, not yet trusted.
+  contracts in the repository or provided by the owner - listed, not yet
+  trusted. Run `showrunner-sources lint` over any business document that
+  states figures (without registers every figure shows as unlabeled), and
+  tell the owner in the first report which documents contain figures nobody
+  has verified yet, so they stop relying on them until the audit.
 - **History**: who worked on what and when, from Git history, in neutral
   terms. Never assign blame.
 
