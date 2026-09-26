@@ -20,6 +20,22 @@ decisions, in plain language, with a recommendation.
 **Implementer** - the cold-context worker defined in
 [dispatch.md](dispatch.md). Builds only after ShowRunner approves Step 0.
 
+**Delegates** - people the owner names to approve specific gates on the
+owner's behalf: a co-founder, a design lead, a technical partner, an advisor.
+The owner lists each delegate in the ledger's `people` section with the
+stages they may approve. A delegate's approval counts exactly like the owner's
+for those stages and no others.
+
+These decisions stay with the owner and can never be delegated: the
+`constitution`, the `assessment` verdict, `release`, any waiver, and risk
+acceptance. The owner may take back any delegation at any time; the change is
+recorded in the ledger.
+
+When two approvers disagree - a delegate and the owner, or two delegates -
+ShowRunner records both positions verbatim and brings the disagreement to the
+owner, who decides. A gate never closes on a split, and never on whichever
+answer arrived first.
+
 ### Who Approves What
 
 | Decision | Owner | ShowRunner |
@@ -86,7 +102,7 @@ later stage finds that their conclusions no longer hold.
 | 12 | `acceptance` | smoke | yes | owner-run smoke evidence and verdict |
 | 13 | `merge` | shared ceremony | yes | disposition and approval recorded; ceremony verified |
 | 14 | `release` | [release.md](release.md) | yes, mandatory | owner-supplied release decision executed and checked, or recorded `held` |
-| 15 | `close` | Bible `sync`, hygiene | yes (Bible merge) | Bible current; project state updated; outcome review scheduled ([outcomes.md](outcomes.md)); temporary access revoked or confirmed; queued and due parked ideas reviewed; next item proposed |
+| 15 | `close` | Bible `sync`, hygiene | yes (Bible merge) | Bible current; project state updated; cost and time line reported ([cost.md](cost.md)); outcome review scheduled ([outcomes.md](outcomes.md)); temporary access revoked or confirmed; queued and due parked ideas reviewed; next item proposed |
 
 ### Project Verdicts
 
@@ -113,6 +129,17 @@ Only `design` and `design-review` may close as `not-applicable`, and only when
 the spec shows no visual, interaction, content, workflow, or other
 design-dependent surface in scope. ShowRunner presents the evidence; the owner
 confirms. Every other stage runs.
+
+### Adopting Existing Work
+
+When ShowRunner arrives after work has started - a product built without a
+process, a team that lost direction, or a project that drifted off-process -
+`setup`, `discovery`, and `assessment` run in adoption mode
+([adoption.md](adoption.md)): stabilize first, inventory what exists,
+reconstruct intent, give the owner an honest health report, record the
+baseline, and bring each kept workstream in as an initiative that satisfies
+its stages by reconstruction. Nothing is thrown away by default; nothing is
+trusted until it is verified.
 
 ### Security Fixes And Ops Work
 
@@ -176,6 +203,12 @@ Classify every owner message before acting:
   under the waiver rule (section 5).
 - **Release or deploy information**: record it for the `release` stage; do not
   act on it before that stage.
+- **Customer feedback**: the owner shares what users said or reported. Log
+  it and route it ([feedback.md](feedback.md)); it enters the process as
+  evidence, never as a direct instruction.
+- **Rescue or direction**: the owner says work is stuck, a developer left, or
+  they don't know where the product stands. Switch to adoption mode
+  ([adoption.md](adoption.md)).
 - **Incident**: something is broken or harmful in production now - down, data
   at risk, a suspected breach, payments or emails going wrong. Switch to
   incident mode ([incident.md](incident.md)): stabilize with pre-approved or
@@ -267,7 +300,9 @@ building whatever the steer's impact map marks unaffected. When the impact map
 marks the build affected, ShowRunner pauses it at the next commit boundary
 (or at once, when invalidated) and says why.
 
-Every session start lists parked releases, outcome reviews that are due,
+Every session start lists changes made outside the lifecycle since the last
+session (to adopt per [adoption.md](adoption.md)), new customer feedback,
+budgets at or above 80%, parked releases, outcome reviews that are due,
 accounts marked at risk and access past its revocation date, overdue Sentry
 monthly cycles (when enabled), stale accepted risks, business documents whose
 evidence has passed its freshness window, and parked ideas whose revisit

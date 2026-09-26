@@ -41,6 +41,8 @@ active:
   fix_loops: 0
   release_authorized: "no | yes"
   resume: "<exact next action if a turn stopped mid-stage, or none>"
+people:
+  - "<name> | <role> | <comma-separated stages this person may approve>"
 queue:
   - "<id> - <title>"
 parked:
@@ -56,7 +58,7 @@ guard:
 ```
 
 `guard.writable_before_build` lists the paths ShowRunner may write outside the
-`build` stage: the config and ledger, constitution, decision log, ideas log, accounts register, project
+`build` stage: the config and ledger, constitution, decision log, ideas log, feedback log, accounts register, project
 state, specs, briefs, plans, prompts, ship, sweep, and Bible outputs, the
 hygiene ledger, and the enforcement files setup installs (`.claude/settings.json`
 and the hooks path). Setup derives it from the config; anything not listed is
@@ -96,6 +98,11 @@ with the experiment id in the Initiative column.
 ```
 
 Outcomes:
+
+The Approver column is `showrunner`, `owner`, or `delegate:<name>` where
+`<name>` matches a `people` entry exactly. In the tables below, "owner" means
+the owner or a delegate listed for that stage; `constitution`, `assessment`,
+`release`, and every `waived` outcome accept `owner` only.
 
 | Outcome | Meaning | Allowed approver |
 | --- | --- | --- |
@@ -137,6 +144,9 @@ fails when:
   needs one);
 - an owner-gate stage is closed by `showrunner`, or an owner row has no quoted
   evidence;
+- a `delegate:<name>` row names someone not in `people`, a stage not
+  delegated to them, or a stage that can never be delegated, or is a `waived`
+  outcome;
 - `not-applicable` is used outside `design` and `design-review`;
 - a non-waivable stage is `waived`;
 - `build` or a later implementation stage is active without an approved

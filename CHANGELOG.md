@@ -2,6 +2,33 @@
 
 All notable public changes to ShowRunner are documented here.
 
+## v1.5.0 - 2026-09-26
+
+ShowRunner can take over work already under way, and works with a team.
+
+- Added adoption and rescue mode (`core/adoption.md`): when ShowRunner
+  arrives at an existing product, a stalled project, or work done outside the
+  lifecycle, it stabilizes first (incidents, account control, secrets,
+  backups, reproducibility), inventories read-only (as-built architecture,
+  security, test health, every branch and uncommitted change, unverified
+  figures in existing documents), reconstructs intent with the owner, gives an
+  honest health report with keep / finish / fix / rebuild / drop
+  recommendations, records a baseline, and adopts kept work as initiatives
+  whose stages are reconstructed from what exists. Nothing is discarded;
+  nothing is trusted until verified.
+- Added named delegates: the owner can let named people approve specific
+  gates; the constitution, the assessment verdict, release, waivers, and risk
+  acceptance stay with the owner; disagreements go to the owner.
+  `showrunner check` enforces delegate rows.
+- Added customer feedback intake (`core/feedback.md`): a feedback log with
+  personal data removed, themes, and routing to incident mode, a new
+  initiative, the ideas log, or assessment evidence.
+- Added cost and time reporting (`core/cost.md`): every close reports agent
+  usage (or "unavailable"), paid runs, new recurring costs, and elapsed time;
+  optional budgets warn at 80% and stop for the owner at 100%.
+- Eval suite: 27 cases, adding rescue, delegates, feedback, and budget
+  scenarios.
+
 ## v1.4.0 - 2026-09-25
 
 The process now checks what happened after release, protects the owner's
