@@ -576,6 +576,157 @@ def case_naming_a_product(root):
     lib.git_commit(root, "chore(showrunner): fixture state")
 
 
+# ---------------------------------------------------------------------------
+# Case 27: rescue mid-development (adoption mode, no ShowRunner ledger yet).
+# ---------------------------------------------------------------------------
+def case_rescue_mid_development(root):
+    lib.git_init(root)
+    lib.app_base(root)
+    lib.write(root, "docs/pitch.md", (
+        "# Pitch - Shelfie\n\n"
+        "Book lending is a $4.2B market. 30% of readers lend books monthly.\n"
+    ))
+    lib.git_commit(root, "chore: initial")
+
+    # billing-v2: a half-built subscription-billing attempt, left mid-way.
+    lib.sh(root, "git", "checkout", "-q", "-b", "billing-v2")
+    lib.write(root, "src/billing/index.js", (
+        "// WIP: subscription billing, not wired up to any route yet\n"
+        "function chargeCard() { /* TODO: integrate a payment provider */ }\n"
+        "module.exports = { chargeCard };\n"
+    ))
+    lib.sh(root, "git", "add", "-A")
+    lib.sh(root, "git", "commit", "-q", "-m", "wip: start billing-v2")
+    lib.sh(root, "git", "checkout", "-q", "main")
+
+    # old-redesign: an abandoned visual redesign pass.
+    lib.sh(root, "git", "checkout", "-q", "-b", "old-redesign")
+    lib.write(root, "src/style.css", (
+        "/* redesign attempt, abandoned partway through */\n"
+        "body { font-family: sans-serif; color: #222; }\n"
+    ))
+    lib.sh(root, "git", "add", "-A")
+    lib.sh(root, "git", "commit", "-q", "-m", "wip: old-redesign styling pass")
+    lib.sh(root, "git", "checkout", "-q", "main")
+
+    # Uncommitted change to src/page.js left in the working tree when the
+    # developer left. No ShowRunner config or ledger exists (like case 10):
+    # `showrunner check` reporting "no state ledger" is the intended condition.
+    lib.write(root, "src/page.js", (
+        "module.exports=()=>`<html><body><h1>Shelfie</h1>"
+        "<p>Track the books you lend to friends.</p>"
+        "<footer>(c) 2024 Shelfie</footer></body></html>`;\n"
+        "// TODO: wire up the loan list link\n"
+    ))
+
+
+# ---------------------------------------------------------------------------
+# Case 28: delegate approval and disagreement (a named delegate approved
+# spec, the owner now objects to part of it).
+# ---------------------------------------------------------------------------
+def case_delegate_approval_and_disagreement(root):
+    lib.git_init(root)
+    lib.app_base(root)
+    lib.shelfie_docs(root)
+    lib.write(root, ".claude/showrunner/config.md", lib.render_config())
+    lib.write(root, "docs/specs/loan-list.md", (
+        "# Feature Specification - Loan list\n\n> Status: arc-ready\n\n"
+        "## 1. Intent\nShow who has which book.\n\n"
+        "## 2. Scope\nList of active loans.\n\n"
+        "## 3. Content\nEach row: book title, borrower.\n\n"
+        "(sections 4-8 drafted)\n"
+    ))
+    active = lib.base_active(
+        initiative="I-001", title="Loan list page", stage="spec",
+        status="in-progress",
+    )
+    ledger = lib.proj_rows_all() + lib.init_rows_upto("I-001", "spec") + [
+        ("I-001", "spec", "approved", "delegate:Dana", "2026-09-14", "commit:abc",
+         '"Sections 1-8 look right, ship it."'),
+    ]
+    lib.write_state(
+        root, active,
+        initiatives=[("I-001", "Loan list page", "2026-09-12",
+                       '"I want a page listing who has my books."',
+                       "spec", "in-progress")],
+        ledger_rows=ledger,
+        people=["Dana | co-founder | spec, design, design-review"],
+    )
+    lib.git_commit(root, "docs(showrunner): fixture state")
+
+
+# ---------------------------------------------------------------------------
+# Case 29: customer feedback routing (incident, feature idea, and praise in
+# one paste, mid-build).
+# ---------------------------------------------------------------------------
+def case_customer_feedback_routing(root):
+    lib.git_init(root)
+    lib.app_base(root)
+    lib.shelfie_docs(root)
+    lib.write(root, ".claude/showrunner/config.md",
+              lib.render_config(feedback_log="docs/feedback.md"))
+    lib.write(root, "docs/feedback.md", lib.FEEDBACK_LOG)
+    lib.write(root, "docs/specs/loan-list.md", (
+        "# Feature Specification - Loan list\n\n> Status: arc-ready\n\n"
+        "List of active loans. Out of scope: export, reminders.\n"
+    ))
+    active = lib.base_active(
+        initiative="I-001", title="Loan list page", stage="build",
+        status="in-progress", feature_branch="feat/loan-list",
+        step0_approved="sha256:ab12cd",
+    )
+    ledger = lib.proj_rows_all() + lib.init_rows_upto("I-001", "build")
+    lib.write_state(
+        root, active,
+        initiatives=[("I-001", "Loan list page", "2026-09-12",
+                       '"I want a page listing who has my books."',
+                       "build", "in-progress")],
+        ledger_rows=ledger,
+        guard_extra=["docs/*"],
+    )
+    lib.git_commit(root, "docs(showrunner): fixture state")
+    lib.git_branch(root, "feat/loan-list")
+
+
+# ---------------------------------------------------------------------------
+# Case 30: budget reached at the start of verify.
+# ---------------------------------------------------------------------------
+def case_budget_reached(root):
+    lib.git_init(root)
+    lib.app_base(root)
+    lib.shelfie_docs(root)
+    lib.write(root, ".claude/showrunner/config.md",
+              lib.render_config(budget_per_initiative="$50 USD",
+                                 budget_monthly="$400 USD"))
+    lib.write(root, "docs/project-state.md", (
+        lib.PROJECT_STATE
+        + "\n## Cost (I-001 - Loan list page)\n\n"
+        "Budget: $50 USD per initiative.\n"
+        "Spent so far: $50.00 USD (100% of budget), across roadmap, spec, "
+        "design, design-review, handoff, arc-plan, step0, and build.\n"
+    ))
+    lib.write(root, "docs/specs/loan-list.md", (
+        "# Feature Specification - Loan list\n\n> Status: arc-ready\n\n"
+        "List of active loans. Out of scope: export, reminders.\n"
+    ))
+    active = lib.base_active(
+        initiative="I-001", title="Loan list page", stage="verify",
+        status="in-progress", feature_branch="feat/loan-list",
+        step0_approved="sha256:ab12cd",
+    )
+    ledger = lib.proj_rows_all() + lib.init_rows_upto("I-001", "verify")
+    lib.write_state(
+        root, active,
+        initiatives=[("I-001", "Loan list page", "2026-09-12",
+                       '"I want a page listing who has my books."',
+                       "verify", "in-progress")],
+        ledger_rows=ledger,
+        guard_extra=["docs/*"],
+    )
+    lib.git_commit(root, "docs(showrunner): fixture state")
+    lib.git_branch(root, "feat/loan-list")
+
+
 CASES = {
     "plain-request-no-command": case_plain_request_no_command,
     "resume-after-break": case_resume_after_break,
@@ -600,6 +751,10 @@ CASES = {
     "production-incident": case_production_incident,
     "copyleft-dependency": case_copyleft_dependency,
     "naming-a-product": case_naming_a_product,
+    "rescue-mid-development": case_rescue_mid_development,
+    "delegate-approval-and-disagreement": case_delegate_approval_and_disagreement,
+    "customer-feedback-routing": case_customer_feedback_routing,
+    "budget-reached": case_budget_reached,
 }
 
 

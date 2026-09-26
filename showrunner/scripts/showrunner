@@ -326,6 +326,34 @@ cmd_context() {
     if [ -n "$_ctx_resume" ] && [ "$_ctx_resume" != "none" ]; then
       printf 'Resume: %s\n' "$_ctx_resume"
     fi
+    _ctx_people_raw=$(yaml_top_list people)
+    if [ -n "$_ctx_people_raw" ]; then
+      _ctx_oldifs=$IFS
+      IFS='
+'
+      set -f
+      # shellcheck disable=SC2086
+      set -- $_ctx_people_raw
+      set +f
+      IFS=$_ctx_oldifs
+      _ctx_deleg=""
+      for _ctx_p in "$@"; do
+        _ctx_p=$(strip_quotes "$_ctx_p")
+        [ -n "$_ctx_p" ] || continue
+        _ctx_name=${_ctx_p%%|*}
+        _ctx_name=$(printf '%s' "$_ctx_name" | sed 's/^[ \t]*//; s/[ \t]*$//')
+        _ctx_rest=${_ctx_p#*|}
+        _ctx_stages=${_ctx_rest#*|}
+        _ctx_stages=$(printf '%s' "$_ctx_stages" | sed 's/^[ \t]*//; s/[ \t]*$//')
+        _ctx_entry="$_ctx_name ($_ctx_stages)"
+        if [ -z "$_ctx_deleg" ]; then
+          _ctx_deleg=$_ctx_entry
+        else
+          _ctx_deleg="$_ctx_deleg; $_ctx_entry"
+        fi
+      done
+      [ -n "$_ctx_deleg" ] && printf 'Delegates: %s\n' "$_ctx_deleg"
+    fi
     _ctx_queue=$(yaml_top_list queue)
     if [ -n "$_ctx_queue" ]; then
       printf 'Queue:\n'
@@ -1017,6 +1045,27 @@ cmd_check() {
         gsub(/^"|"$/, "", v)
         active[k] = v
       }
+      if (cur_top == "people" && $0 ~ /^  - /) {
+        item = $0
+        sub(/^  - [ \t]*/, "", item)
+        sub(/[ \t]*$/, "", item)
+        gsub(/^"/, "", item)
+        gsub(/"$/, "", item)
+        nfld = split(item, pf, "|")
+        if (nfld >= 3) {
+          pname = pf[1]
+          gsub(/^[ \t]+/, "", pname); gsub(/[ \t]+$/, "", pname)
+          pstages = pf[3]
+          gsub(/^[ \t]+/, "", pstages); gsub(/[ \t]+$/, "", pstages)
+          people_known[pname] = 1
+          nstg = split(pstages, sarr, ",")
+          for (si = 1; si <= nstg; si++) {
+            st = sarr[si]
+            gsub(/^[ \t]+/, "", st); gsub(/[ \t]+$/, "", st)
+            if (st != "") people_stage_ok[pname, st] = 1
+          }
+        }
+      }
       next
     }
 
@@ -1089,13 +1138,31 @@ cmd_check() {
             errors++
           }
         } else if (r_outcome[i] == "approved" || r_outcome[i] == "not-applicable" || r_outcome[i] == "waived" || r_outcome[i] == "held" || r_outcome[i] == "released") {
-          if (r_approver[i] != "owner") {
-            print "ERROR: row #" r_num[i] ": outcome " r_outcome[i] " requires approver owner, got " r_approver[i]
+          ap = r_approver[i]
+          if (ap == "owner") {
+            # ok
+          } else if (ap ~ /^delegate:/) {
+            dname = substr(ap, 10)
+            if (r_outcome[i] == "waived") {
+              print "ERROR: row #" r_num[i] ": outcome waived requires approver owner, got " ap
+              errors++
+            } else if (r_stage[i] == "constitution" || r_stage[i] == "assessment" || r_stage[i] == "release") {
+              print "ERROR: row #" r_num[i] ": stage " r_stage[i] " can never be delegated, requires approver owner, got " ap
+              errors++
+            } else if (!(dname in people_known)) {
+              print "ERROR: row #" r_num[i] ": unknown delegate " dname
+              errors++
+            } else if (!((dname, r_stage[i]) in people_stage_ok)) {
+              print "ERROR: row #" r_num[i] ": delegate " dname " is not delegated for stage " r_stage[i]
+              errors++
+            }
+          } else {
+            print "ERROR: row #" r_num[i] ": outcome " r_outcome[i] " requires approver owner, got " ap
             errors++
           }
         }
 
-        if (r_approver[i] == "owner" && index(r_evidence[i], "\"") == 0) {
+        if ((r_approver[i] == "owner" || r_approver[i] ~ /^delegate:/) && index(r_evidence[i], "\"") == 0) {
           print "ERROR: row #" r_num[i] ": owner evidence must be a quoted verbatim reply"
           errors++
         }

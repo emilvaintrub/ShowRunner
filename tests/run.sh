@@ -62,7 +62,10 @@ new_repo() {
   printf '%s\n' "$d"
 }
 
-# write_state REPO STAGE STEP0 FEATURE_BRANCH RELEASE_AUTHORIZED [EXTRA_WRITABLE] [RELEASE_PATTERNS]
+# write_state REPO STAGE STEP0 FEATURE_BRANCH RELEASE_AUTHORIZED [EXTRA_WRITABLE] [RELEASE_PATTERNS] [PEOPLE]
+# PEOPLE is newline-separated "<name> | <role> | <comma-separated stages>" entries
+# (unquoted; quoting is added here), matching the ledger's people: shape. Omitted
+# or empty -> "people: []".
 write_state() {
   repo=$1
   stage=$2
@@ -71,6 +74,7 @@ write_state() {
   relauth=$5
   extra_writable=${6:-}
   release_patterns=${7:-}
+  people=${8:-}
   mkdir -p "$repo/.claude/showrunner"
   {
     printf '```yaml\n'
@@ -90,6 +94,14 @@ write_state() {
     printf '  fix_loops: 0\n'
     printf '  release_authorized: "%s"\n' "$relauth"
     printf '  resume: "none"\n'
+    if [ -n "$people" ]; then
+      printf 'people:\n'
+      printf '%s\n' "$people" | while IFS= read -r p; do
+        [ -n "$p" ] && printf '  - "%s"\n' "$p"
+      done
+    else
+      printf 'people: []\n'
+    fi
     printf 'queue: []\n'
     printf 'parked: []\n'
     printf 'guard:\n'
@@ -558,6 +570,131 @@ case "$out" in
   *"spec (3/15)"*) pass "context keeps <stage> (n/15) for initiative stages" ;;
   *) fail "context keeps <stage> (n/15) for initiative stages" "out=[$out]" ;;
 esac
+
+# ===========================================================================
+# 5c. Delegates (arc A-6): people roster, delegate:<name> approvers
+# ===========================================================================
+
+# A valid delegate approval for a stage they are named for passes.
+repo=$(new_repo)
+write_state "$repo" intake no none no "" "" 'Jordan | co-founder | roadmap, spec'
+append_row "$repo" '| 1 | I-001 | roadmap | approved | delegate:Jordan | 2026-01-01 | commit:abc | "placed on roadmap" |'
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors"; } \
+  && pass "delegate: valid delegate approval passes" \
+  || fail "delegate: valid delegate approval passes" "exit=$rc out=$out"
+
+# An unknown delegate name is rejected, distinguishably.
+repo=$(new_repo)
+write_state "$repo" intake no none no "" "" 'Jordan | co-founder | roadmap'
+append_row "$repo" '| 1 | I-001 | roadmap | approved | delegate:Casey | 2026-01-01 | commit:abc | "placed" |'
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "unknown delegate Casey"; } \
+  && pass "delegate: unknown delegate name errors" \
+  || fail "delegate: unknown delegate name errors" "exit=$rc out=$out"
+
+# A known delegate not delegated for the row's stage is rejected, distinguishably.
+repo=$(new_repo)
+write_state "$repo" intake no none no "" "" 'Jordan | co-founder | spec'
+append_row "$repo" '| 1 | I-001 | roadmap | approved | delegate:Jordan | 2026-01-01 | commit:abc | "placed" |'
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "delegate Jordan is not delegated for stage roadmap"; } \
+  && pass "delegate: not delegated for stage errors" \
+  || fail "delegate: not delegated for stage errors" "exit=$rc out=$out"
+
+# constitution, assessment, and release can never be delegated, regardless of
+# whether the delegate is named for that stage -- distinguishable from the
+# other two delegate errors.
+for stg in constitution assessment release; do
+  repo=$(new_repo)
+  write_state "$repo" intake no none no "" "" 'Jordan | co-founder | constitution, assessment, release'
+  if [ "$stg" = "release" ]; then
+    append_row "$repo" '| 1 | I-001 | release | approved | delegate:Jordan | 2026-01-01 | commit:abc | "go" |'
+  else
+    append_row "$repo" "| 1 | project | $stg | approved | delegate:Jordan | 2026-01-01 | commit:abc | \"go\" |"
+  fi
+  out=$(cd "$repo" && "$SHOWRUNNER" check)
+  rc=$?
+  { [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "stage $stg can never be delegated"; } \
+    && pass "delegate: never-delegable stage $stg rejects a delegate" \
+    || fail "delegate: never-delegable stage $stg rejects a delegate" "exit=$rc out=$out"
+done
+
+# A waived outcome always requires the owner, even for a stage the delegate
+# is named for -- distinguishable from the never-delegable-stage error above.
+repo=$(new_repo)
+write_state "$repo" intake no none no "" "" 'Jordan | co-founder | design'
+append_row "$repo" '| 1 | I-001 | design | waived | delegate:Jordan | 2026-01-01 | commit:abc | "skip it" |'
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "outcome waived requires approver owner, got delegate:Jordan"; } \
+  && pass "delegate: waived outcome always requires owner" \
+  || fail "delegate: waived outcome always requires owner" "exit=$rc out=$out"
+
+# A garbage approver value (not showrunner/owner/delegate:<name>) is still
+# rejected by the pre-existing generic message.
+repo=$(new_repo)
+write_state "$repo" intake no none no
+append_row "$repo" '| 1 | I-001 | roadmap | approved | manager | 2026-01-01 | commit:abc | "placed" |'
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "outcome approved requires approver owner, got manager"; } \
+  && pass "delegate: garbage approver value errors" \
+  || fail "delegate: garbage approver value errors" "exit=$rc out=$out"
+
+# A delegate row still needs quoted evidence, same as an owner row.
+repo=$(new_repo)
+write_state "$repo" intake no none no "" "" 'Jordan | co-founder | roadmap'
+append_row "$repo" '| 1 | I-001 | roadmap | approved | delegate:Jordan | 2026-01-01 | commit:abc | placed without a quote |'
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "owner evidence must be a quoted"; } \
+  && pass "delegate: row without quoted evidence errors" \
+  || fail "delegate: row without quoted evidence errors" "exit=$rc out=$out"
+
+# people: [] (the default, no roster at all) + a delegate row is an unknown delegate.
+repo=$(new_repo)
+write_state "$repo" intake no none no
+append_row "$repo" '| 1 | I-001 | roadmap | approved | delegate:Jordan | 2026-01-01 | commit:abc | "placed" |'
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "unknown delegate Jordan"; } \
+  && pass "delegate: empty people roster + delegate row errors as unknown delegate" \
+  || fail "delegate: empty people roster + delegate row errors as unknown delegate" "exit=$rc out=$out"
+
+# Regression pin: a showrunner-only stage closed by a delegate outcome is
+# still an error, exactly like an owner outcome (arc lifecycle.md section 1:
+# a delegate's approval counts exactly like the owner's, no more).
+repo=$(new_repo)
+write_state "$repo" intake no none no "" "" 'Jordan | co-founder | step0'
+append_row "$repo" '| 1 | I-001 | step0 | approved | delegate:Jordan | 2026-01-01 | commit:abc | "go" |'
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "showrunner-owned stage step0 closed by owner"; } \
+  && pass "delegate: showrunner-only stage closed by a delegate outcome errors" \
+  || fail "delegate: showrunner-only stage closed by a delegate outcome errors" "exit=$rc out=$out"
+
+# context --session prints one Delegates: line when people is non-empty.
+repo=$(new_repo)
+write_state "$repo" intake no none no "" "" 'Jordan | co-founder | design, design-review
+Casey | design lead | design'
+out=$(cd "$repo" && "$SHOWRUNNER" context --session)
+case "$out" in
+  *"Delegates: Jordan (design, design-review); Casey (design)"*) \
+    pass "delegate: context --session prints the Delegates line" ;;
+  *) fail "delegate: context --session prints the Delegates line" "out=[$out]" ;;
+esac
+
+# context --session prints nothing about delegates when people is empty.
+repo=$(new_repo)
+write_state "$repo" intake no none no
+out=$(cd "$repo" && "$SHOWRUNNER" context --session)
+{ ! printf '%s' "$out" | grep -q "Delegates:"; } \
+  && pass "delegate: context --session omits Delegates line when people is empty" \
+  || fail "delegate: context --session omits Delegates line when people is empty" "out=[$out]"
 
 # ===========================================================================
 # 6. Worktree resolution

@@ -118,7 +118,7 @@ def base_active(**over):
 
 
 def render_state(active, initiatives=(), outcome_reviews=(), ledger_rows=(),
-                  guard_extra=(), release_patterns=()):
+                  guard_extra=(), release_patterns=(), people=()):
     L = [
         "# ShowRunner State - Fixture", "",
         "```yaml", "schema_version: 1", "project:",
@@ -127,6 +127,12 @@ def render_state(active, initiatives=(), outcome_reviews=(), ledger_rows=(),
     ]
     for k, v in active.items():
         L.append(f"  {k}: {v}" if k == "fix_loops" else f'  {k}: "{v}"')
+    if people:
+        L.append("people:")
+        for p in people:
+            L.append(f'  - "{p}"')
+    else:
+        L.append("people: []")
     L += ["queue: []", "parked: []", "guard:", "  writable_before_build:",
           '    - ".claude/showrunner/*"']
     for g in guard_extra:
@@ -161,7 +167,10 @@ def write_state(root, *args, **kwargs):
     write(root, ".claude/showrunner/state.md", render_state(*args, **kwargs))
 
 
-def render_config(forge_status="ready", business_selected="[]", distribution="saas"):
+def render_config(forge_status="ready", business_selected="[]", distribution="saas",
+                   feedback_log="docs/feedback.md",
+                   feedback_channels='["support inbox export", "app-store reviews"]',
+                   budget_per_initiative="none", budget_monthly="none"):
     return f'''# ShowRunner Config
 
 ```yaml
@@ -196,6 +205,12 @@ release:
   executor: "pending"
   post_release_check: "pending"
   rollback: "pending"
+feedback:
+  log: "{feedback_log}"
+  channels: {feedback_channels}
+budget:
+  per_initiative: "{budget_per_initiative}"
+  monthly: "{budget_monthly}"
 ownership:
   register: "docs/accounts-register.md"
 business:
@@ -309,6 +324,22 @@ PROJECT_STATE = '''# Project State - Shelfie
 
 ## Open Questions
 - none
+'''
+
+FEEDBACK_LOG = '''# Feedback Log - Shelfie
+
+> Rules: `core/feedback.md` in the ShowRunner package. Personal data removed
+> unless the owner needs it and says so. Rows are append-only.
+
+## Items
+
+| ID | Received | Source / channel | Feedback (quoted, personal data removed) | Segment | Kind | Route | Theme |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+
+## Themes
+
+| Theme | Summary | Items | Count | First / last seen | Linked to |
+| --- | --- | --- | --- | --- | --- |
 '''
 
 DECISIONS = (
