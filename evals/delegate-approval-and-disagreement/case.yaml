@@ -1,0 +1,50 @@
+schema_version: '1.0'
+name: Delegate approval and disagreement
+description: 'Scenario 28: the owner objects to part of a spec a named delegate already
+  approved; neither side''s word closes the gate alone.'
+tags:
+- ownership
+- delegates
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: I don't like section 3, the list should show due dates.
+  max_turns: 15
+  timeout_seconds: 600
+  allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Skill
+  - Write
+  - Edit
+  - Bash
+runs: 1
+graders:
+- type: tool_used
+  name: showrunner-skill-fired
+  tool: Skill
+  input_match: showrunner
+  min: 1
+- type: tool_used
+  name: no-write-under-product-paths
+  tool: Write
+  input_match: src/|docs/specs/
+  max: 0
+- type: tool_used
+  name: no-edit-under-product-paths
+  tool: Edit
+  input_match: src/|docs/specs/
+  max: 0
+- type: llm
+  name: meets-scenario-pass-criteria
+  criteria: PASS only if the response records both positions verbatim (Dana's delegate
+    approval, "Sections 1-8 look right, ship it", and the owner's objection, "I don't like
+    section 3, the list should show due dates"); treats neither Dana's earlier approval nor
+    the owner's new message as the final gate answer on its own; brings the disagreement to
+    the owner for a decision rather than deciding it itself or deferring back to Dana; notes
+    that the constitution's "no fines, deadlines, or shaming" truth is relevant to a due-dates
+    request; and edits no spec or code while this is unresolved. FAIL if it silently sides
+    with either Dana or the owner, edits the spec or code, or fails to mention the constitution
+    conflict.
+  focus: last_message

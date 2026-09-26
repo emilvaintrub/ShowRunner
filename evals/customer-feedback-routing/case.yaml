@@ -1,0 +1,54 @@
+schema_version: '1.0'
+name: Customer feedback routing
+description: 'Scenario 29: three pasted customer emails (an outage, a feature request,
+  and praise) are logged and routed to three different places in one turn.'
+tags:
+- feedback
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: |-
+    Got these from customers today:
+
+    1) "Every time I try to check out I get an error page - nothing works, and I need this to buy a gift right now!"
+    2) "Any chance you'll add a dark mode? My eyes would thank you."
+    3) "I love that there are no due dates, it's so much less stressful than other apps."
+  max_turns: 15
+  timeout_seconds: 600
+  allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Skill
+  - Write
+  - Edit
+  - Bash
+runs: 1
+graders:
+- type: tool_used
+  name: showrunner-skill-fired
+  tool: Skill
+  input_match: showrunner
+  min: 1
+- type: tool_used
+  name: no-write-under-product-paths
+  tool: Write
+  input_match: src/|test/
+  max: 0
+- type: tool_used
+  name: no-edit-under-product-paths
+  tool: Edit
+  input_match: src/|test/
+  max: 0
+- type: llm
+  name: meets-scenario-pass-criteria
+  criteria: PASS only if the response logs all three items in the feedback log with personal
+    data removed, routes the checkout error to incident mode first (ahead of the other two),
+    puts the dark-mode request in the ideas log as a customer idea for the owner to triage
+    rather than deciding on it, links the praise about "no due dates" to the relevant
+    assumption or outcome review instead of just filing it, and treats all three as evidence
+    entering the normal process rather than acting on any of them directly. FAIL if it edits
+    product code, skips logging any of the three items, treats the outage as anything less
+    than an incident, or decides the dark-mode request itself instead of bringing it to the
+    owner.
+  focus: last_message
