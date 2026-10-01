@@ -8,12 +8,13 @@ without the same verification any other output gets.
 
 ## 1. Tiers
 
-| Tier | Config key | Claude Code default | Work |
+| Tier | Config key | Default | Work |
 | --- | --- | --- | --- |
-| Judgment | `roles.architect_model` | the session's own model (Opus recommended) | Talking with the owner; discovery, assessment, constitution, spec, and design synthesis; classifying decisions; the Arc plan and implementer prompt; Step 0 review; the verify verdict; security triage, severity, and accepted risk; research synthesis and claims; merge and release ceremony; steering; incident decisions; adoption health report. |
-| Execution | `roles.implementer_model` | `sonnet` | The dispatched implementer (Arc `run`, Sentry `fix`); read-only Sentry category sweeps; the independent citation audit; Bible section drafting from collected evidence; debugging inside the implementer's run. |
-| Light | `roles.light_model` | `haiku` | Web search and page fetching that returns verbatim excerpts; file, route, dependency, and account inventories; locating paths and symbols; collecting test, lint, and CI output; checking links and source freshness dates; formatting tables, changelog lines, and ledger text the judgment tier has already decided. |
+| Judgment | `roles.architect_model` | the session's own model | Talking with the owner; discovery, assessment, constitution, spec, and design synthesis; classifying decisions; the Arc plan and implementer prompt; Step 0 review; the verify verdict; security triage, severity, and accepted risk; research synthesis and claims; merge and release ceremony; steering; incident decisions; adoption health report. |
+| Execution | `roles.implementer_model` | `sonnet` / `gpt-6.1-sol` | The dispatched implementer (Arc `run`, Sentry `fix`); read-only Sentry category sweeps; the independent citation audit; Bible section drafting from collected evidence; debugging inside the implementer's run. |
+| Light | `roles.light_model` | `haiku` / `gpt-6-luna` | Web search and page fetching that returns verbatim excerpts; file, route, dependency, and account inventories; locating paths and symbols; collecting test, lint, and CI output; checking links and source freshness dates; formatting tables, changelog lines, and ledger text the judgment tier has already decided. |
 
+Defaults are given as Claude Code / Codex; section 6 has the full mapping.
 The judgment tier is the conductor's own session; ShowRunner does not switch
 it. The other tiers apply to every agent ShowRunner spawns.
 
@@ -87,15 +88,53 @@ save cost.
 
 ## 6. Adapters
 
-On Claude Code, pass the tier's model on each spawn (the Agent tool's
-`model` parameter: `opus`, `sonnet`, or `haiku`). Prefer these aliases over
-dated model identifiers so routing follows new model generations; record the
-model the platform reports in the dispatch record.
+Each adapter maps the three tiers to its own models. `init` fills
+`roles.*_model` from the adapter's model list; these are technical defaults,
+not owner questions.
 
-Other adapters map the tiers to their own models in the config. When an
-adapter cannot choose a model per spawn, every agent runs on the session's
-model: record `model routing: unavailable from adapter` in the dispatch
-record and continue - routing is a cost measure, not a gate.
+| Tier | Claude Code | Codex |
+| --- | --- | --- |
+| Judgment | session model (Opus recommended) | session model (`gpt-6-astra` recommended, effort `high`) |
+| Execution | `sonnet` | `gpt-6.1-sol`, effort `medium` |
+| Light | `haiku` | `gpt-6-luna`, effort `low` |
+
+The Codex names are the catalog as of 2026-10. When a newer generation
+appears, pick by role rather than by name: the current "workhorse for
+coding" model for execution, the current "fast and affordable" model for
+light, and the frontier model for judgment.
+
+### Claude Code
+
+Pass the tier's model on each spawn (the Agent tool's `model` parameter:
+`opus`, `sonnet`, or `haiku`). Prefer these aliases over dated model
+identifiers so routing follows new model generations. Claude Code has no
+per-spawn reasoning effort; `roles.reasoning_effort` is ignored there.
+
+### Codex
+
+Pass the tier's model and effort on each `spawn_agent` call (its `model` and
+`reasoning_effort` parameters), using `roles.*_model` and
+`roles.reasoning_effort`. Codex has no model aliases, so the config holds
+full model names. Effort is part of the tier: higher effort spends more
+tokens and time on the same task, so light work stays at `low` and the
+implementer at `medium` unless section 5 escalates it. On Codex, the first
+escalation of a task may raise effort one step on the same model instead of
+moving up a tier; record which.
+
+When `spawn_agent` does not offer `model` (an older Codex or a disabled
+feature), routing falls back to the user's own Codex config: the
+`[agents]` table in `~/.codex/config.toml` sets
+`default_subagent_model` and `default_subagent_reasoning_effort` for every
+spawned agent. Recommend the execution tier there - light work then runs on
+the execution tier, which is safe - and never edit the user's global Codex
+config without asking. Record `model routing: adapter default` in the
+dispatch record.
+
+### Other adapters
+
+When an adapter cannot choose a model per spawn, every agent runs on the
+session's model: record `model routing: unavailable from adapter` in the
+dispatch record and continue - routing is a cost measure, not a gate.
 
 `roles.routing: single` turns routing off and runs every agent on
 `architect_model`; use it when the owner prefers one model or the platform

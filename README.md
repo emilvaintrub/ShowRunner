@@ -36,8 +36,9 @@ adds a disciplined lifecycle around them:
 - Every build or fix stops before `main`, and release is always the owner's
   call;
 - Each spawned agent runs on the cheapest model tier that can do its job -
-  the implementer on Sonnet, web fetches and inventories on Haiku - while
-  judgment and approvals stay on the strongest model;
+  the implementer on Sonnet (or GPT-6.1-Sol on Codex), web fetches and
+  inventories on Haiku (or GPT-6-Luna) - while judgment and approvals stay on
+  the strongest model;
 - Git and Claude Code hooks enforce the key gates mechanically.
 
 ## TL;DR

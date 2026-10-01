@@ -25,9 +25,12 @@ project:
 
 roles:
   architect_model: "<judgment model; the conductor session's own model>"
-  implementer_model: "<execution model, e.g. sonnet>"
-  light_model: "<light model for fetch and lookup work, e.g. haiku>"
+  implementer_model: "<execution model, e.g. sonnet or gpt-6.1-sol>"
+  light_model: "<light model for fetch and lookup work, e.g. haiku or gpt-6-luna>"
   routing: "tiered | single"
+  reasoning_effort:        # adapters with per-spawn effort, e.g. Codex
+    implementer: medium
+    light: low
   cold_context_required: true
   surface_token_cost: true
 
@@ -400,8 +403,10 @@ bible:
 `roles` binds the three model tiers in [models.md](models.md): judgment for
 the conductor, execution for the implementer and code-reasoning agents, and
 light for fetch, inventory, and lookup agents. On Claude Code the defaults are
-the session's model, `sonnet`, and `haiku`; use model aliases rather than
-dated identifiers. `routing: single` runs every agent on `architect_model`.
+the session's model, `sonnet`, and `haiku` (aliases, not dated identifiers);
+on Codex they are the session's model, `gpt-6.1-sol`, and `gpt-6-luna`, with
+`reasoning_effort` set per tier. Adapters without per-spawn effort ignore
+`reasoning_effort`. `routing: single` runs every agent on `architect_model`.
 These are technical bindings: infer them at `init` and record them as
 defaults rather than asking the owner. A config written before `light_model` and
 `routing` existed runs as `tiered` with the platform defaults; add the keys

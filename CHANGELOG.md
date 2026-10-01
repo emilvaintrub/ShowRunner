@@ -11,8 +11,13 @@ All notable public changes to ShowRunner are documented here.
   implementer, Sentry sweeps, and the citation audit; light (`haiku`) runs web
   fetches, inventories, and output collection, whose results are raw
   material, never evidence. Stuck runs escalate a tier and are recorded; cost
-  reports split usage by tier. New config keys `roles.light_model` and
-  `roles.routing` (`tiered | single`).
+  reports split usage by tier. New config keys `roles.light_model`,
+  `roles.routing` (`tiered | single`), and `roles.reasoning_effort`.
+- Codex model routing: tiers map to `gpt-6.1-sol` (execution, effort
+  `medium`) and `gpt-6-luna` (light, effort `low`) through `spawn_agent`'s
+  `model` and `reasoning_effort` parameters, with the `[agents]` defaults in
+  `~/.codex/config.toml` as the fallback when per-spawn models are
+  unavailable.
 
 ## v1.5.0 - 2026-09-26
 

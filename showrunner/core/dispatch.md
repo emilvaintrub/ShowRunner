@@ -25,7 +25,10 @@ The preferred Claude Code shape is an agent spawn with
 `isolation: "worktree"`, `run_in_background: true`, and `model` set to
 `roles.implementer_model` ([models.md](models.md)); without an explicit model
 the implementer inherits the conductor's judgment-tier model and costs more
-for the same work. Spawn-time isolation may
+for the same work. On Codex, the equivalent is `spawn_agent` with `model` set
+to `roles.implementer_model` and `reasoning_effort` to
+`roles.reasoning_effort.implementer` ([models.md](models.md) section 6).
+Spawn-time isolation may
 provision the branch/worktree before Step 0; that provisioning is allowed, but
 the implementer may not edit or commit before describe-back approval. Adapters
 that can delay isolation may run Step 0 first and provision the worktree after
@@ -44,7 +47,8 @@ base_branch: "<configured primary branch>"
 feature_branch: "<configured branch>"
 architect_model: "<configured model>"
 implementer_model: "<configured model>"
-implementer_model_reported: "<model the platform reports, or model routing: unavailable from adapter>"
+implementer_model_reported: "<model the platform reports, or model routing: adapter default | unavailable from adapter>"
+implementer_reasoning_effort: "<effort passed, or not supported by adapter>"
 escalated_from: "<tier and reason, or none>"
 worktree_isolated: true
 background: true
