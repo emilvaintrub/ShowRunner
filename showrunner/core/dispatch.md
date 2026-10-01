@@ -22,7 +22,10 @@ draft rules, or earlier failed attempts as an isolation defect, not a
 convenience tradeoff.
 
 The preferred Claude Code shape is an agent spawn with
-`isolation: "worktree"` and `run_in_background: true`. Spawn-time isolation may
+`isolation: "worktree"`, `run_in_background: true`, and `model` set to
+`roles.implementer_model` ([models.md](models.md)); without an explicit model
+the implementer inherits the conductor's judgment-tier model and costs more
+for the same work. Spawn-time isolation may
 provision the branch/worktree before Step 0; that provisioning is allowed, but
 the implementer may not edit or commit before describe-back approval. Adapters
 that can delay isolation may run Step 0 first and provision the worktree after
@@ -41,6 +44,8 @@ base_branch: "<configured primary branch>"
 feature_branch: "<configured branch>"
 architect_model: "<configured model>"
 implementer_model: "<configured model>"
+implementer_model_reported: "<model the platform reports, or model routing: unavailable from adapter>"
+escalated_from: "<tier and reason, or none>"
 worktree_isolated: true
 background: true
 token_cost_reporting: true
@@ -55,7 +60,8 @@ token_cost_reporting: true
    - Confirm a clean ownership boundary; do not discard unrelated work.
 
 2. **Spawn for Step 0**
-   - Start a cold implementer context.
+   - Start a cold implementer context on `roles.implementer_model`, or on the
+     judgment tier when [models.md](models.md) section 5 escalates the run.
    - Give it only the prompt, project root, config path, and required read list.
    - Require the exact Step 0 output from `method.md`.
    - Do not authorize edits.
@@ -105,7 +111,11 @@ token_cost_reporting: true
 The adapter supports parallel dispatch, but policy decides whether it is safe:
 
 - Arc defaults to one implementation arc at a time.
-- Sentry may parallelize read-only categorical sweeps.
+- Sentry may parallelize read-only categorical sweeps, each on the execution
+  tier.
+- Light-tier helpers ([models.md](models.md)) - web fetches, inventories,
+  output collection - may run in parallel with anything; they are read-only
+  and need no worktree or Step 0.
 - Sentry fixes require a touched-file and dependency graph; serialize
   interacting fixes.
 - Forge runtime is collaborative and is not dispatched.

@@ -53,7 +53,10 @@ Each selected document follows:
    with a recommendation.
 2. **RESEARCH** - log every query in the search log; open and register every
    source; meet the configured minimums or say, with the log, why fewer
-   exist; record every assumption.
+   exist; record every assumption. Searches and page fetches may run as
+   parallel light-tier agents that return URLs, access dates, and verbatim
+   excerpts ([../core/models.md](../core/models.md)); registering a source
+   and deciding what it supports stay with ShowRunner.
 3. **DRAFT** - fill the template. Evidence and judgment are separated. Every
    figure is labeled.
 4. **ASSUMPTION CHECK** - one owner gate: present the assumptions that move

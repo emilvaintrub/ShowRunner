@@ -2,6 +2,18 @@
 
 All notable public changes to ShowRunner are documented here.
 
+## Unreleased
+
+- Added model routing (`core/models.md`): every spawned agent runs on the
+  cheapest tier that can do the work well. Judgment (the conductor's own
+  model) keeps owner conversations, approvals, verdicts, security triage, and
+  every claim; execution (`sonnet` by default on Claude Code) runs the
+  implementer, Sentry sweeps, and the citation audit; light (`haiku`) runs web
+  fetches, inventories, and output collection, whose results are raw
+  material, never evidence. Stuck runs escalate a tier and are recorded; cost
+  reports split usage by tier. New config keys `roles.light_model` and
+  `roles.routing` (`tiered | single`).
+
 ## v1.5.0 - 2026-09-26
 
 ShowRunner can take over work already under way, and works with a team.

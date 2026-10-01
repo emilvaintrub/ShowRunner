@@ -24,7 +24,8 @@ the sources register:
   These are cited like any other source and marked `owner`.
 
 Not evidence: model memory, unnamed "industry estimates", AI-generated
-summaries, content farms, or a search-result snippet that was not opened.
+summaries (including a ShowRunner helper agent's summary of a page - cite the
+page and its verbatim excerpt, [models.md](models.md) section 4), content farms, or a search-result snippet that was not opened.
 A single blog post is weak evidence; say so when it is all there is.
 
 ## 2. Labels
@@ -143,7 +144,9 @@ Before any research-bearing document reaches the owner for approval:
    the excerpt is on the page and supports the claim as written. Run
    `showrunner-sources lint --fetch` first for a mechanical pre-check.
    Record each source as `confirmed`, `mismatch`, `unreachable`, or
-   `paywalled` in an audit table at the end of the document.
+   `paywalled` in an audit table at the end of the document. The verifier
+   runs on the execution tier at least, never the light tier
+   ([models.md](models.md)).
 3. **Resolve.** A `mismatch` is corrected or the claim removed. An
    `unreachable` or `paywalled` source stays only when its excerpt was
    captured at access time and the document says the page could not be

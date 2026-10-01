@@ -206,6 +206,8 @@ producing code and `../core/debugging.md` when a failure is hit.
 
 - Use one implementation arc at a time by default.
 - Require a cold context and isolated worktree or equivalent index.
+- Dispatch the implementer on `roles.implementer_model`; escalate a run only
+  as [../core/models.md](../core/models.md) section 5 allows, and record it.
 - Compare the describe-back with the approved brief and repository evidence.
 - Include the execution-contract digest in the describe-back and require
   approval of that exact digest before implementation.

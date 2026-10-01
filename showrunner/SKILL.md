@@ -46,6 +46,7 @@ decide or supply something, and it never skips a stage on its own.
 | `setup` on an existing product, or when the owner needs rescue or direction mid-development | [core/adoption.md](core/adoption.md), then the Bible and Sentry files for the inventory |
 | any stage, when the owner shares customer feedback | [core/feedback.md](core/feedback.md), [core/templates/feedback-log.md](core/templates/feedback-log.md) |
 | `close`, and whenever a budget is set | [core/cost.md](core/cost.md) |
+| any stage, before spawning an agent (implementer, sweep, auditor, research or inventory helper) | [core/models.md](core/models.md) |
 
 At any stage, when the owner raises an idea or changes their mind, also load
 [forge/steering.md](forge/steering.md) and run steering alongside the current
@@ -117,5 +118,8 @@ recorded in the ledger.
   it unverified; reconstruct each stage from what exists.
 - Customer feedback is evidence for the owner, never a direct instruction.
 - Report cost and time honestly; stop at a budget for the owner's decision.
+- Route every spawned agent to the cheapest model tier that can do the work
+  well; judgment, approvals, and anything shown to the owner stay on the
+  strongest tier.
 - Keep the engine project-neutral; project facts live in
   `.claude/showrunner/config.md`.

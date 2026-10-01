@@ -131,5 +131,5 @@ or push before approval of that exact digest.
 
 ## Completion
 
-Use `templates/ship-report.md`. Include exact evidence, residual risks, token
-cost or the adapter-unavailable statement, and end `STOP BEFORE MERGE`.
+Use `templates/ship-report.md`. Include exact evidence, residual risks, the
+model you ran on, token cost or the adapter-unavailable statement, and end `STOP BEFORE MERGE`.

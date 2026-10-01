@@ -152,8 +152,11 @@ For each enabled catalog category:
 6. compare with the regression catalog;
 7. recommend another pass when interactions or incomplete evidence justify it.
 
-Parallel category sweeps are allowed because they are read-only. The
-orchestrator merges and deduplicates their output.
+Parallel category sweeps are allowed because they are read-only. Run each on
+the execution tier; step 1's inventory may come from a light-tier agent, but
+the sweep re-reads every file it relies on ([../core/models.md](../core/models.md)).
+The orchestrator merges and deduplicates their output, and classification
+and severity stay on the judgment tier.
 
 ### Browser Evidence Pass
 

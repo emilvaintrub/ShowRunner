@@ -30,7 +30,10 @@ what live in [lifecycle.md](lifecycle.md).
 - Never merge or push `main`.
 
 The same model may fill both roles in separate sessions. The separation is
-contextual and procedural, not a claim about identity.
+contextual and procedural, not a claim about identity. Which model each role
+and helper agent runs on is a cost decision governed by
+[models.md](models.md): judgment work stays on the strongest tier, the
+implementer runs on the execution tier, and lookups run on the light tier.
 
 ## 2. Initialize From Project Bindings
 
