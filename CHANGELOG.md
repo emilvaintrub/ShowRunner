@@ -2,7 +2,10 @@
 
 All notable public changes to ShowRunner are documented here.
 
-## Unreleased
+## v1.6.0 - 2026-10-01
+
+ShowRunner spends less on agents by routing each one to the cheapest model
+that can do the work, on Claude Code and Codex.
 
 - Added model routing (`core/models.md`): every spawned agent runs on the
   cheapest tier that can do the work well. Judgment (the conductor's own
