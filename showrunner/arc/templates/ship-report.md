@@ -75,6 +75,10 @@ Approved source digest: `<sha256 or not applicable>`
 
 ## Dispatch Cost
 
+Model: <model the platform reports, or model routing: unavailable from adapter>
+
+Escalations: <tier change and reason, or none>
+
 Token usage: <value or unavailable from adapter>
 
 ## Ownership

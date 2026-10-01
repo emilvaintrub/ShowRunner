@@ -24,8 +24,13 @@ project:
   hygiene_ledger: "<existing backlog/project-state path or disabled>"
 
 roles:
-  architect_model: "<judgment model>"
-  implementer_model: "<execution model>"
+  architect_model: "<judgment model; the conductor session's own model>"
+  implementer_model: "<execution model, e.g. sonnet or gpt-6.1-sol>"
+  light_model: "<light model for fetch and lookup work, e.g. haiku or gpt-6-luna>"
+  routing: "tiered | single"
+  reasoning_effort:        # adapters with per-spawn effort, e.g. Codex
+    implementer: medium
+    light: low
   cold_context_required: true
   surface_token_cost: true
 
@@ -393,6 +398,20 @@ bible:
 
 ## Ownership
 
+### Roles
+
+`roles` binds the three model tiers in [models.md](models.md): judgment for
+the conductor, execution for the implementer and code-reasoning agents, and
+light for fetch, inventory, and lookup agents. On Claude Code the defaults are
+the session's model, `sonnet`, and `haiku` (aliases, not dated identifiers);
+on Codex they are the session's model, `gpt-6.1-sol`, and `gpt-6-luna`, with
+`reasoning_effort` set per tier. Adapters without per-spawn effort ignore
+`reasoning_effort`. `routing: single` runs every agent on `architect_model`.
+These are technical bindings: infer them at `init` and record them as
+defaults rather than asking the owner. A config written before `light_model` and
+`routing` existed runs as `tiered` with the platform defaults; add the keys
+the next time the config is edited.
+
 ### Business
 
 The business section binds the research registers, the business-document
@@ -464,6 +483,9 @@ Initialization must reject or surface:
   command recorded without an owner-quoted ledger row;
 - a missing state ledger, or enforcement hooks absent without a recorded
   reason;
+- `implementer_model` equal to `light_model` while `routing` is `tiered`, or
+  any routing that places a section 3 task of [models.md](models.md) below
+  the judgment tier;
 - context optimization enabled without at least one configured command or an
   explicit manual fallback;
 - a locale ceremony enabled without approval rules;

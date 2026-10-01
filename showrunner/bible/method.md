@@ -31,7 +31,9 @@ Apply the shared decision classifier:
 2. **EXTRACT** (`sync`)
    - At the exact commit, walk the configured repository paths and derive the
      component map, data model, and interface list directly - no new scripts
-     or executable tooling (S4).
+     or executable tooling (S4). Path and symbol inventories may come from
+     light-tier agents ([../core/models.md](../core/models.md)); every claim
+     the Bible makes is re-read from the file it cites.
 3. **RECONCILE** (`sync`)
    - Reconcile the extraction against the Forge spec (intent), Arc ship
      reports (what shipped), and Sentry artifacts (security posture).

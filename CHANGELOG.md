@@ -2,6 +2,26 @@
 
 All notable public changes to ShowRunner are documented here.
 
+## v1.6.0 - 2026-10-01
+
+ShowRunner spends less on agents by routing each one to the cheapest model
+that can do the work, on Claude Code and Codex.
+
+- Added model routing (`core/models.md`): every spawned agent runs on the
+  cheapest tier that can do the work well. Judgment (the conductor's own
+  model) keeps owner conversations, approvals, verdicts, security triage, and
+  every claim; execution (`sonnet` by default on Claude Code) runs the
+  implementer, Sentry sweeps, and the citation audit; light (`haiku`) runs web
+  fetches, inventories, and output collection, whose results are raw
+  material, never evidence. Stuck runs escalate a tier and are recorded; cost
+  reports split usage by tier. New config keys `roles.light_model`,
+  `roles.routing` (`tiered | single`), and `roles.reasoning_effort`.
+- Codex model routing: tiers map to `gpt-6.1-sol` (execution, effort
+  `medium`) and `gpt-6-luna` (light, effort `low`) through `spawn_agent`'s
+  `model` and `reasoning_effort` parameters, with the `[agents]` defaults in
+  `~/.codex/config.toml` as the fallback when per-spawn models are
+  unavailable.
+
 ## v1.5.0 - 2026-09-26
 
 ShowRunner can take over work already under way, and works with a team.

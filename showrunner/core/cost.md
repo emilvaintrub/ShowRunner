@@ -10,7 +10,8 @@ stops for the owner when a budget is reached.
 For each initiative, from `intake` to `close`:
 
 - **Agent usage**: tokens or credits per stage and per dispatched run, from
-  what the platform reports. When the platform does not report usage, say
+  what the platform reports, split by model tier and with every escalation
+  listed ([models.md](models.md)). When the platform does not report usage, say
   `usage: unavailable from the platform` and count agent runs and their
   duration instead. Never estimate token counts.
 - **Paid runs ShowRunner started**: automated eval runs, paid API calls, and
@@ -33,6 +34,10 @@ The owner may set `budget.per_initiative` (money or usage units) and
 - at 100%, stop before starting the next paid step and ask the owner to raise
   the budget, narrow the work, or pause. Never exceed a budget silently, and
   never cut a required stage to stay under one - offer scope instead.
+
+Model routing ([models.md](models.md)) is how ShowRunner keeps agent usage
+down in the first place; it never moves a judgment-tier task to a cheaper
+tier to meet a budget.
 
 ## 3. Reporting
 

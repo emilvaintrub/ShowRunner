@@ -257,6 +257,15 @@ piece of work or per month; at 80% ShowRunner warns you, and at 100% it stops
 and asks you to raise the budget, narrow the work, or pause - it never skips a
 required step to save money.
 
+To keep that bill down, ShowRunner gives each helper the cheapest model that
+can do its job well: the builder runs on a mid-tier model (Sonnet on Claude
+Code, GPT-6.1-Sol on Codex), web lookups and file listings run on the
+smallest (Haiku, or GPT-6-Luna on Codex), and every
+decision, approval, and conversation with you stays on the strongest model
+your session uses. If a cheaper helper gets stuck, ShowRunner moves the work
+up a tier and says so in the cost line. You can turn this off and use one
+model for everything.
+
 ## Working With A Team
 
 You can name people to approve specific decisions for you - a co-founder for

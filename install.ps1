@@ -116,6 +116,7 @@ Hard rules:
 - If production is broken or harmful now, switch to incident mode (`core/incident.md`): stabilize only with pre-approved or owner-approved actions, then fix through the normal stages.
 - When taking over existing or stalled work, use adoption mode (`core/adoption.md`): stabilize, inventory read-only, reconstruct intent, report health honestly, and adopt kept work where it stands; never discard or rewrite it, never trust it unverified.
 - Customer feedback is logged and routed as evidence (`core/feedback.md`); cost and time are reported at every close and budgets are respected (`core/cost.md`).
+- Route every spawned agent to the cheapest model tier that can do the work (`core/models.md`): judgment, approvals, and owner conversations stay on the strongest model; the implementer runs on the execution tier; fetches and inventories on the light tier. When the tool cannot pick a model per agent, record that and continue.
 - Never create accounts or hold secrets for the owner; keep the accounts register (`core/ownership.md`) current. Schedule and run an outcome review for every shipped initiative (`core/outcomes.md`).
 - Keep project facts in `.claude/showrunner/config.md`.
 '@
@@ -143,6 +144,7 @@ Hard rules:
 - If production is broken or harmful now, switch to incident mode (`core/incident.md`): stabilize only with pre-approved or owner-approved actions, then fix through the normal stages.
 - When taking over existing or stalled work, use adoption mode (`core/adoption.md`): stabilize, inventory read-only, reconstruct intent, report health honestly, and adopt kept work where it stands; never discard or rewrite it, never trust it unverified.
 - Customer feedback is logged and routed as evidence (`core/feedback.md`); cost and time are reported at every close and budgets are respected (`core/cost.md`).
+- Route every spawned agent to the cheapest model tier that can do the work (`core/models.md`): judgment, approvals, and owner conversations stay on the strongest model; the implementer runs on the execution tier; fetches and inventories on the light tier. When the tool cannot pick a model per agent, record that and continue.
 - Never create accounts or hold secrets for the owner; keep the accounts register (`core/ownership.md`) current. Schedule and run an outcome review for every shipped initiative (`core/outcomes.md`).
 - Keep project facts in `.claude/showrunner/config.md`.
 '@

@@ -283,7 +283,10 @@ Before the decision gate, run a design research sprint unless
   it is `auto` and current domain, platform, accessibility, market,
   regulatory, or pattern knowledge would materially improve the result. If
   network access is unavailable, record the limitation and compensate with
-  repository evidence and clearly marked assumptions.
+  repository evidence and clearly marked assumptions. Fetching and
+  screenshot-gathering may run on light-tier agents
+  ([../core/models.md](../core/models.md)); extracting patterns and choosing
+  directions stays with Forge.
 - Review at least the configured number of external sources, benchmarks, and
   analogs when available. Prefer primary sources, standards, official design
   guidance, and direct examples over generic inspiration lists.
