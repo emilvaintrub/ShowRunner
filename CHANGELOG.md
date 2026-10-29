@@ -22,6 +22,18 @@ The owner can now choose how closely to follow the build.
   `lifecycle.autonomy.run_escalation_limit`; ship reports gain an always
   present ShowRunner decisions section.
 - Eval suite: 31 cases, adding autonomy scenarios 31-34.
+- The `showrunner` plugin skill now triggers on short owner messages ("go
+  ahead", "what's next?", "just build it") in a ShowRunner repository: the
+  plugin wrapper, which is what Claude Code lists, shares the engine's full
+  description, and `tests/run.sh` keeps the two identical.
+- At High and Run, ShowRunner loads `core/autonomy.md` whenever it runs or
+  reports a stage from `arc-plan` to `close`, and the Run end gate's contents
+  (smoke, disposition, decisions digest, deferred work, High and Critical
+  findings) are listed in `core/merge.md`.
+- Eval suite: forbidden-tool graders declare `min: 0` (the harness defaults
+  `min` to 1, so they could never pass) and match the tool's path argument
+  instead of the whole input; `tests/run.sh` enforces both and ignores the
+  local `evals/results/` directory.
 
 ### Before release
 
