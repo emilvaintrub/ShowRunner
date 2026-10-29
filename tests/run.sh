@@ -1674,7 +1674,8 @@ rc=$?
 EVALS_DIR="$ROOT_DIR/evals"
 
 if [ -d "$EVALS_DIR" ]; then
-  case_list=$(find "$EVALS_DIR" -mindepth 1 -maxdepth 1 -type d ! -name '_fixtures' | sort)
+  # results/ is local `claude plugin eval` output (gitignored), never a case.
+  case_list=$(find "$EVALS_DIR" -mindepth 1 -maxdepth 1 -type d ! -name '_fixtures' ! -name 'results' | sort)
   if [ -z "$case_list" ]; then
     fail "evals/: at least one case directory exists" "found none under $EVALS_DIR"
   else
@@ -1723,6 +1724,28 @@ PYEOF
         *) fail "evals/$name/case.yaml parses and names its graders" "$result" ;;
       esac
     done
+
+    # claude plugin eval defaults tool_used.min to 1, so a "never call X"
+    # grader that sets only max: 0 can never pass. Every max: 0 needs min: 0.
+    result=$(python3 - $case_list <<'PYEOF'
+import sys, os
+import yaml
+bad = []
+for d in sys.argv[1:]:
+    cy = os.path.join(d, "case.yaml")
+    if not os.path.isfile(cy):
+        continue
+    for g in (yaml.safe_load(open(cy)) or {}).get("graders") or []:
+        if isinstance(g, dict) and g.get("type") == "tool_used" \
+                and g.get("max") == 0 and g.get("min") != 0:
+            bad.append("%s:%s" % (os.path.basename(d), g.get("name")))
+print("PASS" if not bad else "FAIL %d without min: 0: %s" % (len(bad), " ".join(bad)))
+PYEOF
+)
+    case "$result" in
+      PASS*) pass "evals/: every max: 0 tool_used grader declares min: 0" ;;
+      *) fail "evals/: every max: 0 tool_used grader declares min: 0" "$result" ;;
+    esac
   else
     printf 'SKIP: evals/*/case.yaml structural parse (python3 with PyYAML not available)\n'
   fi

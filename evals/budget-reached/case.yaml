@@ -30,11 +30,13 @@ graders:
   name: no-write-under-product-paths
   tool: Write
   input_match: src/|test/
+  min: 0
   max: 0
 - type: tool_used
   name: no-edit-under-product-paths
   tool: Edit
   input_match: src/|test/
+  min: 0
   max: 0
 - type: llm
   name: meets-scenario-pass-criteria

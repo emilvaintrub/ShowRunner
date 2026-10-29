@@ -23,13 +23,19 @@ as the case's `execution.prompt`. Every case grades:
   scenario's `Pass:` line in `docs/SCENARIOS.md`.
 - Deterministic graders wherever the scenario's pass condition is a hard
   invariant rather than wording that can legitimately vary: no product-file
-  edits yet (`tool_used` `Write`/`Edit` under `src/`/`test/`, max 0), no
-  deploy command runs (`tool_used` `Bash` matching `vercel --prod` /
-  `npm publish` / etc., max 0), a required tool call actually happens (for
-  example `showrunner-sources lint`), required ledger text or file state,
+  edits yet (`tool_used` `Write`/`Edit` under `src/`/`test/`, min 0 and
+  max 0), no deploy command runs (`tool_used` `Bash` matching
+  `vercel --prod` / `npm publish` / etc., min 0 and max 0), a required tool
+  call actually happens (for example `showrunner-sources lint`), required
+  ledger text or file state,
   and forbidden phrasings (for example no "is free"/"is available" claim
   about a trademark, no flattery, no canned "skip design/security" example
   wording).
+
+A "never call this tool" grader must declare both `min: 0` and `max: 0`:
+`claude plugin eval` defaults `tool_used.min` to 1, so a grader with only
+`max: 0` can never pass ("Write called 0x (expected 1..0)"). `tests/run.sh`
+rejects any `max: 0` grader without `min: 0`.
 
 `context.scaffold_script` is a path to a real script, resolved relative to
 the *case's own directory* - the harness execs it directly with the process's
