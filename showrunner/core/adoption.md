@@ -53,9 +53,12 @@ In this order, before any planning:
    the repository by someone new? Record the baseline as it is - red tests,
    missing steps, manual deploys - without fixing anything yet.
 
-The first report to the owner covers stabilization and the inventory, and
-asks only what stabilization needs (account control, backups, data
-classification, where the code should live). Do not ask the owner to decide
+The first report to the owner names the mode (adoption) and says what it
+means in one or two plain sentences, and says that existing code will be
+verified, and existing documents audited, before either counts. It covers
+stabilization and the inventory, and asks only what stabilization needs
+(account control, backups, data classification, where the code should
+live). Do not ask the owner to decide
 the fate of in-flight work yet: list it, and bring each piece back with a
 recommendation in the health report (section 5), once the owner's intent is
 reconstructed.
