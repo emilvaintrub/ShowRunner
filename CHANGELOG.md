@@ -49,6 +49,8 @@ The owner can now choose how closely to follow the build.
 - Skip requests name each stage that would be skipped with its risk.
 - A new request opens its initiative with the owner's words quoted back in
   the reply, not only in the ledger.
+- At High, a reply that reports on a pending checkpoint repeats that
+  checkpoint's summary (for Step 0: what will be built, files, tests).
 - Incident mode starts the rollback the owner approved at the last release in
   the first reply (run, or handed over as the recorded checklist) and drafts
   the customer message there; with no recorded rollback it still asks.
