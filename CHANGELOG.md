@@ -23,6 +23,12 @@ The owner can now choose how closely to follow the build.
   present ShowRunner decisions section.
 - Eval suite: 31 cases, adding autonomy scenarios 31-34.
 
+### Before release
+
+- Run the four new autonomy evals live with `claude plugin eval`; only their
+  structure and fixture ledgers were checked at merge.
+- Version bump in the plugin manifests is left to the release decision.
+
 ## v1.6.0 - 2026-10-01
 
 ShowRunner spends less on agents by routing each one to the cheapest model
