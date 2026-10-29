@@ -2,7 +2,7 @@
 
 All notable public changes to ShowRunner are documented here.
 
-## Unreleased
+## v1.7.0 - 2026-10-29
 
 The owner can now choose how closely to follow the build.
 
@@ -64,10 +64,6 @@ The owner can now choose how closely to follow the build.
   (`.claude-plugin/hooks.json`), silent outside ShowRunner repositories and
   where the project hook from `install-hooks --claude` is installed. Codex
   does not load it.
-
-### Before release
-
-- Version bump in the plugin manifests is left to the release decision.
 
 ## v1.6.0 - 2026-10-01
 
