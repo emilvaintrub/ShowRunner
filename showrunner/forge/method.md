@@ -69,6 +69,9 @@ Every Forge session follows this order:
      advance to the next stage in the same turn.
    - Mark a spec `arc-ready` only at the `handoff` stage, after creative
      `SHIP` and inventor approval.
+   - At the `handoff` stage the same message also asks which autonomy level
+     runs the build onward ([../core/autonomy.md](../core/autonomy.md)); see
+     the `spec` command below.
 
 `GATE` always precedes `DIRECT`. Each Forge stage ends at HANDOFF; the next
 Forge stage starts from FRAME.
@@ -220,6 +223,26 @@ on to `design`. At the `handoff` stage, after the design output is approved
 Run GATE-OUT on the whole spec, then ask the owner to approve it as
 `arc-ready`. Record the digest of sections 1-8, 9, 10, and 11 in the ledger
 row.
+
+The `handoff` message also offers the autonomy level, in one message, in plain
+words, with `lifecycle.autonomy.default` (Medium unless configured) preselected
+and a recommendation:
+
+- **High**: you also say "go" after the plan, Step 0, verification, and the
+  security sweep, and ShowRunner explains each step.
+- **Medium**: ShowRunner runs the build and checks itself; you decide at the
+  smoke test, the merge, the release, and the close.
+- **Run**: ShowRunner runs from here to one combined test-and-merge decision.
+  Choosing Run also needs your release instructions now (what ShowRunner
+  asks at release: when, where, who runs it, the steps, the check, and the
+  rollback); "ask me later" is a valid answer. Adjacent ideas are deferred,
+  not asked, and every decision ShowRunner made is listed for your veto.
+
+Only the owner chooses. Record the `handoff` row with the owner's level words
+and, for Run, the release answer, verbatim and dated; then write the first
+Autonomy Changes row and set `active.autonomy`. If a Run reply lacks the
+release instructions, send exactly one follow-up asking for them. The forge
+stages before `handoff` are the same at every level.
 
 Every spec has all eleven sections regardless of change size. A section that
 does not apply states why in one line.
