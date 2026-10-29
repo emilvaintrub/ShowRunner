@@ -37,8 +37,12 @@ The owner can now choose how closely to follow the build.
 
 ### Before release
 
-- Run the four new autonomy evals live with `claude plugin eval`; only their
-  structure and fixture ledgers were checked at merge.
+- The four autonomy evals passed live at 1.0 (single run). Confirm them with
+  3 runs before release.
+- Smoke evals: 5 of 7 still fail their judge on behavior (just ship it,
+  production incident, account not in the owner's control, plain request, rescue);
+  check whether eval runs can write `.claude/showrunner/state.md`.
+- Follow-up: consider a plugin-level UserPromptSubmit hook for routing.
 - Version bump in the plugin manifests is left to the release decision.
 
 ## v1.6.0 - 2026-10-01
