@@ -104,6 +104,18 @@ The conductor starts it without being asked.
 A clean result is an explicit empty finding set in the report. Then the
 conductor asks the owner for `acceptance`.
 
+### Autonomy Level
+
+Sentry inherits the initiative's autonomy level
+([../core/autonomy.md](../core/autonomy.md)) but is capped at Medium. No Run
+delta applies to this stage: every owner stop that exists at Medium (risk
+acceptance, scope decisions, licences needing an owner decision, findings
+outside the diff) stays, and nothing about the sweep, its scope, or its
+routing changes. At High, after the stage row is recorded, the owner sees the
+sweep result and every finding with its disposition, and says "go" before
+`acceptance`. At Run, the combined end gate names every finding of High or
+Critical severity to the owner, whatever its disposition. There is no
+configuration to lift the cap.
 ### Dependency Licences
 
 Whenever `deps` runs - including at the `security` stage when a manifest or
