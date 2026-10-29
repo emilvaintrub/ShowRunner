@@ -81,16 +81,43 @@ changes: a one-line fix gets a short spec, not a skipped one.
 | 3 | Spec | Product decisions are laid out with options and a recommendation, then written up. | Decide, then redline. |
 | 4 | Design | ShowRunner researches, proposes 2-3 directions, recommends one, and writes a design brief. | Choose and approve. Confirm "not applicable" if nothing is design-dependent. |
 | 5 | Design review | You run the brief in your design tool and return the output; ShowRunner reviews it. | Return the output; approve it. |
-| 6 | Handoff | The build contract is written and the spec is marked ready to build. | Approve. |
+| 6 | Handoff | The build contract is written and the spec is marked ready to build. | Approve, and choose your autonomy level. |
 | 7 | Build plan | ShowRunner plans the implementation. | Only if a business question comes up. |
-| 8 | Step 0 | A separate worker describes back what it will build; ShowRunner checks and approves it. | Nothing - you get a short summary. |
+| 8 | Step 0 | A separate worker describes back what it will build; ShowRunner checks and approves it. | Nothing - you get a short summary (at High, you say "go"). |
 | 9 | Build | The worker builds on its own branch, test-first. | Nothing. |
 | 10 | Verify | ShowRunner independently reviews the actual changes, audit, and design quality. | Nothing. |
 | 11 | Security | Sentry checks the change for security issues. | Only if a risk needs your acceptance. |
 | 12 | Acceptance | You get a step-by-step test script for a real build. | Run it; report the result. |
-| 13 | Merge | The change joins the main branch through a fixed two-commit ceremony. | Approve the merge. |
+| 13 | Merge | The change joins the main branch through a fixed two-commit ceremony. | Approve the merge. (At Run, 12 and 13 arrive as one decision.) |
 | 14 | Release | ShowRunner asks how, when, and where to release. It never decides this for you. | Tell it: now, scheduled, or hold; where; who runs it; how to check and roll back. |
 | 15 | Close | The architecture document and project state are updated; the next item is proposed. | Approve the close. |
+
+## How Much Say You Want: Autonomy Levels
+
+When you approve the build contract (the Handoff stage), ShowRunner asks one
+more thing: how closely do you want to follow the build? You pick one of three
+levels. Nothing you decide is ever skipped at any level: the stages, your
+approval to merge, your acceptance test, the release question, and every
+business call (anything the approved spec does not already settle) stay yours.
+
+| Level | What it means for you |
+| --- | --- |
+| High | You also say "go" after the build plan, the Step 0 check, verification, and the security review, and ShowRunner explains each step in plain words. About 8 stops after Handoff. |
+| Medium (default) | ShowRunner runs the build and checks itself, and you decide at the acceptance test, the merge, the release, and the close. About 4 stops. If you never choose, this is what you get. |
+| Run | ShowRunner runs from Handoff to one combined decision: the acceptance test and the merge, together with a list of every choice it made for you, which you can veto. About 2 stops. |
+
+Choosing Run also means giving your release instructions up front (or saying
+"ask me later"). At release, ShowRunner checks that nothing has changed since
+you gave them and then carries them out; if anything has changed, it asks you
+again. At Run, ideas that come up mid-build are set aside for you to look at
+later rather than interrupting the run, but a decision the spec does not
+settle is still asked. If too many such questions pile up, ShowRunner drops
+the initiative back to Medium and tells you why.
+
+The security review never goes beyond Medium, and any High or Critical
+finding is always shown to you. You can move to a more careful level at any
+time, and to a less careful one only before Step 0. Only you can choose or
+change the level; a delegate cannot.
 
 ## Your Idea, Examined
 
