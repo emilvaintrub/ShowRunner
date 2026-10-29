@@ -5,7 +5,9 @@ maximum safe autonomy over conventions and zero authority to merge by itself.
 It runs lifecycle stages `arc-plan`, `step0`, `build`, and `verify`
 ([../core/lifecycle.md](../core/lifecycle.md)) back to back; the only reasons
 to stop between them are a non-empty Arc decision gate, an escalation, or the
-fix-loop limit.
+fix-loop limit. At High, the owner's "go" checkpoints after `arc-plan`, `step0`,
+and `verify` are also stops; at Run, ShowRunner stops for nothing else. See
+[../core/autonomy.md](../core/autonomy.md).
 
 ## 1. Policy
 
@@ -23,6 +25,25 @@ Apply the shared decision classifier, then:
 Arc may choose implementation composition. It may not change behavior, scope,
 privacy, rollout, voice, risk acceptance, or approval policy.
 
+### Autonomy Level
+
+The initiative's level (`active.autonomy`, default `medium`) is carried into the
+implementer prompt and never loosens any rule above or below.
+
+- **Medium**: this file as written.
+- **High**: after `arc-plan`, `step0`, and `verify` record their `passed` rows,
+  give the owner the plain-language summary named in
+  [../core/autonomy.md](../core/autonomy.md) section 3, hold `active.stage`
+  with status `awaiting-owner`, and continue only after the owner's "go" is
+  recorded in Owner Checkpoints. Explain each ShowRunner-owned stage in plain
+  words.
+- **Run**: run quietly from `arc-plan` to the combined end gate. Do not bring
+  adjacent work to the owner mid-run; defer it and list it in the ShowRunner
+  decisions section of the ship report. Bring the owner only the decisions the
+  approved spec does not settle, and every escalation; count each in
+  `active.escalations`.
+
+In every level a decision in the human-owned surface is asked, never guessed.
 ## 2. Session Order
 
 Every Arc follows:
@@ -54,10 +75,13 @@ Every Arc follows:
    - Collect the ship report and exact feature tip.
    - Independently review base-to-tip behavior and evidence.
    - Issue `SHIP`, `FIX`, or `REDESIGN`.
+   - At High, after `SHIP`, summarize the verdict for the owner and wait for
+     the "go" before `security`.
    - A `FIX` resumes branch work and requires a new exact-tip verdict.
 
 6. **STOP**
-   - Present required smoke and merge checklist.
+   - Present required smoke and merge checklist. At Run this is the combined
+     end gate with the ShowRunner decisions digest.
    - End with `STOP BEFORE MERGE`.
 
 7. **MERGE**
@@ -321,7 +345,7 @@ in the verdict.
 
 Record `SHIP` as the `verify` ledger row (`commit:<tip>`, with the audit and
 creative results in Evidence), reset `active.fix_loops`, and start the
-`security` stage in the same turn.
+`security` stage in the same turn (at High, after the owner's "go").
 
 ## 8. Server And UI Policy
 
@@ -358,7 +382,7 @@ human or CI command needed before merge.
 ## 10. Completion
 
 After `verify` records `SHIP`, the conductor runs `security`, then asks the
-owner for `acceptance`. An Arc is ready to request merge approval only when:
+owner for `acceptance` (together with `merge`, at Run). An Arc is ready to request merge approval only when:
 
 - Step 0 was approved;
 - every commit is on the feature branch;
@@ -367,4 +391,5 @@ owner for `acceptance`. An Arc is ready to request merge approval only when:
 - independent verification says `SHIP` on the exact current tip;
 - the `security` stage has a terminal ledger row on the same tip;
 - the owner's `acceptance` smoke is recorded;
+- the ship report's ShowRunner decisions section is present, even when empty;
 - the response ends `STOP BEFORE MERGE`.
