@@ -293,7 +293,10 @@ There are two combined gates. The first is design `not-applicable`: ShowRunner
 presents the evidence once and the owner confirms `design` and `design-review`
 together, which records two rows. The second exists only at Run: `acceptance`
 and `merge` are presented in one end-gate message and also record two rows
-([autonomy.md](autonomy.md) section 4). In both, a reply that approves only one
+([autonomy.md](autonomy.md) section 4). That message carries the smoke
+playbook, the merge disposition, the ShowRunner decisions digest, the
+deferred-work list, and every High or Critical Sentry finding; the full list
+is in [merge.md](merge.md) Human Gate. In both, a reply that approves only one
 of the two gates approves only that one.
 
 A reply that approves more than the open gate approves only the open gate.

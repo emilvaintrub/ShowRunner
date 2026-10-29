@@ -17,15 +17,19 @@ decide or supply something, and it never skips a stage on its own.
 2. Read `.claude/showrunner/config.md` and `.claude/showrunner/state.md`
    ([core/state.md](core/state.md)). No config means the current stage is
    `setup`.
-3. Run `showrunner check` when the enforcement script is installed
+3. When `active.autonomy` is `high` or `run`, load
+   [core/autonomy.md](core/autonomy.md) before running or reporting on any
+   stage from `arc-plan` to `close`. It changes what each owner stop contains,
+   so never answer from [core/lifecycle.md](core/lifecycle.md) alone.
+4. Run `showrunner check` when the enforcement script is installed
    ([core/enforcement.md](core/enforcement.md)); fix ledger errors before
    anything else.
-4. Classify the owner's message (lifecycle section 4). A request is never
+5. Classify the owner's message (lifecycle section 4). A request is never
    executed outside its stage, however small.
-5. Run the current stage with the files it needs (below).
-6. On exit, append the ledger row, advance, and start the next stage in the
+6. Run the current stage with the files it needs (below).
+7. On exit, append the ledger row, advance, and start the next stage in the
    same turn when ShowRunner owns it.
-7. End with the handoff block (lifecycle section 6).
+8. End with the handoff block (lifecycle section 6).
 
 ## Stage Loading
 
@@ -39,8 +43,8 @@ decide or supply something, and it never skips a stage on its own.
 | `arc-plan`, `step0`, `build` | [arc/SKILL.md](arc/SKILL.md), [arc/method.md](arc/method.md), [core/dispatch.md](core/dispatch.md), [core/tdd.md](core/tdd.md), [core/debugging.md](core/debugging.md) |
 | `verify` | Arc files above, [core/merge.md](core/merge.md), [gates/audit.md](gates/audit.md), [gates/wow-check.md](gates/wow-check.md) for UI work when enabled |
 | `security` | [sentry/SKILL.md](sentry/SKILL.md), [sentry/method.md](sentry/method.md), [sentry/knowledge/catalog.md](sentry/knowledge/catalog.md) |
-| `acceptance`, `merge` | [core/merge.md](core/merge.md), the policy's merge template |
-| `release` | [core/release.md](core/release.md), [core/ownership.md](core/ownership.md) |
+| `acceptance`, `merge` | [core/merge.md](core/merge.md), the policy's merge template, [core/autonomy.md](core/autonomy.md); at Run also the ship report (its ShowRunner decisions section and smoke) and the security sweep report, because the end gate quotes them |
+| `release` | [core/release.md](core/release.md), [core/ownership.md](core/ownership.md), [core/autonomy.md](core/autonomy.md) |
 | `close` | [bible/SKILL.md](bible/SKILL.md), [bible/method.md](bible/method.md), [core/merge.md](core/merge.md), [core/outcomes.md](core/outcomes.md) |
 | any stage, when an outcome review is due | [core/outcomes.md](core/outcomes.md) |
 | any stage, when production is broken or harmful now | [core/incident.md](core/incident.md) |

@@ -95,7 +95,9 @@ except for the invariants in section 1.
 3. **Combined end gate.** `acceptance` and `merge` are presented in one owner
    message: the smoke playbook, the merge disposition, the ShowRunner
    decisions digest (section 6), the deferred-work list, and every Sentry
-   finding of High or Critical severity. One reply can approve both and
+   finding of High or Critical severity. ShowRunner reads the ship report and
+   the security sweep report before writing it; the full content list is in
+   [merge.md](merge.md) Human Gate. One reply can approve both and
    ShowRunner records two rows. A reply that approves only one approves only
    that one. A failed smoke or a vetoed ShowRunner decision returns to
    `build` (the failed-acceptance loop) and approves neither.
