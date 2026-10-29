@@ -170,6 +170,8 @@ configuration to lift the cap.
   level is chosen. The first Autonomy Changes row for an initiative is written
   at `handoff`, with `From` equal to the config default and the owner's words
   verbatim.
+- **Reset.** At `close`, `active.autonomy` returns to `medium` and
+  `active.escalations` to 0, so the next initiative never inherits a level.
 - **Downgrade** (`run` to `medium` to `high`): at any time, on the owner's
   words, recorded as an Autonomy Changes row.
 - **Upgrade** (towards less control): only while `active.stage` is before
