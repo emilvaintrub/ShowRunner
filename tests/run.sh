@@ -911,6 +911,113 @@ else
 fi
 
 # ===========================================================================
+# 6b. Configurable ledger location (lifecycle.state_file)
+# ===========================================================================
+
+# custom_ledger_repo STATE_FILE_VALUE [COVER]
+# A repo whose config names lifecycle.state_file; the ledger is written at
+# .showrunner/state.md. COVER=yes adds ".showrunner/*" to
+# guard.writable_before_build.
+custom_ledger_repo() {
+  r=$(new_repo)
+  cover=${2:-yes}
+  if [ "$cover" = yes ]; then
+    write_state "$r" spec no none no ".showrunner/*"
+  else
+    write_state "$r" spec no none no
+  fi
+  mkdir -p "$r/.showrunner"
+  mv "$r/.claude/showrunner/state.md" "$r/.showrunner/state.md"
+  {
+    printf '# ShowRunner Config\n\n```yaml\nschema_version: 1\nlifecycle:\n'
+    printf '  state_file: %s\n' "$1"
+    printf '  fix_loop_limit: 3\n  autonomy:\n    default: medium\n```\n'
+  } > "$r/.claude/showrunner/config.md"
+  printf '%s\n' "$r"
+}
+
+repo=$(custom_ledger_repo '".showrunner/state.md"')
+out=$(cd "$repo" && "$SHOWRUNNER" context)
+case "$out" in
+  ShowRunner:*spec*) pass "state_file: context reads the ledger named by lifecycle.state_file" ;;
+  *) fail "state_file: context reads the ledger named by lifecycle.state_file" "out=[$out]" ;;
+esac
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors"; } && pass "state_file: covered custom ledger passes check" || fail "state_file: covered custom ledger passes check" "exit=$rc out=$out"
+out=$(guard_json_edit Edit file_path "$repo/.showrunner/state.md" "$repo" | "$SHOWRUNNER" guard 2>&1)
+rc=$?
+[ "$rc" -eq 0 ] && pass "state_file: guard allows editing the custom ledger before build" || fail "state_file: guard allows editing the custom ledger before build" "exit=$rc out=$out"
+out=$(guard_json_edit Edit file_path "$repo/src/app.js" "$repo" | "$SHOWRUNNER" guard 2>&1)
+rc=$?
+[ "$rc" -eq 2 ] && pass "state_file: guard enforces from the custom ledger (product edit at spec blocked)" || fail "state_file: guard enforces from the custom ledger (product edit at spec blocked)" "exit=$rc out=$out"
+
+repo=$(custom_ledger_repo "'.showrunner/state.md'   # moved out of .claude")
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors"; } && pass "state_file: single-quoted value with a trailing comment is read" || fail "state_file: single-quoted value with a trailing comment is read" "exit=$rc out=$out"
+
+repo=$(custom_ledger_repo '".showrunner/state.md"' no)
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "ERROR: lifecycle.state_file .showrunner/state.md is not covered by guard.writable_before_build"; } \
+  && pass "state_file: check rejects a custom ledger outside guard.writable_before_build" \
+  || fail "state_file: check rejects a custom ledger outside guard.writable_before_build" "exit=$rc out=$out"
+
+for bad in '"/tmp/state.md"' '"../state.md"' '"docs/../../state.md"' '".showrunner/.."'; do
+  repo=$(custom_ledger_repo "$bad")
+  # Keep a default-path ledger too, so the error is reported alongside it.
+  cp "$repo/.showrunner/state.md" "$repo/.claude/showrunner/state.md"
+  out=$(cd "$repo" && "$SHOWRUNNER" check)
+  rc=$?
+  { [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "ERROR: lifecycle.state_file must be a relative path"; } \
+    && pass "state_file: check rejects $bad" \
+    || fail "state_file: check rejects $bad" "exit=$rc out=$out"
+done
+repo=$(custom_ledger_repo '"../state.md"')
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "must be a relative path"; } \
+  && pass "state_file: an invalid value fails check even with no ledger found" \
+  || fail "state_file: an invalid value fails check even with no ledger found" "exit=$rc out=$out"
+
+# Configured but not created yet: a default-path ledger keeps enforcing.
+repo=$(custom_ledger_repo '".showrunner/state.md"')
+mv "$repo/.showrunner/state.md" "$repo/.claude/showrunner/state.md"
+out=$(guard_json_edit Edit file_path "$repo/src/app.js" "$repo" | "$SHOWRUNNER" guard 2>&1)
+rc=$?
+[ "$rc" -eq 2 ] && pass "state_file: a missing custom ledger falls back to the default ledger (still enforced)" || fail "state_file: a missing custom ledger falls back to the default ledger (still enforced)" "exit=$rc out=$out"
+
+# The default value behaves exactly as before.
+repo=$(new_repo)
+write_state "$repo" spec no none no
+printf '# ShowRunner Config\n\n```yaml\nschema_version: 1\nlifecycle:\n  state_file: ".claude/showrunner/state.md"\n```\n' > "$repo/.claude/showrunner/config.md"
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors"; } && pass "state_file: the default value needs no extra writable pattern" || fail "state_file: the default value needs no extra writable pattern" "exit=$rc out=$out"
+
+# SHOWRUNNER_STATE still wins over the config.
+repo=$(custom_ledger_repo '".showrunner/state.md"')
+alt=$(mktemp -d); track_tmp "$alt"
+write_state "$alt" build no none no
+out=$(cd "$repo" && SHOWRUNNER_STATE="$alt/.claude/showrunner/state.md" "$SHOWRUNNER" context)
+case "$out" in
+  *build*) pass "state_file: \$SHOWRUNNER_STATE overrides lifecycle.state_file" ;;
+  *) fail "state_file: \$SHOWRUNNER_STATE overrides lifecycle.state_file" "out=[$out]" ;;
+esac
+
+# A linked worktree resolves the custom ledger in the primary worktree.
+repo=$(custom_ledger_repo '".showrunner/state.md"')
+wt=$(mktemp -d); track_tmp "$wt"; rmdir "$wt"
+(cd "$repo" && git add -A && git commit -q -m "docs: config" && git branch wt2 && git worktree add -q "$wt" wt2) >/dev/null 2>&1
+rm -f "$wt/.showrunner/state.md" 2>/dev/null
+out=$(cd "$wt" && "$SHOWRUNNER" context)
+case "$out" in
+  ShowRunner:*spec*) pass "state_file: linked worktree reads the primary worktree's custom ledger" ;;
+  *) fail "state_file: linked worktree reads the primary worktree's custom ledger" "out=[$out]" ;;
+esac
+
+# ===========================================================================
 # 7. Installer
 # ===========================================================================
 
