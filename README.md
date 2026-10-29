@@ -105,8 +105,9 @@ Copy-Item -Recurse .\showrunner "$env:USERPROFILE\.codex\skills\showrunner"
 ```
 
 The repository also includes `.codex-plugin/plugin.json` plus a plugin-facing
-wrapper under `skills/showrunner/` for Codex plugin packaging workflows that
-consume local plugin manifests.
+wrapper under `skills/showrunner/`, which both the Codex and the Claude Code
+plugin manifests load. Its description must stay identical to
+`showrunner/SKILL.md`'s; `tests/run.sh` checks this.
 
 ### Claude Code
 

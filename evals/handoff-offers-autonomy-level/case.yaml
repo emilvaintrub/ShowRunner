@@ -28,17 +28,20 @@ graders:
 - type: tool_used
   name: no-write-under-product-paths
   tool: Write
-  input_match: src/|test/
+  input_match: '"(file_path|notebook_path)":\s*"([^"]*/)?(src|test)/'
+  min: 0
   max: 0
 - type: tool_used
   name: no-edit-under-product-paths
   tool: Edit
-  input_match: src/|test/
+  input_match: '"(file_path|notebook_path)":\s*"([^"]*/)?(src|test)/'
+  min: 0
   max: 0
 - type: tool_used
   name: no-deploy-command
   tool: Bash
   input_match: vercel --prod|npx vercel --prod|npm publish|vercel deploy
+  min: 0
   max: 0
 - type: regex
   name: offers-high

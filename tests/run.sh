@@ -1674,7 +1674,8 @@ rc=$?
 EVALS_DIR="$ROOT_DIR/evals"
 
 if [ -d "$EVALS_DIR" ]; then
-  case_list=$(find "$EVALS_DIR" -mindepth 1 -maxdepth 1 -type d ! -name '_fixtures' | sort)
+  # results/ is local `claude plugin eval` output (gitignored), never a case.
+  case_list=$(find "$EVALS_DIR" -mindepth 1 -maxdepth 1 -type d ! -name '_fixtures' ! -name 'results' | sort)
   if [ -z "$case_list" ]; then
     fail "evals/: at least one case directory exists" "found none under $EVALS_DIR"
   else
@@ -1723,6 +1724,104 @@ PYEOF
         *) fail "evals/$name/case.yaml parses and names its graders" "$result" ;;
       esac
     done
+
+    # claude plugin eval defaults tool_used.min to 1, so a "never call X"
+    # grader that sets only max: 0 can never pass. Every max: 0 needs min: 0.
+    result=$(python3 - $case_list <<'PYEOF'
+import sys, os
+import yaml
+bad = []
+for d in sys.argv[1:]:
+    cy = os.path.join(d, "case.yaml")
+    if not os.path.isfile(cy):
+        continue
+    for g in (yaml.safe_load(open(cy)) or {}).get("graders") or []:
+        if isinstance(g, dict) and g.get("type") == "tool_used" \
+                and g.get("max") == 0 and g.get("min") != 0:
+            bad.append("%s:%s" % (os.path.basename(d), g.get("name")))
+print("PASS" if not bad else "FAIL %d without min: 0: %s" % (len(bad), " ".join(bad)))
+PYEOF
+)
+    case "$result" in
+      PASS*) pass "evals/: every max: 0 tool_used grader declares min: 0" ;;
+      *) fail "evals/: every max: 0 tool_used grader declares min: 0" "$result" ;;
+    esac
+
+    # input_match is tested against the whole JSON-serialized tool input,
+    # file content included, so a forbidden-path grader on a file tool must
+    # anchor to the path key: a docs/ file whose text mentions src/ is not a
+    # product write. Check each distinct pattern against real input shapes.
+    result=$(python3 - $case_list <<'PYEOF'
+import sys, os, re, json
+import yaml
+pats, bad = set(), []
+for d in sys.argv[1:]:
+    cy = os.path.join(d, "case.yaml")
+    if not os.path.isfile(cy):
+        continue
+    for g in (yaml.safe_load(open(cy)) or {}).get("graders") or []:
+        if not isinstance(g, dict) or g.get("type") != "tool_used":
+            continue
+        if g.get("tool") in ("Write", "Edit", "NotebookEdit") and g.get("max") == 0:
+            p = g.get("input_match") or ""
+            if '"(file_path|notebook_path)"' not in p:
+                bad.append("%s:%s not anchored to the path key" % (os.path.basename(d), g.get("name")))
+            else:
+                pats.add(p)
+ws = "/tmp/claude-eval-x/home/cwd/"
+neg = [{"file_path": ws + "docs/plans/x.md", "content": "see src/a.js and test/b.js"},
+       {"file_path": ws + "docs/plans/x.md", "old_string": "src/", "new_string": "test/"},
+       {"file_path": ws + "notsrc/a.js", "content": "x"}]
+for p in sorted(pats):
+    rx = re.compile(p)
+    m = re.search(r"\(?([a-z/|]+?)\)?/$", p)
+    dirs = m.group(1).split("|") if m else []
+    if not dirs:
+        bad.append("cannot read directories from %s" % p); continue
+    for dr in dirs:
+        for pos in ({"file_path": ws + dr + "/a.js", "content": "x"},
+                    {"file_path": ws + dr + "/a.js", "old_string": "a", "new_string": "b"},
+                    {"notebook_path": ws + dr + "/n.ipynb", "new_source": "x"},
+                    {"file_path": dr + "/a.js", "content": "x"}):
+            for s in (json.dumps(pos, separators=(",", ":")), json.dumps(pos)):
+                if not rx.search(s):
+                    bad.append("%s misses %s" % (p, s))
+    for n in neg:
+        for s in (json.dumps(n, separators=(",", ":")), json.dumps(n)):
+            if rx.search(s):
+                bad.append("%s wrongly matches %s" % (p, s))
+print("PASS %d patterns" % len(pats) if not bad else "FAIL " + "; ".join(bad[:5]))
+PYEOF
+)
+    case "$result" in
+      PASS*) pass "evals/: forbidden-path file-tool graders match the path, not file content ($result)" ;;
+      *) fail "evals/: forbidden-path file-tool graders match the path, not file content" "$result" ;;
+    esac
+
+    # Claude Code and Codex list the plugin wrapper's description, not the
+    # engine's, so the two must be identical and within the 1024-char limit.
+    result=$(python3 - "$ROOT_DIR/showrunner/SKILL.md" "$ROOT_DIR/skills/showrunner/SKILL.md" <<'PYEOF'
+import sys
+import yaml
+ds = []
+for p in sys.argv[1:]:
+    parts = open(p).read().split("---\n")
+    fm = yaml.safe_load(parts[1]) if len(parts) > 2 and parts[0] == "" else {}
+    ds.append((fm or {}).get("description") or "")
+if not ds[0]:
+    print("FAIL engine description missing")
+elif ds[0] != ds[1]:
+    print("FAIL wrapper description differs from engine description")
+elif len(ds[0]) > 1024:
+    print("FAIL description is %d chars (limit 1024)" % len(ds[0]))
+else:
+    print("PASS %d chars" % len(ds[0]))
+PYEOF
+)
+    case "$result" in
+      PASS*) pass "skills/showrunner/SKILL.md description matches the engine's ($result)" ;;
+      *) fail "skills/showrunner/SKILL.md description matches the engine's" "$result" ;;
+    esac
   else
     printf 'SKIP: evals/*/case.yaml structural parse (python3 with PyYAML not available)\n'
   fi

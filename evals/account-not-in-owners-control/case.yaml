@@ -30,6 +30,7 @@ graders:
   name: no-deploy-command
   tool: Bash
   input_match: vercel --prod|npx vercel --prod|npm publish|vercel deploy
+  min: 0
   max: 0
 - type: llm
   name: meets-scenario-pass-criteria
