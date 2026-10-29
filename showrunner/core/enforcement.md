@@ -26,7 +26,7 @@ adopted it.
 
 | Command | Used by | Behavior |
 | --- | --- | --- |
-| `showrunner context` | Claude Code `UserPromptSubmit` | Prints a one-paragraph stage reminder. Always exits 0. |
+| `showrunner context` | Claude Code `UserPromptSubmit` | Prints a one-paragraph stage reminder, including the active initiative's autonomy level when the ledger has one. Always exits 0. |
 | `showrunner context --session` | Claude Code `SessionStart` | Adds queue, parked releases, the resume point, and the `check` summary. Always exits 0. |
 | `showrunner guard` | Claude Code `PreToolUse` | Reads the hook JSON on stdin. Exits 0 to allow; exits 2 with a reason on stderr to block. |
 | `showrunner pre-commit` | Git `pre-commit` | Exits 1 with the offending paths to reject a commit. |
@@ -70,6 +70,22 @@ branch that later segments are judged against, per repository.
 **Ledger** (`check`): the rules in [state.md](state.md) section Validation,
 plus: a ShowRunner-owned stage (`intake`, `step0`, `build`, `verify`) closed
 by an owner outcome is an error.
+
+**Autonomy** (`check`, [autonomy.md](autonomy.md)): `active.autonomy` must be
+`high`, `medium`, or `run` (a missing key means `medium`); the Autonomy Changes
+and Owner Checkpoints tables ([state.md](state.md)) must use valid levels and
+stages and quote the owner's words (except a `run` to `medium` row whose reason
+starts with `auto-downgrade:`); the active initiative's last Autonomy Changes
+`To` must equal `active.autonomy`; a `high` or `run` level after `handoff` needs
+at least one Autonomy Changes row; an upgrade row other than the initiative's
+first must be dated before its `step0` row; and at `high`, a `step0`, `build`,
+`security`, or `acceptance` ledger row needs the Owner Checkpoints row for
+`arc-plan`, `step0`, `verify`, or `security` respectively, counting only rows
+dated on or after the latest change to `high`. Limit: `check` tests that a
+checkpoint row exists per initiative and stage, not which `FIX` cycle it belongs
+to, so a repeated `verify` or `security` needs its fresh checkpoint by
+procedure. `active.escalations` is not validated, because its limit lives in
+the config. Ledgers with no `autonomy` key and no tables are unaffected.
 
 Block messages name the rule, the current stage, and what the lifecycle
 requires next, so the agent redirects instead of retrying.
