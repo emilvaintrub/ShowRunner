@@ -1,0 +1,15 @@
+{
+  "description": "ShowRunner routing: a one-line stage reminder on every owner message in a repository with a ShowRunner ledger or config. Silent elsewhere, and silent when the project installed its own ShowRunner UserPromptSubmit hook (install-hooks --claude).",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/showrunner/scripts/showrunner\" context --plugin"
+          }
+        ]
+      }
+    ]
+  }
+}

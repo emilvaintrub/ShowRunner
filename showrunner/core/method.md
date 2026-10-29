@@ -53,7 +53,8 @@ An `init` command must:
 7. If `context_optimizer.enabled` is true, verify that at least one configured
    command or manual fallback exists. If the named provider is not installed,
    record it as unavailable rather than blocking initialization.
-8. Create `.claude/showrunner/state.md` from
+8. Create the state ledger at `lifecycle.state_file` (default
+   `.claude/showrunner/state.md`) from
    [templates/state.md](templates/state.md) when it is missing. Fill
    `guard.writable_before_build` with the config, ledger, and every
    configured planning, report, and output path, and propose

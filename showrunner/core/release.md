@@ -17,7 +17,8 @@ Before asking, check the accounts register ([ownership.md](ownership.md)):
 every service this release touches must be `owner-confirmed`. List any
 `pending owner` or `at risk` row first, with the one action that fixes it. The
 release question waits until the owner resolves each one or accepts the risk in
-their own words.
+their own words. Until then, do not ask, list, or pre-fill the release question
+(section 3); say only that it follows once the account is resolved.
 
 ### Legal preflight
 

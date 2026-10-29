@@ -911,6 +911,113 @@ else
 fi
 
 # ===========================================================================
+# 6b. Configurable ledger location (lifecycle.state_file)
+# ===========================================================================
+
+# custom_ledger_repo STATE_FILE_VALUE [COVER]
+# A repo whose config names lifecycle.state_file; the ledger is written at
+# .showrunner/state.md. COVER=yes adds ".showrunner/*" to
+# guard.writable_before_build.
+custom_ledger_repo() {
+  r=$(new_repo)
+  cover=${2:-yes}
+  if [ "$cover" = yes ]; then
+    write_state "$r" spec no none no ".showrunner/*"
+  else
+    write_state "$r" spec no none no
+  fi
+  mkdir -p "$r/.showrunner"
+  mv "$r/.claude/showrunner/state.md" "$r/.showrunner/state.md"
+  {
+    printf '# ShowRunner Config\n\n```yaml\nschema_version: 1\nlifecycle:\n'
+    printf '  state_file: %s\n' "$1"
+    printf '  fix_loop_limit: 3\n  autonomy:\n    default: medium\n```\n'
+  } > "$r/.claude/showrunner/config.md"
+  printf '%s\n' "$r"
+}
+
+repo=$(custom_ledger_repo '".showrunner/state.md"')
+out=$(cd "$repo" && "$SHOWRUNNER" context)
+case "$out" in
+  ShowRunner:*spec*) pass "state_file: context reads the ledger named by lifecycle.state_file" ;;
+  *) fail "state_file: context reads the ledger named by lifecycle.state_file" "out=[$out]" ;;
+esac
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors"; } && pass "state_file: covered custom ledger passes check" || fail "state_file: covered custom ledger passes check" "exit=$rc out=$out"
+out=$(guard_json_edit Edit file_path "$repo/.showrunner/state.md" "$repo" | "$SHOWRUNNER" guard 2>&1)
+rc=$?
+[ "$rc" -eq 0 ] && pass "state_file: guard allows editing the custom ledger before build" || fail "state_file: guard allows editing the custom ledger before build" "exit=$rc out=$out"
+out=$(guard_json_edit Edit file_path "$repo/src/app.js" "$repo" | "$SHOWRUNNER" guard 2>&1)
+rc=$?
+[ "$rc" -eq 2 ] && pass "state_file: guard enforces from the custom ledger (product edit at spec blocked)" || fail "state_file: guard enforces from the custom ledger (product edit at spec blocked)" "exit=$rc out=$out"
+
+repo=$(custom_ledger_repo "'.showrunner/state.md'   # moved out of .claude")
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors"; } && pass "state_file: single-quoted value with a trailing comment is read" || fail "state_file: single-quoted value with a trailing comment is read" "exit=$rc out=$out"
+
+repo=$(custom_ledger_repo '".showrunner/state.md"' no)
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "ERROR: lifecycle.state_file .showrunner/state.md is not covered by guard.writable_before_build"; } \
+  && pass "state_file: check rejects a custom ledger outside guard.writable_before_build" \
+  || fail "state_file: check rejects a custom ledger outside guard.writable_before_build" "exit=$rc out=$out"
+
+for bad in '"/tmp/state.md"' '"../state.md"' '"docs/../../state.md"' '".showrunner/.."'; do
+  repo=$(custom_ledger_repo "$bad")
+  # Keep a default-path ledger too, so the error is reported alongside it.
+  cp "$repo/.showrunner/state.md" "$repo/.claude/showrunner/state.md"
+  out=$(cd "$repo" && "$SHOWRUNNER" check)
+  rc=$?
+  { [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "ERROR: lifecycle.state_file must be a relative path"; } \
+    && pass "state_file: check rejects $bad" \
+    || fail "state_file: check rejects $bad" "exit=$rc out=$out"
+done
+repo=$(custom_ledger_repo '"../state.md"')
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "must be a relative path"; } \
+  && pass "state_file: an invalid value fails check even with no ledger found" \
+  || fail "state_file: an invalid value fails check even with no ledger found" "exit=$rc out=$out"
+
+# Configured but not created yet: a default-path ledger keeps enforcing.
+repo=$(custom_ledger_repo '".showrunner/state.md"')
+mv "$repo/.showrunner/state.md" "$repo/.claude/showrunner/state.md"
+out=$(guard_json_edit Edit file_path "$repo/src/app.js" "$repo" | "$SHOWRUNNER" guard 2>&1)
+rc=$?
+[ "$rc" -eq 2 ] && pass "state_file: a missing custom ledger falls back to the default ledger (still enforced)" || fail "state_file: a missing custom ledger falls back to the default ledger (still enforced)" "exit=$rc out=$out"
+
+# The default value behaves exactly as before.
+repo=$(new_repo)
+write_state "$repo" spec no none no
+printf '# ShowRunner Config\n\n```yaml\nschema_version: 1\nlifecycle:\n  state_file: ".claude/showrunner/state.md"\n```\n' > "$repo/.claude/showrunner/config.md"
+out=$(cd "$repo" && "$SHOWRUNNER" check)
+rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "0 errors"; } && pass "state_file: the default value needs no extra writable pattern" || fail "state_file: the default value needs no extra writable pattern" "exit=$rc out=$out"
+
+# SHOWRUNNER_STATE still wins over the config.
+repo=$(custom_ledger_repo '".showrunner/state.md"')
+alt=$(mktemp -d); track_tmp "$alt"
+write_state "$alt" build no none no
+out=$(cd "$repo" && SHOWRUNNER_STATE="$alt/.claude/showrunner/state.md" "$SHOWRUNNER" context)
+case "$out" in
+  *build*) pass "state_file: \$SHOWRUNNER_STATE overrides lifecycle.state_file" ;;
+  *) fail "state_file: \$SHOWRUNNER_STATE overrides lifecycle.state_file" "out=[$out]" ;;
+esac
+
+# A linked worktree resolves the custom ledger in the primary worktree.
+repo=$(custom_ledger_repo '".showrunner/state.md"')
+wt=$(mktemp -d); track_tmp "$wt"; rmdir "$wt"
+(cd "$repo" && git add -A && git commit -q -m "docs: config" && git branch wt2 && git worktree add -q "$wt" wt2) >/dev/null 2>&1
+rm -f "$wt/.showrunner/state.md" 2>/dev/null
+out=$(cd "$wt" && "$SHOWRUNNER" context)
+case "$out" in
+  ShowRunner:*spec*) pass "state_file: linked worktree reads the primary worktree's custom ledger" ;;
+  *) fail "state_file: linked worktree reads the primary worktree's custom ledger" "out=[$out]" ;;
+esac
+
+# ===========================================================================
 # 7. Installer
 # ===========================================================================
 
@@ -1668,6 +1775,121 @@ rc=$?
 [ "$rc" -eq 2 ] && pass "usage error (unknown subcommand) exits 2" || fail "usage error (unknown subcommand) exits 2" "exit=$rc out=$out"
 
 # ===========================================================================
+# 10b. Plugin-level routing hook (.claude-plugin/hooks.json)
+# ===========================================================================
+
+PLUGIN_MANIFEST="$ROOT_DIR/.claude-plugin/plugin.json"
+PLUGIN_HOOKS="$ROOT_DIR/.claude-plugin/hooks.json"
+EXPECTED_PLUGIN_CMD='"${CLAUDE_PLUGIN_ROOT}/showrunner/scripts/showrunner" context --plugin'
+
+if grep -q '"hooks": "./.claude-plugin/hooks.json"' "$PLUGIN_MANIFEST" && [ -f "$PLUGIN_HOOKS" ]; then
+  pass "plugin hook: Claude manifest names ./.claude-plugin/hooks.json and the file exists"
+else
+  fail "plugin hook: Claude manifest names ./.claude-plugin/hooks.json and the file exists"
+fi
+if [ ! -e "$ROOT_DIR/hooks/hooks.json" ] && ! grep -q '"hooks"' "$ROOT_DIR/.codex-plugin/plugin.json"; then
+  pass "plugin hook: no hooks/hooks.json at the plugin root and no hooks key for Codex (Codex loads neither)"
+else
+  fail "plugin hook: no hooks/hooks.json at the plugin root and no hooks key for Codex (Codex loads neither)"
+fi
+if command -v python3 >/dev/null 2>&1; then
+  result=$(python3 - "$PLUGIN_HOOKS" "$EXPECTED_PLUGIN_CMD" <<'PYEOF'
+import json, sys
+d = json.load(open(sys.argv[1]))
+h = d.get("hooks", {})
+cmds = [x.get("command") for m in h.get("UserPromptSubmit", []) for x in m.get("hooks", [])]
+if sorted(h) != ["UserPromptSubmit"]:
+    print("FAIL events: %s" % sorted(h))
+elif cmds != [sys.argv[2]]:
+    print("FAIL commands: %s" % cmds)
+else:
+    print("PASS")
+PYEOF
+)
+  [ "$result" = PASS ] && pass "plugin hook: only UserPromptSubmit, running showrunner context --plugin" \
+    || fail "plugin hook: only UserPromptSubmit, running showrunner context --plugin" "$result"
+else
+  printf 'SKIP: plugin hook JSON shape (python3 not available)\n'
+fi
+
+# run_plugin_hook DIR [PATH] -- runs the plugin hook command the way Claude
+# Code does (shell, with CLAUDE_PLUGIN_ROOT and CLAUDE_PROJECT_DIR set).
+run_plugin_hook() {
+  (cd "$1" && PATH=${2:-$PATH} CLAUDE_PLUGIN_ROOT="$ROOT_DIR" CLAUDE_PROJECT_DIR="$1" /bin/sh -c "$EXPECTED_PLUGIN_CMD")
+}
+# run_project_hook DIR [PATH] -- runs the UserPromptSubmit command that
+# install-hooks --claude wrote into DIR/.claude/settings.json.
+run_project_hook() {
+  pcmd=$(jq -r '.hooks.UserPromptSubmit[0].hooks[0].command' "$1/.claude/settings.json")
+  (cd "$1" && PATH=${2:-$PATH} CLAUDE_PROJECT_DIR="$1" /bin/sh -c "$pcmd")
+}
+count_route() {
+  printf '%s\n' "$1" | grep -c "Route this message"
+}
+
+nojq_bin=$(mktemp -d)
+track_tmp "$nojq_bin"
+for t in git awk sed grep cat dirname basename tr head tail mktemp wc cut sort env; do
+  tpath=$(command -v "$t" 2>/dev/null) && ln -s "$tpath" "$nojq_bin/$t"
+done
+
+repo=$(new_repo)
+write_state "$repo" spec no none no
+out=$(run_plugin_hook "$repo"); rc=$?
+{ [ "$rc" -eq 0 ] && [ "$(count_route "$out")" -eq 1 ]; } \
+  && pass "plugin hook: prints the stage reminder once in a ShowRunner repo" \
+  || fail "plugin hook: prints the stage reminder once in a ShowRunner repo" "exit=$rc out=$out"
+
+plain=$(new_repo)
+out=$(run_plugin_hook "$plain"); rc=$?
+{ [ "$rc" -eq 0 ] && [ -z "$out" ]; } && pass "plugin hook: silent in a repo without a ShowRunner config or ledger" \
+  || fail "plugin hook: silent in a repo without a ShowRunner config or ledger" "exit=$rc out=$out"
+nogit=$(mktemp -d); track_tmp "$nogit"
+out=$(run_plugin_hook "$nogit"); rc=$?
+{ [ "$rc" -eq 0 ] && [ -z "$out" ]; } && pass "plugin hook: silent outside a Git repository" \
+  || fail "plugin hook: silent outside a Git repository" "exit=$rc out=$out"
+cfgonly=$(new_repo)
+mkdir -p "$cfgonly/.claude/showrunner"
+printf '# ShowRunner Config\n' > "$cfgonly/.claude/showrunner/config.md"
+out=$(run_plugin_hook "$cfgonly"); rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "no state ledger yet"; } && pass "plugin hook: config without a ledger prints only the setup reminder" \
+  || fail "plugin hook: config without a ledger prints only the setup reminder" "exit=$rc out=$out"
+
+# Unrelated project settings (and a SessionStart-only ShowRunner hook) do
+# not silence the plugin hook, with or without jq.
+mkdir -p "$repo/.claude"
+printf '{\n  "hooks": {\n    "SessionStart": [\n      {\n        "hooks": [\n          {\n            "type": "command",\n            "command": "\\"$CLAUDE_PROJECT_DIR\\"/.githooks/showrunner context --session"\n          }\n        ]\n      }\n    ]\n  }\n}\n' > "$repo/.claude/settings.json"
+out=$(run_plugin_hook "$repo")
+[ "$(count_route "$out")" -eq 1 ] && pass "plugin hook: a SessionStart-only project hook does not silence it (jq)" \
+  || fail "plugin hook: a SessionStart-only project hook does not silence it (jq)" "out=$out"
+out=$(run_plugin_hook "$repo" "$nojq_bin")
+[ "$(count_route "$out")" -eq 1 ] && pass "plugin hook: a SessionStart-only project hook does not silence it (no jq)" \
+  || fail "plugin hook: a SessionStart-only project hook does not silence it (no jq)" "out=$out"
+rm -f "$repo/.claude/settings.json"
+
+if command -v jq >/dev/null 2>&1; then
+  sh "$INSTALL_SH" --project-root "$repo" --claude >/dev/null 2>&1
+  for mode in jq nojq; do
+    p=$PATH; [ "$mode" = nojq ] && p=$nojq_bin
+    pout=$(run_plugin_hook "$repo" "$p")
+    jout=$(run_project_hook "$repo" "$p")
+    { [ -z "$pout" ] && [ "$(count_route "$jout")" -eq 1 ] && [ "$(count_route "$pout
+$jout")" -eq 1 ]; } \
+      && pass "plugin hook: with install-hooks --claude the reminder prints exactly once ($mode)" \
+      || fail "plugin hook: with install-hooks --claude the reminder prints exactly once ($mode)" "plugin=[$pout] project=[$jout]"
+  done
+  mv "$repo/.claude/settings.json" "$repo/.claude/settings.local.json"
+  for mode in jq nojq; do
+    p=$PATH; [ "$mode" = nojq ] && p=$nojq_bin
+    pout=$(run_plugin_hook "$repo" "$p")
+    [ -z "$pout" ] && pass "plugin hook: a project hook in settings.local.json also silences it ($mode)" \
+      || fail "plugin hook: a project hook in settings.local.json also silences it ($mode)" "plugin=[$pout]"
+  done
+else
+  fail "plugin hook: install-hooks --claude dedupe tests" "jq not available in this environment"
+fi
+
+# ===========================================================================
 # 11. Eval suite structural checks (evals/): no model calls.
 # ===========================================================================
 
@@ -1835,8 +2057,19 @@ PYEOF
         out=$(cd "$fdir" && "$SHOWRUNNER" check 2>&1)
         if printf '%s' "$out" | grep -q "ERROR"; then
           fail "evals/$id: fixture ledger passes showrunner check" "out=$out"
+        elif [ -f "$fdir/.claude/showrunner/config.md" ] && printf '%s' "$out" | grep -q "no state ledger"; then
+          fail "evals/$id: fixture ledger passes showrunner check" "config present but no ledger found: out=$out"
         else
           pass "evals/$id: fixture ledger passes showrunner check"
+        fi
+        # Plugin evals run in dontAsk mode, where Claude Code refuses writes
+        # under .claude/; a fixture ledger there could never be updated.
+        if [ -f "$fdir/.claude/showrunner/state.md" ]; then
+          fail "evals/$id: fixture ledger lives outside .claude/ (lifecycle.state_file)" "found $fdir/.claude/showrunner/state.md"
+        elif [ -f "$fdir/.claude/showrunner/config.md" ] && [ ! -f "$fdir/.showrunner/state.md" ]; then
+          fail "evals/$id: fixture ledger lives outside .claude/ (lifecycle.state_file)" "no .showrunner/state.md"
+        else
+          pass "evals/$id: fixture ledger lives outside .claude/ (lifecycle.state_file)"
         fi
       else
         fail "evals/$id: fixture scaffold builds without error" "$(cat /tmp/fixture_build_err.$$)"
@@ -1845,6 +2078,13 @@ PYEOF
     done
   else
     printf 'SKIP: evals/*/_fixtures build + showrunner check (python3 not available)\n'
+  fi
+
+  stale=$(grep -l '\.claude/showrunner/state\.md' "$EVALS_DIR"/*/case.yaml 2>/dev/null)
+  if [ -z "$stale" ]; then
+    pass "evals: no case grader reads the ledger at .claude/showrunner/state.md (fixtures use .showrunner/state.md)"
+  else
+    fail "evals: no case grader reads the ledger at .claude/showrunner/state.md (fixtures use .showrunner/state.md)" "$stale"
   fi
 else
   fail "evals/ directory exists" "not found: $EVALS_DIR"

@@ -6,8 +6,13 @@ says so; artifact status lines, summaries, and recollection are not evidence.
 
 ## Location And Ownership
 
-- Path: `.claude/showrunner/state.md` in the primary worktree, created by the
-  `setup` stage from [templates/state.md](templates/state.md).
+- Path: `lifecycle.state_file` in `.claude/showrunner/config.md`, relative to
+  the primary worktree (default `.claude/showrunner/state.md`), created by the
+  `setup` stage from [templates/state.md](templates/state.md). The value must
+  be relative, with no leading `/` and no `..`; a non-default path must be
+  listed in `guard.writable_before_build`. Choose a path outside `.claude/`
+  when the host refuses or keeps asking about writes there (Claude Code asks
+  before writing under `.claude/`, and non-interactive runs refuse).
 - ShowRunner writes it. The owner reads it. Implementers never write it.
 - Worktrees and enforcement scripts read the primary worktree's copy
   (`git rev-parse --git-common-dir`), so a dispatched implementer and the
@@ -15,6 +20,20 @@ says so; artifact status lines, summaries, and recollection are not evidence.
 - Commit ledger changes with the planning artifacts they record, using a
   `docs(showrunner): <summary>` commit on the primary branch, and in the merge
   hygiene commit. Never rewrite committed rows.
+
+## When A Ledger Write Is Refused
+
+If the host refuses a write to the ledger (a permission prompt the owner
+declined, or a non-interactive mode that denies it):
+
+- Say so in one line, naming the file.
+- Never route around the refusal: no shell redirection, script, or other tool
+  to write the ledger instead.
+- Finish the stage work that does not depend on the write, in the same turn.
+- Show the exact rows and fields that are pending, so nothing is lost.
+- Ask the owner to allow the write, or to set `lifecycle.state_file` to a
+  path the host lets ShowRunner write.
+- The recorded stage does not advance until the ledger says so.
 
 ## Shape
 

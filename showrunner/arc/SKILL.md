@@ -11,8 +11,9 @@ evidence, escalate product or scope calls, and never merge automatically.
 ## Load
 
 1. Read `../core/lifecycle.md` and `../core/method.md`.
-2. Read the active project's `.claude/showrunner/config.md` and
-   `.claude/showrunner/state.md`.
+2. Read the active project's `.claude/showrunner/config.md` and the
+   state ledger it names in `lifecycle.state_file` (default
+   `.claude/showrunner/state.md`).
 3. Read [method.md](method.md).
 4. For `run`, load `../core/dispatch.md`.
 5. For `verify` or `merge`, load `../core/merge.md`. For `verify`, also load

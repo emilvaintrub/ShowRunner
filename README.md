@@ -182,6 +182,9 @@ Use `-Force` to replace an existing local install.
 3. Existing projects also run the new project stages once: discovery reuses
    what existing documents already answer and asks only for the gaps, then
    comes the assessment, and the constitution is kept if already approved.
+   The Claude Code plugin also adds its own routing reminder on every
+   message in a ShowRunner repository (`.claude-plugin/hooks.json`); it
+   stays silent where the project hook is installed, so nothing prints twice.
 4. Claude Code may ask you to review the new project hooks in
    `.claude/settings.json` the first time; approve them to turn on the
    guard.

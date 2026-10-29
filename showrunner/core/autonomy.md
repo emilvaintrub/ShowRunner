@@ -62,6 +62,11 @@ Mechanics:
   stage with `status: awaiting-owner` and `awaiting` naming the "go". The next
   stage does not start in the same turn. This is the one exception to
   lifecycle section 3 step 6.
+- While a checkpoint waits, every reply that reports on it (a status
+  question, "hi", a resumed session) shows that checkpoint's summary again,
+  in the plain words of the table above, read from the stage's artifact (for
+  `step0`, the Step 0 contract: what will be built, which files and areas,
+  and the tests), so the owner can say "go" from that reply.
 - A `FIX` loop that repeats `verify` or `security` needs a fresh checkpoint
   each time. `showrunner check` tests only that one checkpoint row exists per
   initiative and stage; it cannot tell which cycle a row belongs to.

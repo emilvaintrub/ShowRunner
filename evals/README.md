@@ -60,9 +60,30 @@ exec python3 "$here/../_fixtures/build.py" "<case-id>"
 The real work lives once in `evals/_fixtures/build.py` (one function per
 case) and `evals/_fixtures/lib.py` (shared git/YAML/ledger helpers). Neither
 file is itself a case (no `case.yaml`/`prompt.md`), so case discovery skips
-the `_fixtures/` directory. Every fixture's `.claude/showrunner/state.md`
-ledger is designed to pass `showrunner check`; `tests/run.sh` verifies this on
-every run (calling `build.py` directly) without spending any model calls.
+the `_fixtures/` directory. Every fixture's ledger is designed to pass
+`showrunner check`; `tests/run.sh` verifies this on every run (calling
+`build.py` directly) without spending any model calls.
+
+### Fixture ledgers live at `.showrunner/state.md`
+
+Fixtures set `lifecycle.state_file: ".showrunner/state.md"` and keep the
+ledger there, not at the default `.claude/showrunner/state.md`. Claude Code
+treats every write under a project's `.claude/` directory as a sensitive-file
+prompt, which it checks before allow rules, and `claude plugin eval` always
+starts the agent with `--permission-mode dontAsk`, which turns that prompt
+into a denial. Neither case.yaml `allowed_tools` (even
+`Edit(/.claude/showrunner/**)`) nor `--allow-tools` lifts it, and case.yaml
+has no permission-mode field. With the ledger under `.claude/` an eval run
+could never open an initiative or record an incident. `tests/run.sh` fails
+any fixture whose ledger is under `.claude/` and any case grader that reads
+`.claude/showrunner/state.md`.
+
+Case selection with `--case` matches the case's `name:` field (for example
+`--case 'Plain request*'`), not its directory name. Run the suite from a
+checkout at a path with no hidden directory in it (for example a
+`git archive` export of a worktree that lives under `.claude/worktrees/`):
+from inside a hidden path the agent has been seen to mis-resolve the plugin's
+file paths.
 
 ### Sandbox backend for `--allow-tools Bash`
 

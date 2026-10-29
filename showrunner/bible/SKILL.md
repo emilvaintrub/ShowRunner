@@ -12,8 +12,9 @@ claim traces to a repository path, interface, or named report.
 ## Load
 
 1. Read `../core/lifecycle.md` and `../core/method.md`.
-2. Read the active project's `.claude/showrunner/config.md` and
-   `.claude/showrunner/state.md`.
+2. Read the active project's `.claude/showrunner/config.md` and the
+   state ledger it names in `lifecycle.state_file` (default
+   `.claude/showrunner/state.md`).
 3. Read [method.md](method.md).
 4. Load `../core/merge.md` for `merge`.
 5. Load [templates/bible.md](templates/bible.md) for `sync`.

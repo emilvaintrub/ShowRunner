@@ -29,7 +29,7 @@ graders:
   name: selection-recorded-verbatim
   target:
     source: file
-    path: .claude/showrunner/state.md
+    path: .showrunner/state.md
   pattern: None for now\.
   match: contains
 - type: llm

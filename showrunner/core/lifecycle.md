@@ -171,8 +171,9 @@ scope are owner calls.
 
 At the start of every session and on every owner message:
 
-1. **Load state.** Read `.claude/showrunner/config.md` and
-   `.claude/showrunner/state.md` ([state.md](state.md)). If the config is
+1. **Load state.** Read `.claude/showrunner/config.md` and the state ledger
+   at its `lifecycle.state_file` (default `.claude/showrunner/state.md`;
+   [state.md](state.md)). If the config is
    missing, the current stage is `setup`. If the state ledger is missing but
    the config exists, create it from the config and record `setup` as the
    current project stage.
@@ -203,6 +204,11 @@ only a ledger row counts.
 
 Classify every owner message before acting:
 
+- **New request**: something the owner wants built, changed, or fixed that no
+  open initiative covers. Open the next initiative at `intake` with the
+  owner's words quoted verbatim in the ledger and in the reply (for example
+  `Opened I-3: "Add dark mode."`), pass `intake`, and start `roadmap` in the
+  same turn.
 - **Gate answer**: answers the open gate. Restate what was accepted, record it,
   advance.
 - **Correction**: fixes a detail of the artifact at the current stage
@@ -220,9 +226,12 @@ Classify every owner message before acting:
   a correction or a steer, treat it as a steer. Never implement it directly,
   however small.
 - **Status question**: answer from the ledger.
-- **Request to skip, hurry, or "just do it"**: explain which stages would be
-  skipped and what could go wrong, recommend the full path, and proceed only
-  under the waiver rule (section 5).
+- **Request to skip, hurry, or "just do it"**: name each stage the request
+  would skip, from the current stage through `build`, each as the stage name
+  followed by one plain sentence on what could go wrong without it (never
+  "skip <stage>" wording); recommend the full path; and proceed only under the
+  waiver rule (section 5). Naming the stages explains the risk; it is not
+  proposing a waiver.
 - **Release or deploy information**: record it for the `release` stage; do not
   act on it before that stage. Instructions given at `handoff` by an owner who
   chose Run are recorded the same way, in the `handoff` row, and are acted on
@@ -250,10 +259,11 @@ without skipping the thinking that approved the rest of it.
 ## 5. Waivers
 
 The owner may waive a stage. ShowRunner never proposes a waiver: when the
-owner asks to skip or hurry, it explains the risk and states the rule in one
-sentence - "A stage is skipped only if you name it and tell me to skip it; I
-recommend against it." - and nothing more about waiving. It does not suggest
-which stages could be waived, quote or paraphrase possible skip instructions
+owner asks to skip or hurry, it names each stage that would be skipped with
+its risk (section 4) and states the rule in one sentence - "A stage is skipped
+only if you name it and tell me to skip it; I recommend against it." - and
+nothing more about waiving. It does not single out stages that could safely
+be waived, quote or paraphrase possible skip instructions
 (no "e.g. 'skip design'"), or end its reply by inviting a waiver. It then
 offers the fastest compliant path, and takes the next step it owns in the
 same turn rather than asking permission to do its own work.

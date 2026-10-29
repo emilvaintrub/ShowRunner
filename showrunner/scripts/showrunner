@@ -62,20 +62,85 @@ find_first_existing() {
   return 1
 }
 
+# config_state_file CONFIG
+# Prints the raw lifecycle.state_file value (quotes stripped) from the YAML
+# block of CONFIG, or nothing when the key is absent.
+config_state_file() {
+  _cfs_v=$(awk '
+    /^```yaml[ \t]*$/ { infence=1; next }
+    infence && /^```[ \t]*$/ { exit }
+    !infence { next }
+    /^[A-Za-z_][A-Za-z0-9_]*:/ {
+      top = $0
+      sub(/:.*/, "", top)
+      insect = (top == "lifecycle")
+      next
+    }
+    insect && /^  state_file:/ {
+      v = $0
+      sub(/^  state_file:[ \t]*/, "", v)
+      sub(/[ \t]*(#.*)?$/, "", v)
+      val = v
+    }
+    END { print val }
+  ' "$1" 2>/dev/null)
+  case "$_cfs_v" in
+    \"*\") _cfs_v=${_cfs_v#\"}; _cfs_v=${_cfs_v%\"} ;;
+    \'*\') _cfs_v=${_cfs_v#\'}; _cfs_v=${_cfs_v%\'} ;;
+  esac
+  printf '%s' "$_cfs_v"
+}
+
+# state_file_valid REL -- relative, no leading "/", no ".." segment.
+state_file_valid() {
+  case "$1" in
+    ""|/*|..|../*|*/..|*/../*|\\*|[A-Za-z]:*) return 1 ;;
+  esac
+  return 0
+}
+
+DEFAULT_STATE_REL=".claude/showrunner/state.md"
+
 # compute_state_path DIR
-# Sets STATE_FILE. Returns 0 (with an existing STATE_FILE) or 1 (no ledger).
+# Sets STATE_FILE, STATE_ROOT (the project root the ledger belongs to, when
+# known), STATE_REL (the ledger path relative to STATE_ROOT), and
+# STATE_FILE_INVALID (the configured lifecycle.state_file when it is not a
+# safe relative path). Returns 0 (with an existing STATE_FILE) or 1.
 compute_state_path() {
   _csp_dir=${1:-.}
+  STATE_ROOT=""
+  STATE_REL=$DEFAULT_STATE_REL
+  STATE_FILE_INVALID=""
   if [ -n "${SHOWRUNNER_STATE:-}" ]; then
     STATE_FILE=$SHOWRUNNER_STATE
     [ -f "$STATE_FILE" ] && return 0
     STATE_FILE=""
     return 1
   fi
-  STATE_FILE=$(find_first_existing "$_csp_dir" ".claude/showrunner/state.md") || {
+  _csp_cfg=$(find_first_existing "$_csp_dir" ".claude/showrunner/config.md") || _csp_cfg=""
+  if [ -n "$_csp_cfg" ]; then
+    _csp_custom=$(config_state_file "$_csp_cfg")
+    if [ -n "$_csp_custom" ] && [ "$_csp_custom" != "$DEFAULT_STATE_REL" ]; then
+      if state_file_valid "$_csp_custom"; then
+        _csp_root=${_csp_cfg%/.claude/showrunner/config.md}
+        if [ -f "$_csp_root/$_csp_custom" ]; then
+          STATE_ROOT=$_csp_root
+          STATE_REL=$_csp_custom
+          STATE_FILE="$_csp_root/$_csp_custom"
+          return 0
+        fi
+        # Not created yet: keep enforcing from a default-path ledger if
+        # one exists, so a config edit alone never switches checks off.
+      else
+        STATE_FILE_INVALID=$_csp_custom
+      fi
+    fi
+  fi
+  STATE_FILE=$(find_first_existing "$_csp_dir" "$DEFAULT_STATE_REL") || {
     STATE_FILE=""
     return 1
   }
+  STATE_ROOT=${STATE_FILE%/"$DEFAULT_STATE_REL"}
   return 0
 }
 
@@ -292,9 +357,39 @@ stage_label() {
   printf '%s (%s/15)' "$1" "$_sl_n"
 }
 
+# project_prompt_hook_installed -- true when the project's Claude Code
+# settings already run ShowRunner's own UserPromptSubmit hook
+# (install-hooks --claude), so the plugin-level hook must stay silent.
+project_prompt_hook_installed() {
+  [ -n "${CLAUDE_PROJECT_DIR:-}" ] || return 1
+  for _phi_f in "$CLAUDE_PROJECT_DIR/.claude/settings.json" \
+                "$CLAUDE_PROJECT_DIR/.claude/settings.local.json"; do
+    [ -f "$_phi_f" ] || continue
+    if command -v jq >/dev/null 2>&1; then
+      if jq -e '[.hooks.UserPromptSubmit[]?.hooks[]?.command // empty
+                 | select(test("/showrunner context$"))] | length > 0' \
+           "$_phi_f" >/dev/null 2>&1; then
+        return 0
+      fi
+    elif grep -q '/showrunner context"' "$_phi_f" 2>/dev/null; then
+      return 0
+    fi
+  done
+  return 1
+}
+
 cmd_context() {
   _ctx_session=0
-  [ "${1:-}" = "--session" ] && _ctx_session=1
+  _ctx_plugin=0
+  for _ctx_arg in "$@"; do
+    case "$_ctx_arg" in
+      --session) _ctx_session=1 ;;
+      --plugin) _ctx_plugin=1 ;;
+    esac
+  done
+  if [ "$_ctx_plugin" -eq 1 ] && project_prompt_hook_installed; then
+    return 0
+  fi
 
   if ! compute_state_path "."; then
     _ctx_cfg=$(find_first_existing "." ".claude/showrunner/config.md") || _ctx_cfg=""
@@ -987,6 +1082,11 @@ pick_shasum_cmd() {
 
 cmd_check() {
   if ! compute_state_path "."; then
+    if [ -n "$STATE_FILE_INVALID" ]; then
+      printf 'ERROR: lifecycle.state_file must be a relative path inside the project with no "..": %s\n' "$STATE_FILE_INVALID"
+      printf 'showrunner check: 1 errors, 0 warnings\n'
+      return 1
+    fi
     printf 'showrunner check: no state ledger\n'
     return 0
   fi
@@ -995,13 +1095,27 @@ cmd_check() {
     return 0
   fi
 
-  _c_project_root=${STATE_FILE%/.claude/showrunner/state.md}
-  if [ "$_c_project_root" = "$STATE_FILE" ]; then
-    _c_project_root=$(dirname "$(dirname "$(dirname "$STATE_FILE")")")
+  _c_pre_errors=0
+  if [ -n "$STATE_FILE_INVALID" ]; then
+    printf 'ERROR: lifecycle.state_file must be a relative path inside the project with no "..": %s\n' "$STATE_FILE_INVALID"
+    _c_pre_errors=$((_c_pre_errors + 1))
+  fi
+  if [ "$STATE_REL" != "$DEFAULT_STATE_REL" ] && ! is_writable_path "$STATE_REL"; then
+    printf 'ERROR: lifecycle.state_file %s is not covered by guard.writable_before_build\n' "$STATE_REL"
+    _c_pre_errors=$((_c_pre_errors + 1))
+  fi
+
+  if [ -n "$STATE_ROOT" ]; then
+    _c_project_root=$STATE_ROOT
+  else
+    _c_project_root=${STATE_FILE%/.claude/showrunner/state.md}
+    if [ "$_c_project_root" = "$STATE_FILE" ]; then
+      _c_project_root=$(dirname "$(dirname "$(dirname "$STATE_FILE")")")
+    fi
   fi
   _c_shasum=$(pick_shasum_cmd)
 
-  awk -v project_root="$_c_project_root" -v shasum="$_c_shasum" '
+  awk -v project_root="$_c_project_root" -v shasum="$_c_shasum" -v pre_errors="$_c_pre_errors" '
     BEGIN {
       n = split("setup discovery assessment constitution business-docs intake roadmap spec design design-review handoff arc-plan step0 build verify security acceptance merge release close", stage_order, " ")
       for (i = 1; i <= n; i++) stage_index[stage_order[i]] = i
@@ -1033,7 +1147,7 @@ cmd_check() {
       ac_n = 0
       oc_n = 0
       row_n = 0
-      errors = 0
+      errors = pre_errors + 0
       warns = 0
     }
 
@@ -1401,6 +1515,8 @@ showrunner - ShowRunner lifecycle enforcement
 
 Usage:
   showrunner context [--session]   One-paragraph stage reminder (SessionStart/UserPromptSubmit).
+  showrunner context --plugin      The same, from the plugin's own hook; silent when the
+                                   project installed ShowRunner's UserPromptSubmit hook.
   showrunner guard                 Read a PreToolUse hook payload on stdin; exit 2 to block.
   showrunner pre-commit            Validate staged paths against the current stage; exit 1 to reject.
   showrunner check                 Validate the state ledger; exit 1 if any error is found.
