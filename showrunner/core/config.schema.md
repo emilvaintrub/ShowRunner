@@ -40,6 +40,9 @@ questions:
 lifecycle:
   state_file: ".claude/showrunner/state.md"
   fix_loop_limit: 3
+  autonomy:
+    default: medium            # preselected at handoff: high | medium | run
+    run_escalation_limit: 3    # escalations in one initiative before Run drops to Medium
   enforcement:
     git_hooks: true
     claude_hooks: "enabled | disabled"
@@ -436,6 +439,11 @@ records only what repository evidence shows and what the owner has supplied;
 `owner_supplied` is always `true`, and every unsupplied value stays `pending`
 until the `release` stage asks ([release.md](release.md)).
 
+`lifecycle.autonomy` sets the level preselected when the owner chooses at
+`handoff`, and the number of escalations after which a Run initiative drops to
+Medium ([autonomy.md](autonomy.md)). There is no key for the Sentry cap or for
+relaxing any invariant.
+
 ### Shared base
 
 The base owns repository identity, role models, context hygiene, Step 0 reads,
@@ -486,6 +494,9 @@ Initialization must reject or surface:
 - `implementer_model` equal to `light_model` while `routing` is `tiered`, or
   any routing that places a section 3 task of [models.md](models.md) below
   the judgment tier;
+- a `lifecycle.autonomy` key other than `default` and `run_escalation_limit`,
+  a `default` outside `high | medium | run`, or a `run_escalation_limit` that is
+  not an integer of at least 1;
 - context optimization enabled without at least one configured command or an
   explicit manual fallback;
 - a locale ceremony enabled without approval rules;

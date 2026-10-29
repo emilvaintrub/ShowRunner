@@ -18,7 +18,7 @@ says so; artifact status lines, summaries, and recollection are not evidence.
 
 ## Shape
 
-The file holds one YAML block, then two append-only Markdown tables. Keep the
+The file holds one YAML block, then append-only Markdown tables. Keep the
 YAML flat: enforcement scripts read it with line tools, not a YAML parser.
 
 ```yaml
@@ -39,6 +39,8 @@ active:
   feature_branch: "<branch or none>"
   step0_approved: "no | <approved contract digest>"
   fix_loops: 0
+  autonomy: "high | medium | run"
+  escalations: 0
   release_authorized: "no | yes"
   resume: "<exact next action if a turn stopped mid-stage, or none>"
 people:
@@ -117,6 +119,35 @@ the owner or a delegate listed for that stage; `constitution`, `assessment`,
 `passed`, `approved`, `not-applicable`, `waived`, and `released` are terminal.
 `held` is terminal for `release` only.
 
+### Autonomy Changes
+
+```markdown
+| Initiative | From | To | Date | Reason or owner words (verbatim) |
+| --- | --- | --- | --- | --- |
+| I-001 | medium | run | <date> | "<the owner's words>" |
+```
+
+Append-only. `From` and `To` are `high`, `medium`, or `run`. The first row for
+an initiative is written at `handoff`, with `From` equal to the config default
+(`lifecycle.autonomy.default`). The last row's `To` must equal
+`active.autonomy`. The last column quotes the owner verbatim; the only
+exception is an automatic downgrade from `run` to `medium`, whose reason starts
+with `auto-downgrade:` (for example `auto-downgrade: 4 escalations`). See
+[autonomy.md](autonomy.md).
+
+### Owner Checkpoints
+
+```markdown
+| Initiative | Stage | Date | Owner words (verbatim) |
+| --- | --- | --- | --- |
+| I-001 | step0 | <date> | "<the owner's words>" |
+```
+
+Append-only, used at High only. `Stage` is `arc-plan`, `step0`, `verify`, or
+`security`. A row records the owner's "go" after that ShowRunner-owned stage
+passed; it never replaces the stage's gate row. At High, the next stage may not
+have a ledger row until the checkpoint row exists.
+
 ## Recording Rules
 
 - Use `project` as the initiative for the project stages: `setup`,
@@ -150,7 +181,25 @@ fails when:
 - `not-applicable` is used outside `design` and `design-review`;
 - a non-waivable stage is `waived`;
 - `build` or a later implementation stage is active without an approved
-  Step 0 digest and a feature branch.
+  Step 0 digest and a feature branch;
+- `active.autonomy`, when present, is not `high`, `medium`, or `run` (a missing
+  key means `medium`);
+- an Autonomy Changes row has a `From` or `To` outside that set;
+- the last Autonomy Changes row for the active initiative has a `To` that
+  differs from `active.autonomy`;
+- `active.autonomy` is `high` or `run`, the active initiative has a `handoff`
+  row, and it has no Autonomy Changes row;
+- an Autonomy Changes upgrade row (towards less control) is dated at or after
+  the initiative's `step0` row, other than the initiative's first Autonomy
+  Changes row;
+- an Autonomy Changes or Owner Checkpoints row has no quoted owner words, other
+  than a `run` to `medium` row whose reason starts with `auto-downgrade:`;
+- an Owner Checkpoints row names a stage other than `arc-plan`, `step0`,
+  `verify`, or `security`;
+- `active.autonomy` is `high` and a later stage has a ledger row with no
+  matching checkpoint row (`step0` needs `arc-plan`, `build` needs `step0`,
+  `security` needs `verify`, `acceptance` needs `security`), counting only
+  rows dated on or after the latest Autonomy Changes row whose `To` is `high`.
 
 It warns when an artifact's current bytes no longer match its latest row.
 
