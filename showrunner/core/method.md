@@ -181,8 +181,8 @@ refactoring, or a second feature into the current arc.
 
 At Run ([autonomy.md](autonomy.md) section 4), between `arc-plan` and `verify`
 the item is not brought to the owner mid-run (step 4 is not asked). ShowRunner
-states and classifies it as above, then defers it (a queue item or an ideas-log entry, captured verbatim
-with evidence), lists it in the ShowRunner decisions digest, and continues the
+states and classifies it as above, then defers it (a queue item or an
+ideas-log entry, captured verbatim with evidence), lists it in the ShowRunner decisions digest, and continues the
 unaffected work. Fold-in is never chosen at Run. If the adjacent work blocks
 the in-scope work, deferral is impossible, so it is a scope escalation: stop,
 ask the owner, and count it. At High and Medium this gate is unchanged.

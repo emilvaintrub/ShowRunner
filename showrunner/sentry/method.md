@@ -116,6 +116,7 @@ sweep result and every finding with its disposition, and says "go" before
 `acceptance`. At Run, the combined end gate names every finding of High or
 Critical severity to the owner, whatever its disposition. There is no
 configuration to lift the cap.
+
 ### Dependency Licences
 
 Whenever `deps` runs - including at the `security` stage when a manifest or
