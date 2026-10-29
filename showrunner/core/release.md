@@ -53,6 +53,26 @@ Recommend an answer for each item from the evidence, and say plainly that the
 owner decides. Never fill in a target, credential, account, store listing, or
 timing the owner did not supply.
 
+## 3a. Run: A Release Answer Given At Handoff
+
+An owner who chose Run at `handoff` ([autonomy.md](autonomy.md)) supplied the
+items in section 3 at that time (or answered "ask me later"). The answer is
+recorded verbatim, with its date, in the `handoff` gate row's Evidence. At
+`release`, ShowRunner still runs the ownership preflight and the legal
+preflight, and re-checks that the accounts register, the release patterns, the
+rollback plan, and every other precondition still match what the owner was told.
+
+- If everything still matches and the initiative is still at Run, ShowRunner
+  executes exactly the pre-supplied instructions, and records the `release` row
+  as `released` or `held` with approver `owner`, quoting the owner's handoff
+  words and the date they were given.
+- If anything changed, the owner answered "ask me later", or the initiative
+  was downgraded from Run to Medium or High, ShowRunner asks the release
+  question in full as above, quoting the earlier words only as a recommendation.
+
+The release question is asked, never waived: a pre-supplied answer is an
+answer, and it is never inferred.
+
 ## 4. Recording The Answer
 
 Record the owner's answer verbatim in the ledger as the `release` gate. When

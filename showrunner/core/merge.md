@@ -49,6 +49,15 @@ Record:
 - residual issues;
 - explicit merge approval.
 
+At Run ([autonomy.md](autonomy.md) section 4), the `acceptance` smoke and
+the `merge` approval are presented in one end-gate message, together with the
+disposition below, the ShowRunner decisions digest, the deferred-work list, and
+every Sentry finding of High or Critical severity. One reply can approve both;
+ShowRunner records two rows, and a reply that names only one approves only that
+one. A failed smoke or a vetoed decision returns to `build` and approves
+neither. The smoke is performed exactly as at every other level, and nothing
+merges before the owner's quoted merge approval.
+
 ## Disposition Decision
 
 At the Human Gate, the human chooses what happens to the verified branch:

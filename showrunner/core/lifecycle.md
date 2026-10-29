@@ -70,6 +70,14 @@ answer arrived first.
 Never ask the owner a question ShowRunner can answer from the repository,
 config, or recorded decisions. Never decide a question in the owner column.
 
+The autonomy level ([autonomy.md](autonomy.md)) never moves a decision from one
+column to the other. It only changes who clears ShowRunner-owned checkpoints
+and how owner gates are batched. At the default level (Medium) the table above
+applies as written. At High, the owner also says "go" after `arc-plan`,
+`step0`, `verify`, and `security`; that "go" is a checkpoint, not an approval of
+Step 0 or of the verification verdict. Only the owner, never a delegate,
+chooses or changes the level.
+
 ## 2. Stages
 
 Every initiative runs every stage below, in this order. There are no shorter
@@ -93,7 +101,7 @@ later stage finds that their conclusions no longer hold.
 | 3 | `spec` | Forge `spec` 1-8 | yes | decision gate resolved; spec 1-8 redline approved; creative gate `SHIP` |
 | 4 | `design` | Forge `design` | yes | designer brief approved, or owner-confirmed not applicable |
 | 5 | `design-review` | Forge `design-review` | yes | returned design output approved, or not applicable with stage 4 |
-| 6 | `handoff` | Forge `spec` 9-11 | yes | spec `arc-ready`; section digests recorded |
+| 6 | `handoff` | Forge `spec` 9-11 | yes | spec `arc-ready`; section digests recorded; autonomy level chosen ([autonomy.md](autonomy.md)) |
 | 7 | `arc-plan` | Arc `plan` | only when the Arc decision gate is not empty | plan and implementer prompt rendered; gate `RESOLVED` or `EMPTY` |
 | 8 | `step0` | Arc `run` (describe) | no | ShowRunner approved the exact contract digest |
 | 9 | `build` | Arc `run` (implement) | no | ship report; feature tip pushed |
@@ -122,6 +130,17 @@ The owner can ask for a business document at any time. The request re-opens
 stage. At every `close`, when an initiative changed pricing, scope,
 positioning, or anything an approved business document relies on,
 ShowRunner names the affected documents and asks whether to refresh them.
+
+### Autonomy Levels
+
+At `handoff` the owner chooses how the build onward is run: `high` (more
+visibility), `medium` (the default, exactly the lifecycle in this file), or
+`run` (ShowRunner runs from the approved handoff to one combined end gate). The
+level governs `arc-plan` through `close`. It never adds, removes, or reorders a
+stage and never relaxes an owner decision; see [autonomy.md](autonomy.md).
+The same `handoff` message offers the three levels, with the config default
+preselected, and says that choosing Run also needs the owner's release
+instructions now.
 
 ### Not Applicable
 
@@ -166,7 +185,10 @@ At the start of every session and on every owner message:
    row to the ledger and advance `active.stage`.
 6. **Advance.** If the next stage is ShowRunner-owned, start it in the same
    turn. If it opens with an owner gate, prepare the artifact and the
-   questions, then ask.
+   questions, then ask. At High, a checkpoint after `arc-plan`, `step0`,
+   `verify`, or `security` is the one exception: hold `active.stage` on that
+   stage with status `awaiting-owner` until the owner's "go" is recorded in
+   Owner Checkpoints ([autonomy.md](autonomy.md)).
 7. **Hand off.** End every turn with the handoff block (section 6).
 
 ShowRunner never ends a turn idle while the next move is its own. If it must
@@ -202,7 +224,10 @@ Classify every owner message before acting:
   skipped and what could go wrong, recommend the full path, and proceed only
   under the waiver rule (section 5).
 - **Release or deploy information**: record it for the `release` stage; do not
-  act on it before that stage.
+  act on it before that stage. Instructions given at `handoff` by an owner who
+  chose Run are recorded the same way, in the `handoff` row, and are acted on
+  only at `release` after the preconditions are re-checked
+  ([release.md](release.md) section 3a).
 - **Customer feedback**: the owner shares what users said or reported. Log
   it and route it ([feedback.md](feedback.md)); it enters the process as
   evidence, never as a direct instruction.
@@ -264,9 +289,12 @@ later stage's artifact while an earlier owner gate is open, however small the
 change: the owner's answer at one gate is an input to the next. Present one
 owner gate per message, and record its answer before starting the next stage.
 
-The only combined gate is design `not-applicable`: ShowRunner presents the
-evidence once and the owner confirms `design` and `design-review` together,
-which records two rows.
+There are two combined gates. The first is design `not-applicable`: ShowRunner
+presents the evidence once and the owner confirms `design` and `design-review`
+together, which records two rows. The second exists only at Run: `acceptance`
+and `merge` are presented in one end-gate message and also record two rows
+([autonomy.md](autonomy.md) section 4). In both, a reply that approves only one
+of the two gates approves only that one.
 
 A reply that approves more than the open gate approves only the open gate.
 Silence is never approval.
@@ -284,6 +312,13 @@ Silence is never approval.
   the reproduction.
 - A failed release check follows the owner-approved rollback in
   [release.md](release.md) and re-opens the initiative at `build` or `spec`.
+- At Run, a failed smoke or a vetoed ShowRunner decision at the combined end
+  gate returns to `build` and approves neither `acceptance` nor `merge`.
+- At Run, `active.escalations` counts the escalations listed in
+  [autonomy.md](autonomy.md) section 4. When it exceeds
+  `lifecycle.autonomy.run_escalation_limit` (default 3), the initiative drops
+  to Medium for the rest of the initiative; the over-limit escalation is still
+  brought to the owner and the downgrade is recorded in the same turn.
 
 ## 9. One Initiative At A Time
 
