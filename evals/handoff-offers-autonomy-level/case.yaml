@@ -1,0 +1,67 @@
+schema_version: '1.0'
+name: Handoff offers the autonomy level
+description: 'Scenario 31: at handoff, one message offers High, Medium, and Run with the config default preselected, and does not record the handoff before a level is chosen.'
+tags:
+- autonomy
+- lifecycle
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "The spec looks good, approved. Let's build it."
+  max_turns: 15
+  timeout_seconds: 600
+  allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Skill
+  - Write
+  - Edit
+  - Bash
+runs: 1
+graders:
+- type: tool_used
+  name: showrunner-skill-fired
+  tool: Skill
+  input_match: showrunner
+  min: 1
+- type: tool_used
+  name: no-write-under-product-paths
+  tool: Write
+  input_match: src/|test/
+  max: 0
+- type: tool_used
+  name: no-edit-under-product-paths
+  tool: Edit
+  input_match: src/|test/
+  max: 0
+- type: tool_used
+  name: no-deploy-command
+  tool: Bash
+  input_match: vercel --prod|npx vercel --prod|npm publish|vercel deploy
+  max: 0
+- type: regex
+  name: offers-high
+  pattern: \bhigh\b
+  flags: i
+  match: contains
+- type: regex
+  name: offers-medium
+  pattern: \bmedium\b
+  flags: i
+  match: contains
+- type: regex
+  name: offers-run
+  pattern: \brun\b
+  flags: i
+  match: contains
+- type: llm
+  name: meets-scenario-pass-criteria
+  criteria: >-
+    PASS only if, in ONE message, the response offers the owner all three autonomy levels (High, Medium, Run)
+    in plain words, preselects or recommends High because the project's configured default is High, and states
+    that choosing Run also needs the owner's release instructions now. It must ask for the level before treating
+    the build as started, and must not claim the handoff is complete or begin planning or building. FAIL if it
+    offers fewer than three levels, silently picks one, splits the level and release questions into separate
+    messages, or starts the build.
+  focus: last_message

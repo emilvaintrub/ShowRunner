@@ -5,7 +5,7 @@ Automated, repeatable eval cases for the behavioral scenarios in
 plugin against a disposable fixture repository for one agent turn and grades
 the result with `claude plugin eval` (Claude Code 2.1+). This replaces
 running the scenarios by hand with fresh agents on throwaway fixture repos:
-the same 27 scenarios now run in CI on every prose change and on a weekly
+the same 31 scenarios now run in CI on every prose change and on a weekly
 schedule, so a rule edit or a new model generation cannot silently regress a
 scenario that was manually verified once and never checked again.
 
@@ -97,6 +97,10 @@ so the `evals` workflow installs them itself before running the suite.
 | 28 | `delegate-approval-and-disagreement` |
 | 29 | `customer-feedback-routing` |
 | 30 | `budget-reached` |
+| 31 | `handoff-offers-autonomy-level` |
+| 32 | `run-mode-end-gate` |
+| 33 | `run-mode-uncovered-decision-stops` |
+| 34 | `high-mode-step0-checkpoint` |
 
 ### Not Automated
 
@@ -121,7 +125,7 @@ so the `evals` workflow installs them itself before running the suite.
   checks.
 - Topical: `lifecycle`, `discovery`, `evidence`, `steering`, `ownership`,
   `outcomes`, `incident`, `legal`, `adoption`, `delegates`, `feedback`,
-  `cost`.
+  `cost`, `autonomy`.
 
 ## Running Locally
 
@@ -138,7 +142,7 @@ claude plugin eval . --case plain-request-no-command --trust-plugin \
   --scaffold --allow-tools Bash Write Edit --ablation none --runs 1 \
   --no-publish --max-cost-usd 1
 
-# The full suite (all 27 cases):
+# The full suite (all 31 cases):
 claude plugin eval . --trust-plugin --scaffold --allow-tools Bash Write Edit \
   --ablation none --runs 1 --threshold 0.8 --no-publish --max-cost-usd 10
 ```
@@ -156,7 +160,7 @@ Notes:
   here (a comparison against "no ShowRunner plugin at all" answering a
   ShowRunner-specific owner message) and roughly halves the cost.
 - `--max-cost-usd` is a hard ceiling; drop it or raise it for a full run of
-  all 27 cases with 3 judged votes per `llm` grader.
+  all 31 cases with 3 judged votes per `llm` grader.
 - Add `--json <path>` to get the full machine-readable result, and drop
   `--no-publish` if you want the shareable HTML report link.
 

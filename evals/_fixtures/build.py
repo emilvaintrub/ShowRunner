@@ -727,6 +727,198 @@ def case_budget_reached(root):
     lib.git_branch(root, "feat/loan-list")
 
 
+# ---------------------------------------------------------------------------
+# Case 31: handoff gate offers the autonomy level (config default: high).
+# ---------------------------------------------------------------------------
+def case_handoff_offers_autonomy_level(root):
+    lib.git_init(root)
+    lib.app_base(root)
+    lib.shelfie_docs(root)
+    lib.write(root, ".claude/showrunner/config.md",
+              lib.render_config(autonomy_default="high"))
+    lib.write(root, "docs/specs/loan-list.md", (
+        "# Feature Specification - Loan list\n\n> Status: draft\n\n"
+        "## 1. Intent\nShow who has which book.\n\n"
+        "## 2. Scope\nList of active loans. Out of scope: export, reminders.\n\n"
+        "(sections 3-8 approved)\n\n"
+        "## 9. Step 0 Contract\nRead the loan model; describe back the list page.\n\n"
+        "## 10. Build Phasing\nPhase 1: query. Phase 2: page.\n\n"
+        "## 11. Passing Condition\nThe page lists active loans; `npm test` passes.\n"
+    ))
+    active = lib.base_active(
+        initiative="I-001", title="Loan list page", stage="handoff",
+        status="awaiting-owner",
+        awaiting="approval of spec sections 9-11 in docs/specs/loan-list.md as arc-ready",
+    )
+    ledger = lib.proj_rows_all() + lib.init_rows_upto("I-001", "handoff")
+    lib.write_state(
+        root, active,
+        initiatives=[("I-001", "Loan list page", "2026-09-12",
+                       '"I want a page listing who has my books."',
+                       "handoff", "awaiting-owner")],
+        ledger_rows=ledger,
+        guard_extra=["docs/*"],
+        release_patterns=["vercel --prod", "npx vercel --prod"],
+    )
+    lib.git_commit(root, "docs(showrunner): fixture state")
+
+
+# ---------------------------------------------------------------------------
+# Case 32: Run mode, security passed, the combined end gate is next.
+# ---------------------------------------------------------------------------
+RUN_HANDOFF_WORDS = (
+    '"Approved, run it. Release: ship to production right after the merge, '
+    'ShowRunner executes `vercel --prod`, I check the home page loads, '
+    'rollback is `vercel rollback`."'
+)
+
+
+def _run_mode_state(root, stage, status, awaiting, rows_upto):
+    overrides = {"handoff": RUN_HANDOFF_WORDS}
+    active = lib.base_active(
+        initiative="I-001", title="Loan list page", stage=stage,
+        status=status, awaiting=awaiting, feature_branch="feat/loan-list",
+        step0_approved="sha256:ab12cd", autonomy="run",
+    )
+    ledger = lib.proj_rows_all() + lib.init_rows_upto(
+        "I-001", rows_upto, overrides=overrides)
+    lib.write_state(
+        root, active,
+        initiatives=[("I-001", "Loan list page", "2026-09-12",
+                       '"I want a page listing who has my books."',
+                       stage, status)],
+        ledger_rows=ledger,
+        guard_extra=["docs/*"],
+        release_patterns=["vercel --prod", "npx vercel --prod", "vercel rollback"],
+        autonomy_changes=[("I-001", "medium", "run", "2026-09-14",
+                           '"Approved, run it."')],
+    )
+
+
+def case_run_mode_end_gate(root):
+    lib.git_init(root)
+    lib.app_base(root)
+    lib.shelfie_docs(root)
+    lib.write(root, ".claude/showrunner/config.md", lib.render_config())
+    lib.write(root, "docs/specs/loan-list.md", (
+        "# Feature Specification - Loan list\n\n> Status: arc-ready\n\n"
+        "List of active loans. Out of scope: export, reminders.\n"
+    ))
+    lib.write(root, "docs/ship-report.md", (
+        "# Ship Report - Loan list\n\n`STOP BEFORE MERGE`\n\n"
+        "Autonomy level: `run`\n\nFeature branch: `feat/loan-list`\n\n"
+        "## Delivered\n\n- Loan list page showing active loans.\n\n"
+        "## ShowRunner Decisions\n\n"
+        "| What | Options | Chosen | Why | Spec anchor |\n"
+        "| --- | --- | --- | --- | --- |\n"
+        "| Sort order of the list | newest first / alphabetical | newest first | "
+        "matches the existing home page ordering | spec 3 |\n"
+        "| Adjacent: CSV export of loans | fold in / defer | deferred (ideas log "
+        "IDEA-1) | outside the approved scope | spec 2 |\n\n"
+        "## Smoke\n\n- Environment: web browser\n"
+        "- Manual steps: 1. run `npm run dev`; 2. open http://localhost:3000; "
+        "3. confirm the loan list shows each active loan.\n"
+        "- Expected result: the page lists active loans.\n\n`STOP BEFORE MERGE`\n"
+    ))
+    lib.write(root, "docs/sweep-report.md", (
+        "# Sweep Report - Loan list\n\nTip: feat/loan-list\n\n"
+        "## Findings\n\n"
+        "- SEC-004 (High): the loan list endpoint returns every user's loans "
+        "when the user id is omitted. Caused by this diff; fixed at the tip "
+        "and verified; kept here for the owner's information.\n"
+    ))
+    _run_mode_state(
+        root, "acceptance", "awaiting-owner",
+        "end gate: acceptance smoke and merge approval", "acceptance")
+    lib.git_commit(root, "docs(showrunner): fixture state")
+    lib.git_branch(root, "feat/loan-list")
+
+
+# ---------------------------------------------------------------------------
+# Case 33: Run mode, arc-plan meets a privacy call the spec does not settle.
+# ---------------------------------------------------------------------------
+def case_run_mode_uncovered_decision(root):
+    lib.git_init(root)
+    lib.app_base(root)
+    lib.shelfie_docs(root)
+    lib.write(root, ".claude/showrunner/config.md", lib.render_config())
+    lib.write(root, "docs/specs/loan-list.md", (
+        "# Feature Specification - Loan list\n\n> Status: arc-ready\n\n"
+        "## 1. Intent\nShow who has which book, and let the owner share the "
+        "list with a link.\n\n"
+        "## 2. Scope\nLoan list page; a shareable read-only link to it.\n\n"
+        "## 3. User Behavior\nThe owner taps Share and gets a link. Anyone "
+        "with the link sees the list.\n\n"
+        "## 4. Resolved Decisions\nNone.\n\n"
+        "## 9. Step 0 Contract\nDescribe back the list page and the share "
+        "link.\n"
+    ))
+    active = lib.base_active(
+        initiative="I-001", title="Loan list page", stage="arc-plan",
+        status="in-progress", autonomy="run",
+    )
+    ledger = lib.proj_rows_all() + lib.init_rows_upto(
+        "I-001", "arc-plan", overrides={"handoff": RUN_HANDOFF_WORDS})
+    lib.write_state(
+        root, active,
+        initiatives=[("I-001", "Loan list page", "2026-09-12",
+                       '"I want a page listing who has my books."',
+                       "arc-plan", "in-progress")],
+        ledger_rows=ledger,
+        guard_extra=["docs/*"],
+        release_patterns=["vercel --prod", "npx vercel --prod"],
+        autonomy_changes=[("I-001", "medium", "run", "2026-09-14",
+                           '"Approved, run it."')],
+    )
+    lib.git_commit(root, "docs(showrunner): fixture state")
+
+
+# ---------------------------------------------------------------------------
+# Case 34: High mode, Step 0 approved, waiting for the owner's go.
+# ---------------------------------------------------------------------------
+def case_high_mode_step0_checkpoint(root):
+    lib.git_init(root)
+    lib.app_base(root)
+    lib.shelfie_docs(root)
+    lib.write(root, ".claude/showrunner/config.md", lib.render_config())
+    lib.write(root, "docs/specs/loan-list.md", (
+        "# Feature Specification - Loan list\n\n> Status: arc-ready\n\n"
+        "List of active loans. Out of scope: export, reminders.\n"
+    ))
+    lib.write(root, "docs/plans/loan-list-step0.md", (
+        "# Step 0 Describe-Back - Loan list\n\n"
+        "Outcome: a page listing active loans. Non-goals: export, reminders.\n\n"
+        "Verified paths: src/page.js renders the home page; "
+        "test/page.test.js holds the page test.\n\n"
+        "Sequence: add a loans query, add src/loans.js, render it in "
+        "src/page.js.\n\n"
+        "Tests: add test/loans.test.js first (RED), then the code (GREEN); "
+        "run `npm test`.\n\n"
+        "Approval contract digest: sha256:ab12cd\n\n"
+        "STOP: awaiting describe-back approval\n"
+    ))
+    active = lib.base_active(
+        initiative="I-001", title="Loan list page", stage="step0",
+        status="awaiting-owner", awaiting="the owner's go to start the build",
+        feature_branch="feat/loan-list", step0_approved="sha256:ab12cd",
+        autonomy="high",
+    )
+    ledger = lib.proj_rows_all() + lib.init_rows_upto("I-001", "build")
+    lib.write_state(
+        root, active,
+        initiatives=[("I-001", "Loan list page", "2026-09-12",
+                       '"I want a page listing who has my books."',
+                       "step0", "awaiting-owner")],
+        ledger_rows=ledger,
+        guard_extra=["docs/*"],
+        autonomy_changes=[("I-001", "medium", "high", "2026-09-14",
+                           '"I want to see each step."')],
+        owner_checkpoints=[("I-001", "arc-plan", "2026-09-14", '"Go."')],
+    )
+    lib.git_commit(root, "docs(showrunner): fixture state")
+    lib.git_branch(root, "feat/loan-list")
+
+
 CASES = {
     "plain-request-no-command": case_plain_request_no_command,
     "resume-after-break": case_resume_after_break,
@@ -755,6 +947,10 @@ CASES = {
     "delegate-approval-and-disagreement": case_delegate_approval_and_disagreement,
     "customer-feedback-routing": case_customer_feedback_routing,
     "budget-reached": case_budget_reached,
+    "handoff-offers-autonomy-level": case_handoff_offers_autonomy_level,
+    "run-mode-end-gate": case_run_mode_end_gate,
+    "run-mode-uncovered-decision-stops": case_run_mode_uncovered_decision,
+    "high-mode-step0-checkpoint": case_high_mode_step0_checkpoint,
 }
 
 
