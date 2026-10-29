@@ -34,6 +34,7 @@ adopted it.
 | Command | Used by | Behavior |
 | --- | --- | --- |
 | `showrunner context` | Claude Code `UserPromptSubmit` | Prints a one-paragraph stage reminder, including the active initiative's autonomy level when the ledger has one. Always exits 0. |
+| `showrunner context --plugin` | The Claude Code plugin's own `UserPromptSubmit` hook | The same reminder, so routing does not depend on the skill description alone. Silent when the project's `.claude/settings.json` or `settings.local.json` already runs ShowRunner's `UserPromptSubmit` hook, so the reminder prints once. Always exits 0. |
 | `showrunner context --session` | Claude Code `SessionStart` | Adds queue, parked releases, the resume point, and the `check` summary. Always exits 0. |
 | `showrunner guard` | Claude Code `PreToolUse` | Reads the hook JSON on stdin. Exits 0 to allow; exits 2 with a reason on stderr to block. |
 | `showrunner pre-commit` | Git `pre-commit` | Exits 1 with the offending paths to reject a commit. |
@@ -159,6 +160,12 @@ The `setup` stage installs enforcement into the project and verifies it:
    entries from `scripts/claude-hooks.json` into the project's
    `.claude/settings.json`, preserving every existing setting and hook, and
    without duplicating ShowRunner entries on re-run.
+   The Claude Code plugin also ships one hook of its own
+   (`.claude-plugin/hooks.json`, named by the manifest's `hooks` key): a
+   `UserPromptSubmit` reminder that is silent in repositories without a
+   ShowRunner config or ledger, and silent when the project hook above is
+   installed. It is not at the plugin root's `hooks/hooks.json`, which Codex
+   would also load; Codex relies on the written lifecycle and the Git hooks.
 3. Commit the hooks path and `.claude/settings.json` on the primary branch as
    `chore(showrunner): install enforcement`, so worktrees and teammates get
    them.

@@ -1775,6 +1775,121 @@ rc=$?
 [ "$rc" -eq 2 ] && pass "usage error (unknown subcommand) exits 2" || fail "usage error (unknown subcommand) exits 2" "exit=$rc out=$out"
 
 # ===========================================================================
+# 10b. Plugin-level routing hook (.claude-plugin/hooks.json)
+# ===========================================================================
+
+PLUGIN_MANIFEST="$ROOT_DIR/.claude-plugin/plugin.json"
+PLUGIN_HOOKS="$ROOT_DIR/.claude-plugin/hooks.json"
+EXPECTED_PLUGIN_CMD='"${CLAUDE_PLUGIN_ROOT}/showrunner/scripts/showrunner" context --plugin'
+
+if grep -q '"hooks": "./.claude-plugin/hooks.json"' "$PLUGIN_MANIFEST" && [ -f "$PLUGIN_HOOKS" ]; then
+  pass "plugin hook: Claude manifest names ./.claude-plugin/hooks.json and the file exists"
+else
+  fail "plugin hook: Claude manifest names ./.claude-plugin/hooks.json and the file exists"
+fi
+if [ ! -e "$ROOT_DIR/hooks/hooks.json" ] && ! grep -q '"hooks"' "$ROOT_DIR/.codex-plugin/plugin.json"; then
+  pass "plugin hook: no hooks/hooks.json at the plugin root and no hooks key for Codex (Codex loads neither)"
+else
+  fail "plugin hook: no hooks/hooks.json at the plugin root and no hooks key for Codex (Codex loads neither)"
+fi
+if command -v python3 >/dev/null 2>&1; then
+  result=$(python3 - "$PLUGIN_HOOKS" "$EXPECTED_PLUGIN_CMD" <<'PYEOF'
+import json, sys
+d = json.load(open(sys.argv[1]))
+h = d.get("hooks", {})
+cmds = [x.get("command") for m in h.get("UserPromptSubmit", []) for x in m.get("hooks", [])]
+if sorted(h) != ["UserPromptSubmit"]:
+    print("FAIL events: %s" % sorted(h))
+elif cmds != [sys.argv[2]]:
+    print("FAIL commands: %s" % cmds)
+else:
+    print("PASS")
+PYEOF
+)
+  [ "$result" = PASS ] && pass "plugin hook: only UserPromptSubmit, running showrunner context --plugin" \
+    || fail "plugin hook: only UserPromptSubmit, running showrunner context --plugin" "$result"
+else
+  printf 'SKIP: plugin hook JSON shape (python3 not available)\n'
+fi
+
+# run_plugin_hook DIR [PATH] -- runs the plugin hook command the way Claude
+# Code does (shell, with CLAUDE_PLUGIN_ROOT and CLAUDE_PROJECT_DIR set).
+run_plugin_hook() {
+  (cd "$1" && PATH=${2:-$PATH} CLAUDE_PLUGIN_ROOT="$ROOT_DIR" CLAUDE_PROJECT_DIR="$1" /bin/sh -c "$EXPECTED_PLUGIN_CMD")
+}
+# run_project_hook DIR [PATH] -- runs the UserPromptSubmit command that
+# install-hooks --claude wrote into DIR/.claude/settings.json.
+run_project_hook() {
+  pcmd=$(jq -r '.hooks.UserPromptSubmit[0].hooks[0].command' "$1/.claude/settings.json")
+  (cd "$1" && PATH=${2:-$PATH} CLAUDE_PROJECT_DIR="$1" /bin/sh -c "$pcmd")
+}
+count_route() {
+  printf '%s\n' "$1" | grep -c "Route this message"
+}
+
+nojq_bin=$(mktemp -d)
+track_tmp "$nojq_bin"
+for t in git awk sed grep cat dirname basename tr head tail mktemp wc cut sort env; do
+  tpath=$(command -v "$t" 2>/dev/null) && ln -s "$tpath" "$nojq_bin/$t"
+done
+
+repo=$(new_repo)
+write_state "$repo" spec no none no
+out=$(run_plugin_hook "$repo"); rc=$?
+{ [ "$rc" -eq 0 ] && [ "$(count_route "$out")" -eq 1 ]; } \
+  && pass "plugin hook: prints the stage reminder once in a ShowRunner repo" \
+  || fail "plugin hook: prints the stage reminder once in a ShowRunner repo" "exit=$rc out=$out"
+
+plain=$(new_repo)
+out=$(run_plugin_hook "$plain"); rc=$?
+{ [ "$rc" -eq 0 ] && [ -z "$out" ]; } && pass "plugin hook: silent in a repo without a ShowRunner config or ledger" \
+  || fail "plugin hook: silent in a repo without a ShowRunner config or ledger" "exit=$rc out=$out"
+nogit=$(mktemp -d); track_tmp "$nogit"
+out=$(run_plugin_hook "$nogit"); rc=$?
+{ [ "$rc" -eq 0 ] && [ -z "$out" ]; } && pass "plugin hook: silent outside a Git repository" \
+  || fail "plugin hook: silent outside a Git repository" "exit=$rc out=$out"
+cfgonly=$(new_repo)
+mkdir -p "$cfgonly/.claude/showrunner"
+printf '# ShowRunner Config\n' > "$cfgonly/.claude/showrunner/config.md"
+out=$(run_plugin_hook "$cfgonly"); rc=$?
+{ [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "no state ledger yet"; } && pass "plugin hook: config without a ledger prints only the setup reminder" \
+  || fail "plugin hook: config without a ledger prints only the setup reminder" "exit=$rc out=$out"
+
+# Unrelated project settings (and a SessionStart-only ShowRunner hook) do
+# not silence the plugin hook, with or without jq.
+mkdir -p "$repo/.claude"
+printf '{\n  "hooks": {\n    "SessionStart": [\n      {\n        "hooks": [\n          {\n            "type": "command",\n            "command": "\\"$CLAUDE_PROJECT_DIR\\"/.githooks/showrunner context --session"\n          }\n        ]\n      }\n    ]\n  }\n}\n' > "$repo/.claude/settings.json"
+out=$(run_plugin_hook "$repo")
+[ "$(count_route "$out")" -eq 1 ] && pass "plugin hook: a SessionStart-only project hook does not silence it (jq)" \
+  || fail "plugin hook: a SessionStart-only project hook does not silence it (jq)" "out=$out"
+out=$(run_plugin_hook "$repo" "$nojq_bin")
+[ "$(count_route "$out")" -eq 1 ] && pass "plugin hook: a SessionStart-only project hook does not silence it (no jq)" \
+  || fail "plugin hook: a SessionStart-only project hook does not silence it (no jq)" "out=$out"
+rm -f "$repo/.claude/settings.json"
+
+if command -v jq >/dev/null 2>&1; then
+  sh "$INSTALL_SH" --project-root "$repo" --claude >/dev/null 2>&1
+  for mode in jq nojq; do
+    p=$PATH; [ "$mode" = nojq ] && p=$nojq_bin
+    pout=$(run_plugin_hook "$repo" "$p")
+    jout=$(run_project_hook "$repo" "$p")
+    { [ -z "$pout" ] && [ "$(count_route "$jout")" -eq 1 ] && [ "$(count_route "$pout
+$jout")" -eq 1 ]; } \
+      && pass "plugin hook: with install-hooks --claude the reminder prints exactly once ($mode)" \
+      || fail "plugin hook: with install-hooks --claude the reminder prints exactly once ($mode)" "plugin=[$pout] project=[$jout]"
+  done
+  mv "$repo/.claude/settings.json" "$repo/.claude/settings.local.json"
+  for mode in jq nojq; do
+    p=$PATH; [ "$mode" = nojq ] && p=$nojq_bin
+    pout=$(run_plugin_hook "$repo" "$p")
+    [ -z "$pout" ] && pass "plugin hook: a project hook in settings.local.json also silences it ($mode)" \
+      || fail "plugin hook: a project hook in settings.local.json also silences it ($mode)" "plugin=[$pout]"
+  done
+else
+  fail "plugin hook: install-hooks --claude dedupe tests" "jq not available in this environment"
+fi
+
+# ===========================================================================
 # 11. Eval suite structural checks (evals/): no model calls.
 # ===========================================================================
 

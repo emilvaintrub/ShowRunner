@@ -357,9 +357,39 @@ stage_label() {
   printf '%s (%s/15)' "$1" "$_sl_n"
 }
 
+# project_prompt_hook_installed -- true when the project's Claude Code
+# settings already run ShowRunner's own UserPromptSubmit hook
+# (install-hooks --claude), so the plugin-level hook must stay silent.
+project_prompt_hook_installed() {
+  [ -n "${CLAUDE_PROJECT_DIR:-}" ] || return 1
+  for _phi_f in "$CLAUDE_PROJECT_DIR/.claude/settings.json" \
+                "$CLAUDE_PROJECT_DIR/.claude/settings.local.json"; do
+    [ -f "$_phi_f" ] || continue
+    if command -v jq >/dev/null 2>&1; then
+      if jq -e '[.hooks.UserPromptSubmit[]?.hooks[]?.command // empty
+                 | select(test("/showrunner context$"))] | length > 0' \
+           "$_phi_f" >/dev/null 2>&1; then
+        return 0
+      fi
+    elif grep -q '/showrunner context"' "$_phi_f" 2>/dev/null; then
+      return 0
+    fi
+  done
+  return 1
+}
+
 cmd_context() {
   _ctx_session=0
-  [ "${1:-}" = "--session" ] && _ctx_session=1
+  _ctx_plugin=0
+  for _ctx_arg in "$@"; do
+    case "$_ctx_arg" in
+      --session) _ctx_session=1 ;;
+      --plugin) _ctx_plugin=1 ;;
+    esac
+  done
+  if [ "$_ctx_plugin" -eq 1 ] && project_prompt_hook_installed; then
+    return 0
+  fi
 
   if ! compute_state_path "."; then
     _ctx_cfg=$(find_first_existing "." ".claude/showrunner/config.md") || _ctx_cfg=""
@@ -1485,6 +1515,8 @@ showrunner - ShowRunner lifecycle enforcement
 
 Usage:
   showrunner context [--session]   One-paragraph stage reminder (SessionStart/UserPromptSubmit).
+  showrunner context --plugin      The same, from the plugin's own hook; silent when the
+                                   project installed ShowRunner's UserPromptSubmit hook.
   showrunner guard                 Read a PreToolUse hook payload on stdin; exit 2 to block.
   showrunner pre-commit            Validate staged paths against the current stage; exit 1 to reject.
   showrunner check                 Validate the state ledger; exit 1 if any error is found.
