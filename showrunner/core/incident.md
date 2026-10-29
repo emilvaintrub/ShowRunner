@@ -23,8 +23,14 @@ it is a new request at `intake`.
 When the owner reports something ("the site is down", "customers can't pay"),
 or a check ShowRunner runs shows it, ShowRunner states plainly whether it
 treats it as an incident and why, and asks the owner to confirm in one line.
-When users are being harmed right now and the owner already approved a
-rollback, it may start step 3 before the confirmation and say so.
+When users are being harmed right now and the owner approved a rollback at the
+last release (recorded in that release's ledger row), start that rollback in
+the same turn, before the confirmation, and say so: run exactly the recorded
+steps when the release record names ShowRunner as executor and ShowRunner can
+run them; otherwise hand the owner the recorded checklist. Not yet knowing the
+cause is not a reason to wait; say what the rollback removes. This covers only
+that recorded rollback. When none is recorded, nothing changes: recommend an
+action and ask (step 3, item 3).
 
 ## 2. Open The Incident
 
@@ -59,8 +65,9 @@ used.
 
 ## 4. Communicate
 
-Draft, for the owner to approve and send, a short status message for affected
-users when needed. For suspected personal-data exposure, tell the owner
+When users are affected, draft in the first incident reply a short status
+message for the owner to approve and send, using only facts known so far (no
+cause or timing promises). For suspected personal-data exposure, tell the owner
 plainly that data-protection laws in many places set notification duties and
 short deadlines, cite the applicable regulator's published guidance under the
 evidence standard, and recommend a qualified lawyer immediately. Never notify
