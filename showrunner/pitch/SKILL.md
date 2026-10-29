@@ -13,8 +13,8 @@ world outside the repository follows `../core/evidence.md`.
 
 1. Read `../core/lifecycle.md`, `../core/method.md`, and
    `../core/evidence.md`.
-2. Read the project's `.claude/showrunner/config.md` and
-   `.claude/showrunner/state.md`.
+2. Read the project's `.claude/showrunner/config.md` and the state ledger it names
+   in `lifecycle.state_file` (default `.claude/showrunner/state.md`).
 3. Read [method.md](method.md).
 4. Load only the template for the document in progress.
 

@@ -1,7 +1,7 @@
 # Feature Specification - <feature>
 
 > Status: decision-gate | draft | inventor-approved | arc-ready (set only with a matching owner ledger row)
-> Initiative: <id from .claude/showrunner/state.md>
+> Initiative: <id from the state ledger>
 > Owner: <inventor or product owner>
 > Constitution: <path and passage>
 > Decisions: <ids>

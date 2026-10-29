@@ -171,8 +171,9 @@ scope are owner calls.
 
 At the start of every session and on every owner message:
 
-1. **Load state.** Read `.claude/showrunner/config.md` and
-   `.claude/showrunner/state.md` ([state.md](state.md)). If the config is
+1. **Load state.** Read `.claude/showrunner/config.md` and the state ledger
+   at its `lifecycle.state_file` (default `.claude/showrunner/state.md`;
+   [state.md](state.md)). If the config is
    missing, the current stage is `setup`. If the state ledger is missing but
    the config exists, create it from the config and record `setup` as the
    current project stage.

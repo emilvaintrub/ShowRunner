@@ -11,8 +11,9 @@ stop every code fix before `main`.
 ## Load
 
 1. Read `../core/lifecycle.md` and `../core/method.md`.
-2. Read the active project's `.claude/showrunner/config.md` and
-   `.claude/showrunner/state.md`.
+2. Read the active project's `.claude/showrunner/config.md` and the
+   state ledger it names in `lifecycle.state_file` (default
+   `.claude/showrunner/state.md`).
 3. Read [method.md](method.md).
 4. Load [knowledge/catalog.md](knowledge/catalog.md) for sweeps.
 5. Load [knowledge/standards.md](knowledge/standards.md) only for mapping or

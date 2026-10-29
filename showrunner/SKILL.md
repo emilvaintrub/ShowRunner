@@ -14,8 +14,9 @@ decide or supply something, and it never skips a stage on its own.
 
 1. Load [core/lifecycle.md](core/lifecycle.md) and
    [core/method.md](core/method.md).
-2. Read `.claude/showrunner/config.md` and `.claude/showrunner/state.md`
-   ([core/state.md](core/state.md)). No config means the current stage is
+2. Read `.claude/showrunner/config.md` and the state ledger it names in
+   `lifecycle.state_file` (default `.claude/showrunner/state.md`;
+   [core/state.md](core/state.md)). No config means the current stage is
    `setup`.
 3. When `active.autonomy` is `high` or `run`, load
    [core/autonomy.md](core/autonomy.md) before running or reporting on any

@@ -38,7 +38,7 @@ questions:
   max_per_round: 5
 
 lifecycle:
-  state_file: ".claude/showrunner/state.md"
+  state_file: ".claude/showrunner/state.md"   # relative to the project root; no leading "/" or ".."; a non-default path must be in guard.writable_before_build
   fix_loop_limit: 3
   autonomy:
     default: medium            # preselected at handoff: high | medium | run

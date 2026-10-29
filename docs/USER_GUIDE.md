@@ -30,7 +30,8 @@ the stage decides.
 4. Open that target project folder in your agent/editor.
 5. Ask: `Initialize ShowRunner for this repository.`
 6. The agent creates `.claude/showrunner/config.md` and the state ledger
-   `.claude/showrunner/state.md`, and installs the safety hooks.
+   (`.claude/showrunner/state.md` unless `lifecycle.state_file` names another
+   path), and installs the safety hooks.
 7. Answer only the business questions it cannot infer from files.
 8. If the product has no constitution yet, ShowRunner interviews you for it
    next. After that, just tell it what you want.
@@ -333,7 +334,8 @@ hooks block deploy commands at any other time.
 
 ## The State Ledger
 
-`.claude/showrunner/state.md` in your project records where every initiative
+`.claude/showrunner/state.md` in your project (or the path set in
+`lifecycle.state_file`) records where every initiative
 stands and every approval, with your exact words. It is how ShowRunner resumes
 after a break without asking you to repeat yourself, and how you can audit
 what was approved. A stage is complete only when the ledger says so.

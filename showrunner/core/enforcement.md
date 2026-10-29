@@ -14,9 +14,16 @@ with `sha256sum` or `shasum -a 256`.
 It finds the ledger in this order:
 
 1. `$SHOWRUNNER_STATE`, when set;
-2. `<primary worktree>/.claude/showrunner/state.md`, where the primary
+2. `lifecycle.state_file` from `.claude/showrunner/config.md` (the config is
+   looked up like the default ledger below), relative to the root where the
+   config was found, when that file exists;
+3. `<primary worktree>/.claude/showrunner/state.md`, where the primary
    worktree is the parent of `git rev-parse --git-common-dir`;
-3. `$CLAUDE_PROJECT_DIR/.claude/showrunner/state.md`.
+4. `$CLAUDE_PROJECT_DIR/.claude/showrunner/state.md`.
+
+`showrunner check` reports a `lifecycle.state_file` that is absolute or
+contains `..`, and a non-default one not covered by
+`guard.writable_before_build`.
 
 When no ledger exists, every guard allows and `context` prints only a setup
 reminder when a config exists. ShowRunner never blocks a project that has not
