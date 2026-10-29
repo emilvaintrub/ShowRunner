@@ -47,6 +47,8 @@ The owner can now choose how closely to follow the build.
   eval` runs in dontAsk mode, which denied every write under `.claude/`, so
   no eval could open an initiative or record an incident.
 - Skip requests name each stage that would be skipped with its risk.
+- A new request opens its initiative with the owner's words quoted back in
+  the reply, not only in the ledger.
 - Incident mode starts the rollback the owner approved at the last release in
   the first reply (run, or handed over as the recorded checklist) and drafts
   the customer message there; with no recorded rollback it still asks.

@@ -204,6 +204,11 @@ only a ledger row counts.
 
 Classify every owner message before acting:
 
+- **New request**: something the owner wants built, changed, or fixed that no
+  open initiative covers. Open the next initiative at `intake` with the
+  owner's words quoted verbatim in the ledger and in the reply (for example
+  `Opened I-3: "Add dark mode."`), pass `intake`, and start `roadmap` in the
+  same turn.
 - **Gate answer**: answers the open gate. Restate what was accepted, record it,
   advance.
 - **Correction**: fixes a detail of the artifact at the current stage
