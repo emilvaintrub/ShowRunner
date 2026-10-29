@@ -5,7 +5,7 @@ Usage: build.py <case-id> [root]
 
 `root` defaults to the current working directory (the eval run's workspace
 when invoked as a case's `context.scaffold_script`). Each case builds a small
-git repository whose `.claude/showrunner/state.md` ledger is designed to pass
+git repository whose state ledger (`lib.LEDGER_PATH`) is designed to pass
 `showrunner check`.
 """
 import datetime

@@ -1942,8 +1942,19 @@ PYEOF
         out=$(cd "$fdir" && "$SHOWRUNNER" check 2>&1)
         if printf '%s' "$out" | grep -q "ERROR"; then
           fail "evals/$id: fixture ledger passes showrunner check" "out=$out"
+        elif [ -f "$fdir/.claude/showrunner/config.md" ] && printf '%s' "$out" | grep -q "no state ledger"; then
+          fail "evals/$id: fixture ledger passes showrunner check" "config present but no ledger found: out=$out"
         else
           pass "evals/$id: fixture ledger passes showrunner check"
+        fi
+        # Plugin evals run in dontAsk mode, where Claude Code refuses writes
+        # under .claude/; a fixture ledger there could never be updated.
+        if [ -f "$fdir/.claude/showrunner/state.md" ]; then
+          fail "evals/$id: fixture ledger lives outside .claude/ (lifecycle.state_file)" "found $fdir/.claude/showrunner/state.md"
+        elif [ -f "$fdir/.claude/showrunner/config.md" ] && [ ! -f "$fdir/.showrunner/state.md" ]; then
+          fail "evals/$id: fixture ledger lives outside .claude/ (lifecycle.state_file)" "no .showrunner/state.md"
+        else
+          pass "evals/$id: fixture ledger lives outside .claude/ (lifecycle.state_file)"
         fi
       else
         fail "evals/$id: fixture scaffold builds without error" "$(cat /tmp/fixture_build_err.$$)"
@@ -1952,6 +1963,13 @@ PYEOF
     done
   else
     printf 'SKIP: evals/*/_fixtures build + showrunner check (python3 not available)\n'
+  fi
+
+  stale=$(grep -l '\.claude/showrunner/state\.md' "$EVALS_DIR"/*/case.yaml 2>/dev/null)
+  if [ -z "$stale" ]; then
+    pass "evals: no case grader reads the ledger at .claude/showrunner/state.md (fixtures use .showrunner/state.md)"
+  else
+    fail "evals: no case grader reads the ledger at .claude/showrunner/state.md (fixtures use .showrunner/state.md)" "$stale"
   fi
 else
   fail "evals/ directory exists" "not found: $EVALS_DIR"

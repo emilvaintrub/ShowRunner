@@ -4,7 +4,12 @@ Not a case itself (no case.yaml / prompt.md here), so `claude plugin eval`
 case discovery never treats this directory as a case. Each case's
 `context.scaffold_script` calls `build.py <case-id>` in this directory, which
 uses these helpers to build a small git repository in the run's workspace
-whose `.claude/showrunner/state.md` ledger passes `showrunner check`.
+whose state ledger passes `showrunner check`.
+
+Fixtures keep the ledger at LEDGER_PATH (`.showrunner/state.md`, named by
+the config's `lifecycle.state_file`), not the default under `.claude/`:
+Claude Code asks before any write under `.claude/`, and `claude plugin eval`
+runs in dontAsk mode, so a ledger there could never be written during a run.
 
 Mirrors the style of the architect's reference generators
 (make_fixture.py / make_state.py / make_post_setup.py) but generalized so one
@@ -23,6 +28,9 @@ PROJECT_STAGES = STAGE_ORDER[:5]
 INIT_CHAIN = STAGE_ORDER[5:]
 SHOWRUNNER_ONLY = {"intake", "step0", "build", "verify"}
 SHOWRUNNER_STYLE = SHOWRUNNER_ONLY | {"arc-plan", "security"}
+
+LEDGER_DIR = ".showrunner"
+LEDGER_PATH = LEDGER_DIR + "/state.md"
 
 GIT_ENV = {
     **os.environ,
@@ -137,7 +145,7 @@ def render_state(active, initiatives=(), outcome_reviews=(), ledger_rows=(),
     else:
         L.append("people: []")
     L += ["queue: []", "parked: []", "guard:", "  writable_before_build:",
-          '    - ".claude/showrunner/*"']
+          '    - ".claude/showrunner/*"', f'    - "{LEDGER_DIR}/*"']
     for g in guard_extra:
         L.append(f'    - "{g}"')
     if release_patterns:
@@ -179,7 +187,7 @@ def render_state(active, initiatives=(), outcome_reviews=(), ledger_rows=(),
 
 
 def write_state(root, *args, **kwargs):
-    write(root, ".claude/showrunner/state.md", render_state(*args, **kwargs))
+    write(root, LEDGER_PATH, render_state(*args, **kwargs))
 
 
 def render_config(forge_status="ready", business_selected="[]", distribution="saas",
@@ -209,7 +217,7 @@ project:
 questions:
   max_per_round: 5
 lifecycle:
-  state_file: ".claude/showrunner/state.md"
+  state_file: "{LEDGER_PATH}"
   fix_loop_limit: 3
 {autonomy_block}tests:
   commands:
