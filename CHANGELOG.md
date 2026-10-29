@@ -34,15 +34,35 @@ The owner can now choose how closely to follow the build.
   `min` to 1, so they could never pass) and match the tool's path argument
   instead of the whole input; `tests/run.sh` enforces both and ignores the
   local `evals/results/` directory.
+- The ledger location is configurable: `lifecycle.state_file` (default
+  `.claude/showrunner/state.md`, relative, no `..`) is now honoured by
+  `showrunner` and the engine prose. `showrunner check` rejects an invalid
+  value and a custom path not in `guard.writable_before_build`. Claude Code
+  asks before every write under `.claude/`, and non-interactive runs refuse,
+  so projects can keep the ledger elsewhere.
+- When the host refuses a ledger write, ShowRunner says so, never routes
+  around it, finishes the work that does not depend on it, shows the pending
+  rows, and asks the owner (`core/state.md`).
+- Eval fixtures keep the ledger at `.showrunner/state.md`: `claude plugin
+  eval` runs in dontAsk mode, which denied every write under `.claude/`, so
+  no eval could open an initiative or record an incident.
+- Skip requests name each stage that would be skipped with its risk.
+- Incident mode starts the rollback the owner approved at the last release in
+  the first reply (run, or handed over as the recorded checklist) and drafts
+  the customer message there; with no recorded rollback it still asks.
+- The release question is not listed or pre-filled while an account is at
+  risk.
+- Adoption's first report names the mode, says existing work is verified
+  before it counts, and asks the owner's intent for every in-flight branch
+  and uncommitted change; the keep / finish / fix / rebuild / drop decision
+  still waits for the health report.
+- The Claude Code plugin ships a `UserPromptSubmit` routing hook
+  (`.claude-plugin/hooks.json`), silent outside ShowRunner repositories and
+  where the project hook from `install-hooks --claude` is installed. Codex
+  does not load it.
 
 ### Before release
 
-- The four autonomy evals passed live at 1.0 (single run). Confirm them with
-  3 runs before release.
-- Smoke evals: 5 of 7 still fail their judge on behavior (just ship it,
-  production incident, account not in the owner's control, plain request, rescue);
-  check whether eval runs can write `.claude/showrunner/state.md`.
-- Follow-up: consider a plugin-level UserPromptSubmit hook for routing.
 - Version bump in the plugin manifests is left to the release decision.
 
 ## v1.6.0 - 2026-10-01
