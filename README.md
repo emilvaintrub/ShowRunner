@@ -209,7 +209,10 @@ The short version:
    approved changes.
 6. It stops only for your decisions: product calls, approvals, the returned
    design, your acceptance test, merge approval, and your release
-   instructions.
+   instructions. At the handoff you also choose how closely to follow the
+   build: High (you say "go" at more checkpoints), Medium (the default), or
+   Run (one combined decision at the end). No level skips a stage or an
+   approval that is yours.
 7. It never skips a stage on its own, never merges without your approval, and
    never releases or deploys without your instructions.
 

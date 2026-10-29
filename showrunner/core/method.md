@@ -142,7 +142,11 @@ ShowRunner, as architect, reviews the describe-back against the brief and the
 repository. The owner does not approve Step 0, and ShowRunner never tells the
 owner they will; ShowRunner tells the owner in
 two or three plain sentences what will be built and that building has begun.
-ShowRunner responds to the implementer with one of:
+At High ([autonomy.md](autonomy.md)), the owner additionally sees a plain
+summary of the approved describe-back and says "go" before `build` starts. That
+"go" is a checkpoint recorded in Owner Checkpoints; it is not a Step 0
+approval, which stays ShowRunner's. ShowRunner responds to the implementer with
+one of:
 
 - `APPROVED`: implementation may begin.
 - `CORRECT AND RE-DESCRIBE`: no implementation; incorporate corrections.
@@ -174,6 +178,14 @@ When adjacent work appears:
 
 Security findings receive a separate finding ID. Never smuggle cleanup,
 refactoring, or a second feature into the current arc.
+
+At Run ([autonomy.md](autonomy.md) section 4), between `arc-plan` and `verify`
+the item is not brought to the owner mid-run (step 4 is not asked). ShowRunner
+states and classifies it as above, then defers it (a queue item or an ideas-log entry, captured verbatim
+with evidence), lists it in the ShowRunner decisions digest, and continues the
+unaffected work. Fold-in is never chosen at Run. If the adjacent work blocks
+the in-scope work, deferral is impossible, so it is a scope escalation: stop,
+ask the owner, and count it. At High and Medium this gate is unchanged.
 
 ## 7. Implementation Discipline
 
@@ -239,7 +251,8 @@ Implementation ends with:
 - `STOP BEFORE MERGE`.
 
 The lifecycle then continues without being asked: `verify`, `security`,
-`acceptance`, `merge`, `release`, and `close`. Merge happens only after
+`acceptance`, `merge`, `release`, and `close`; at High it pauses for the
+owner's "go" after `verify` and `security` as well. Merge happens only after
 independent verification and the owner's approval.
 
 ## 11. Plain-Language User Updates

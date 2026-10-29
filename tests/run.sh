@@ -62,7 +62,7 @@ new_repo() {
   printf '%s\n' "$d"
 }
 
-# write_state REPO STAGE STEP0 FEATURE_BRANCH RELEASE_AUTHORIZED [EXTRA_WRITABLE] [RELEASE_PATTERNS] [PEOPLE]
+# write_state REPO STAGE STEP0 FEATURE_BRANCH RELEASE_AUTHORIZED [EXTRA_WRITABLE] [RELEASE_PATTERNS] [PEOPLE] [AUTONOMY]
 # PEOPLE is newline-separated "<name> | <role> | <comma-separated stages>" entries
 # (unquoted; quoting is added here), matching the ledger's people: shape. Omitted
 # or empty -> "people: []".
@@ -75,6 +75,7 @@ write_state() {
   extra_writable=${6:-}
   release_patterns=${7:-}
   people=${8:-}
+  autonomy=${9:-}
   mkdir -p "$repo/.claude/showrunner"
   {
     printf '```yaml\n'
@@ -92,6 +93,9 @@ write_state() {
     printf '  feature_branch: "%s"\n' "$fb"
     printf '  step0_approved: "%s"\n' "$step0"
     printf '  fix_loops: 0\n'
+    if [ -n "$autonomy" ]; then
+      printf '  autonomy: "%s"\n' "$autonomy"
+    fi
     printf '  release_authorized: "%s"\n' "$relauth"
     printf '  resume: "none"\n'
     if [ -n "$people" ]; then
@@ -695,6 +699,193 @@ out=$(cd "$repo" && "$SHOWRUNNER" context --session)
 { ! printf '%s' "$out" | grep -q "Delegates:"; } \
   && pass "delegate: context --session omits Delegates line when people is empty" \
   || fail "delegate: context --session omits Delegates line when people is empty" "out=[$out]"
+
+# ===========================================================================
+# 5d. Autonomy levels: active.autonomy, Autonomy Changes, Owner Checkpoints
+# ===========================================================================
+
+# seed_rows REPO LAST_STAGE -- appends the five project rows and every
+# initiative row for I-001 up to and including LAST_STAGE, all dated
+# 2026-01-10 (so "before step0" is 2026-01-09 and "after" is 2026-01-11).
+seed_rows() {
+  _sr_repo=$1
+  _sr_last=$2
+  append_row "$_sr_repo" '| 1 | project | setup | passed | showrunner | 2026-01-01 | - | ok |'
+  append_row "$_sr_repo" '| 2 | project | discovery | approved | owner | 2026-01-01 | - | "go" |'
+  append_row "$_sr_repo" '| 3 | project | assessment | approved | owner | 2026-01-01 | - | "go" |'
+  append_row "$_sr_repo" '| 4 | project | constitution | approved | owner | 2026-01-01 | - | "go" |'
+  append_row "$_sr_repo" '| 5 | project | business-docs | approved | owner | 2026-01-01 | - | "none" |'
+  _sr_n=5
+  for _sr_s in intake roadmap spec design design-review handoff arc-plan step0 build verify security acceptance; do
+    _sr_n=$((_sr_n + 1))
+    case "$_sr_s" in
+      roadmap|spec|design|design-review|handoff|acceptance)
+        append_row "$_sr_repo" "| $_sr_n | I-001 | $_sr_s | approved | owner | 2026-01-10 | - | \"ok\" |" ;;
+      *)
+        append_row "$_sr_repo" "| $_sr_n | I-001 | $_sr_s | passed | showrunner | 2026-01-10 | - | ok |" ;;
+    esac
+    [ "$_sr_s" = "$_sr_last" ] && break
+  done
+}
+
+# au_repo ACTIVE_STAGE LAST_ROW_STAGE [AUTONOMY] -- new repo with I-001 active.
+au_repo() {
+  _au_r=$(new_repo)
+  write_state "$_au_r" "$1" digest123 feat/x no "" "" "" "${3:-}"
+  sed -i 's/initiative: "none"/initiative: "I-001"/' "$_au_r/.claude/showrunner/state.md"
+  seed_rows "$_au_r" "$2"
+  printf '%s\n' "$_au_r"
+}
+
+# add_ac REPO FROM TO DATE REASON -- one Autonomy Changes row.
+add_ac() {
+  grep -q '^## Autonomy Changes' "$1/.claude/showrunner/state.md" || {
+    printf '\n## Autonomy Changes\n\n' >> "$1/.claude/showrunner/state.md"
+    printf '| Initiative | From | To | Date | Reason or owner words (verbatim) |\n' >> "$1/.claude/showrunner/state.md"
+    printf '| --- | --- | --- | --- | --- |\n' >> "$1/.claude/showrunner/state.md"
+  }
+  printf '| I-001 | %s | %s | %s | %s |\n' "$2" "$3" "$4" "$5" >> "$1/.claude/showrunner/state.md"
+}
+
+# add_oc REPO STAGE DATE WORDS -- one Owner Checkpoints row.
+add_oc() {
+  grep -q '^## Owner Checkpoints' "$1/.claude/showrunner/state.md" || {
+    printf '\n## Owner Checkpoints\n\n' >> "$1/.claude/showrunner/state.md"
+    printf '| Initiative | Stage | Date | Owner words (verbatim) |\n' >> "$1/.claude/showrunner/state.md"
+    printf '| --- | --- | --- | --- |\n' >> "$1/.claude/showrunner/state.md"
+  }
+  printf '| I-001 | %s | %s | %s |\n' "$2" "$3" "$4" >> "$1/.claude/showrunner/state.md"
+}
+
+# expect_check NAME REPO RC PATTERN -- run check; RC is the expected exit
+# code; PATTERN (grep -F) must appear in the output ("0 errors" for RC 0).
+expect_check() {
+  out=$(cd "$2" && "$SHOWRUNNER" check)
+  rc=$?
+  { [ "$rc" -eq "$3" ] && printf '%s' "$out" | grep -qF -- "$4"; } \
+    && pass "autonomy: $1" || fail "autonomy: $1" "exit=$rc out=$out"
+}
+
+repo=$(au_repo acceptance acceptance)
+expect_check "legacy ledger (no key, no tables) passes" "$repo" 0 "0 errors"
+out=$(cd "$repo" && "$SHOWRUNNER" context)
+case "$out" in
+  *"Autonomy:"*) fail "autonomy: legacy ledger context has no Autonomy text" "out=[$out]" ;;
+  *) pass "autonomy: legacy ledger context has no Autonomy text" ;;
+esac
+
+for lvl in high medium run; do
+  repo=$(au_repo arc-plan handoff "$lvl")
+  [ "$lvl" = "medium" ] || add_ac "$repo" medium "$lvl" 2026-01-09 '"I choose this."'
+  expect_check "level $lvl passes" "$repo" 0 "0 errors"
+done
+
+for bad in turbo ""; do
+  repo=$(au_repo arc-plan handoff)
+  sed -i 's/^  fix_loops: 0/&\n  autonomy: "'"$bad"'"/' "$repo/.claude/showrunner/state.md"
+  expect_check "invalid level [$bad] errors" "$repo" 1 "is not one of high | medium | run"
+done
+
+repo=$(au_repo arc-plan handoff run)
+add_ac "$repo" medium run 2026-01-09 '"Run baby run."'
+expect_check "last Autonomy Changes To equals active.autonomy passes" "$repo" 0 "0 errors"
+
+repo=$(au_repo arc-plan handoff medium)
+add_ac "$repo" medium run 2026-01-09 '"Run baby run."'
+expect_check "last To differs from active.autonomy errors" "$repo" 1 "last Autonomy Changes row sets run but active.autonomy is medium"
+
+repo=$(au_repo build step0 run)
+add_ac "$repo" medium run 2026-01-11 '"Run baby run."'
+expect_check "first row is exempt from the upgrade-after-step0 rule" "$repo" 0 "0 errors"
+
+repo=$(au_repo build step0 run)
+add_ac "$repo" medium high 2026-01-08 '"High please."'
+add_ac "$repo" high run 2026-01-09 '"Actually, run."'
+expect_check "upgrade row dated before step0 passes" "$repo" 0 "0 errors"
+
+for d in 2026-01-10 2026-01-11; do
+  repo=$(au_repo build step0 run)
+  add_ac "$repo" medium high 2026-01-08 '"High please."'
+  add_ac "$repo" high run "$d" '"Actually, run."'
+  expect_check "later upgrade row dated $d (at or after step0) errors" "$repo" 1 "is not before its step0 row"
+done
+
+repo=$(au_repo build step0 medium)
+add_ac "$repo" medium run 2026-01-09 '"Run baby run."'
+add_ac "$repo" run medium 2026-01-11 '"Slow down."'
+expect_check "downgrade after step0 passes" "$repo" 0 "0 errors"
+
+for pair in arc-plan:step0 step0:build verify:security security:acceptance; do
+  prev=${pair%%:*}
+  next=${pair##*:}
+  repo=$(au_repo "$next" "$next" high)
+  add_ac "$repo" medium high 2026-01-09 '"High please."'
+  for st in arc-plan step0 verify security; do
+    [ "$st" = "$prev" ] && continue
+    add_oc "$repo" "$st" 2026-01-10 '"go"'
+  done
+  expect_check "High with $next row but no $prev checkpoint errors" "$repo" 1 "no Owner Checkpoints row for $prev"
+done
+
+repo=$(au_repo acceptance acceptance high)
+add_ac "$repo" medium high 2026-01-09 '"High please."'
+for st in arc-plan step0 verify security; do add_oc "$repo" "$st" 2026-01-10 '"go"'; done
+expect_check "High with every checkpoint present passes" "$repo" 0 "0 errors"
+
+repo=$(au_repo acceptance acceptance medium)
+expect_check "Medium never requires checkpoints" "$repo" 0 "0 errors"
+repo=$(au_repo acceptance acceptance run)
+add_ac "$repo" medium run 2026-01-09 '"Run baby run."'
+expect_check "Run never requires checkpoints" "$repo" 0 "0 errors"
+
+# D7: a Run initiative downgraded to High at verify is not retroactively
+# asked for the arc-plan/step0 checkpoints it was never offered.
+repo=$(au_repo security verify high)
+add_ac "$repo" medium run 2026-01-09 '"Run baby run."'
+add_ac "$repo" run high 2026-01-12 '"I want to see more."'
+expect_check "downgrade to High needs no earlier checkpoints" "$repo" 0 "0 errors"
+repo=$(au_repo security security high)
+add_ac "$repo" medium run 2026-01-09 '"Run baby run."'
+add_ac "$repo" run high 2026-01-10 '"I want to see more."'
+expect_check "rows dated on or after the High downgrade need checkpoints" "$repo" 1 "no Owner Checkpoints row for"
+
+repo=$(au_repo arc-plan handoff run)
+add_ac "$repo" medium run 2026-01-09 'run baby run'
+expect_check "Autonomy Changes row without quoted words errors" "$repo" 1 "Autonomy Changes row for I-001 has no quoted owner words"
+
+repo=$(au_repo step0 arc-plan high)
+add_ac "$repo" medium high 2026-01-09 '"High please."'
+add_oc "$repo" arc-plan 2026-01-10 'go'
+expect_check "Owner Checkpoints row without quoted words errors" "$repo" 1 "Owner Checkpoints row for I-001 has no quoted owner words"
+
+repo=$(au_repo build step0 medium)
+add_ac "$repo" medium run 2026-01-09 '"Run baby run."'
+add_ac "$repo" run medium 2026-01-11 'auto-downgrade: 4 escalations'
+expect_check "auto-downgrade run -> medium needs no quotes" "$repo" 0 "0 errors"
+
+repo=$(au_repo arc-plan handoff high)
+add_ac "$repo" medium high 2026-01-09 'auto-downgrade: 4 escalations'
+expect_check "auto-downgrade reason on any other row still needs quotes" "$repo" 1 "has no quoted owner words"
+
+repo=$(au_repo arc-plan handoff run)
+add_ac "$repo" medium turbo 2026-01-09 '"go"'
+expect_check "invalid level in an Autonomy Changes row errors" "$repo" 1 "invalid level"
+
+repo=$(au_repo step0 arc-plan high)
+add_ac "$repo" medium high 2026-01-09 '"High please."'
+add_oc "$repo" build 2026-01-10 '"go"'
+expect_check "invalid stage in an Owner Checkpoints row errors" "$repo" 1 "invalid stage"
+
+repo=$(au_repo arc-plan handoff run)
+expect_check "level high/run after handoff with no Autonomy Changes row errors" "$repo" 1 "there is no Autonomy Changes row"
+
+repo=$(au_repo arc-plan handoff run)
+add_ac "$repo" medium run 2026-01-09 '"Run baby run."'
+out=$(cd "$repo" && "$SHOWRUNNER" context)
+case "$out" in
+  *"Autonomy: run."*) pass "autonomy: context prints the active level" ;;
+  *) fail "autonomy: context prints the active level" "out=[$out]" ;;
+esac
 
 # ===========================================================================
 # 6. Worktree resolution

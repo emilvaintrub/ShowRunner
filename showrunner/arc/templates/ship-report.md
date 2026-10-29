@@ -14,6 +14,8 @@ Remote tip: `<sha or disabled>`
 
 Approved source digest: `<sha256 or not applicable>`
 
+Autonomy level: `high | medium | run`
+
 ## Delivered
 
 - <behavioral outcome>
@@ -23,6 +25,15 @@ Approved source digest: `<sha256 or not applicable>`
 - In scope: <summary>
 - Deferred: <adjacent findings>
 - Deviations: <approved deviations or none>
+
+## ShowRunner Decisions
+
+Always present. Write `none` when empty. At Run, the owner sees this list at
+the end gate and can veto any entry; a veto returns to `build`.
+
+| What | Options | Chosen | Why | Spec anchor |
+| --- | --- | --- | --- | --- |
+| <convention default, spec interpretation, deferred adjacent item, or model-tier escalation> | <options considered> | <choice> | <reason> | <spec section, or none> |
 
 ## Commits
 

@@ -118,7 +118,10 @@ def base_active(**over):
 
 
 def render_state(active, initiatives=(), outcome_reviews=(), ledger_rows=(),
-                  guard_extra=(), release_patterns=(), people=()):
+                  guard_extra=(), release_patterns=(), people=(),
+                  autonomy_changes=(), owner_checkpoints=()):
+    # `active` may carry autonomy="high|medium|run"; the two autonomy tables
+    # are emitted only when rows are given, so legacy fixtures are unchanged.
     L = [
         "# ShowRunner State - Fixture", "",
         "```yaml", "schema_version: 1", "project:",
@@ -159,6 +162,18 @@ def render_state(active, initiatives=(), outcome_reviews=(), ledger_rows=(),
           "| --- | --- | --- | --- | --- | --- | --- | --- |"]
     for i, row in enumerate(ledger_rows, 1):
         L.append(f"| {i} | " + " | ".join(row) + " |")
+    if autonomy_changes:
+        L += ["", "## Autonomy Changes", "",
+              "| Initiative | From | To | Date | Reason or owner words (verbatim) |",
+              "| --- | --- | --- | --- | --- |"]
+        for row in autonomy_changes:
+            L.append("| " + " | ".join(row) + " |")
+    if owner_checkpoints:
+        L += ["", "## Owner Checkpoints", "",
+              "| Initiative | Stage | Date | Owner words (verbatim) |",
+              "| --- | --- | --- | --- |"]
+        for row in owner_checkpoints:
+            L.append("| " + " | ".join(row) + " |")
     L.append("")
     return "\n".join(L)
 
@@ -170,7 +185,15 @@ def write_state(root, *args, **kwargs):
 def render_config(forge_status="ready", business_selected="[]", distribution="saas",
                    feedback_log="docs/feedback.md",
                    feedback_channels='["support inbox export", "app-store reviews"]',
-                   budget_per_initiative="none", budget_monthly="none"):
+                   budget_per_initiative="none", budget_monthly="none",
+                   autonomy_default=None, run_escalation_limit=3):
+    autonomy_block = ""
+    if autonomy_default is not None:
+        autonomy_block = (
+            "  autonomy:\n"
+            f"    default: {autonomy_default}\n"
+            f"    run_escalation_limit: {run_escalation_limit}\n"
+        )
     return f'''# ShowRunner Config
 
 ```yaml
@@ -188,7 +211,7 @@ questions:
 lifecycle:
   state_file: ".claude/showrunner/state.md"
   fix_loop_limit: 3
-tests:
+{autonomy_block}tests:
   commands:
     unit: "npm test"
 smoke:

@@ -22,6 +22,8 @@ active:
   feature_branch: "none"
   step0_approved: "no"
   fix_loops: 0
+  autonomy: "medium"
+  escalations: 0
   release_authorized: "no"
   resume: "none"
 people: []
@@ -49,3 +51,13 @@ guard:
 
 | # | Initiative | Stage | Outcome | Approver | Date | Artifact | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+
+## Autonomy Changes
+
+| Initiative | From | To | Date | Reason or owner words (verbatim) |
+| --- | --- | --- | --- | --- |
+
+## Owner Checkpoints
+
+| Initiative | Stage | Date | Owner words (verbatim) |
+| --- | --- | --- | --- |

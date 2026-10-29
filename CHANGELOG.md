@@ -2,6 +2,27 @@
 
 All notable public changes to ShowRunner are documented here.
 
+## Unreleased
+
+The owner can now choose how closely to follow the build.
+
+- Added autonomy levels (`core/autonomy.md`): at `handoff` the owner chooses
+  High, Medium (default, unchanged), or Run. High adds owner "go" checkpoints
+  after `arc-plan`, `step0`, `verify`, and `security`. Run takes the release
+  instructions up front, defers adjacent work instead of asking, presents
+  `acceptance` and `merge` as one end gate with a ShowRunner decisions digest
+  the owner can veto, runs quietly, and drops to Medium after
+  `lifecycle.autonomy.run_escalation_limit` escalations. No level skips a
+  stage, relaxes an owner decision, or lifts the Sentry cap at Medium.
+- `showrunner check` validates `active.autonomy`, the new Autonomy Changes and
+  Owner Checkpoints ledger tables, upgrades after `step0`, and High
+  checkpoints; `showrunner context` prints the level. Ledgers written before
+  this change keep passing.
+- New config keys `lifecycle.autonomy.default` and
+  `lifecycle.autonomy.run_escalation_limit`; ship reports gain an always
+  present ShowRunner decisions section.
+- Eval suite: 31 cases, adding autonomy scenarios 31-34.
+
 ## v1.6.0 - 2026-10-01
 
 ShowRunner spends less on agents by routing each one to the cheapest model

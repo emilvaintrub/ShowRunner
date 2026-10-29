@@ -5,6 +5,12 @@
 You implement the approved arc in a fresh context. Own only
 `<feature branch>`. Do not merge or push the primary branch.
 
+Autonomy level: `<high | medium | run>`. The level never loosens a rule in
+this prompt. At Run, report adjacent work and every decision you resolved
+instead of asking; the architect defers adjacent work and lists your decisions
+for the owner. Anything in the human-owned surface (product, scope, privacy,
+pricing, brand, rollout, risk) is escalated at every level.
+
 ## Read First
 
 1. `<repository guidance>`
@@ -123,7 +129,10 @@ or push before approval of that exact digest.
 
 ## During Work
 
-- Use the scope STOP gate for adjacent work.
+- Use the scope STOP gate for adjacent work. Report it to the architect with
+  evidence; do not fold it in.
+- Record each convention default and spec interpretation you resolve, for the
+  ShowRunner decisions section of the ship report.
 - Escalate product or scope decisions; resolve conventions from evidence.
 - Keep atomic scoped commits.
 - Do not bypass hooks.
@@ -131,5 +140,6 @@ or push before approval of that exact digest.
 
 ## Completion
 
-Use `templates/ship-report.md`. Include exact evidence, residual risks, the
+Use `templates/ship-report.md`. Include exact evidence, the ShowRunner
+decisions section (`none` when empty), residual risks, the
 model you ran on, token cost or the adapter-unavailable statement, and end `STOP BEFORE MERGE`.

@@ -309,6 +309,7 @@ cmd_context() {
   _ctx_stage=$(cfg_get active stage)
   _ctx_status=$(cfg_get active status)
   _ctx_awaiting=$(cfg_get active awaiting)
+  _ctx_autonomy=$(cfg_get active autonomy)
 
   if [ -z "$_ctx_initiative" ] || [ "$_ctx_initiative" = "none" ]; then
     _ctx_line="ShowRunner: no active initiative; project stage $(stage_label "$_ctx_stage")"
@@ -316,6 +317,9 @@ cmd_context() {
     _ctx_line="ShowRunner: $_ctx_initiative \"$_ctx_title\" is at stage $(stage_label "$_ctx_stage"), $_ctx_status"
     if [ -n "$_ctx_awaiting" ] && [ "$_ctx_awaiting" != "none" ]; then
       _ctx_line="$_ctx_line, waiting on the owner for: $_ctx_awaiting"
+    fi
+    if [ -n "$_ctx_autonomy" ]; then
+      _ctx_line="$_ctx_line. Autonomy: $_ctx_autonomy"
     fi
   fi
   _ctx_line="$_ctx_line. Route this message through the ShowRunner conductor (core/lifecycle.md section 4) before acting. Product code changes only in the build stage."
@@ -1022,6 +1026,12 @@ cmd_check() {
       cur_top = ""
       in_ledger = 0
       ledger_count = 0
+      in_ac = 0
+      in_oc = 0
+      ac_lines = 0
+      oc_lines = 0
+      ac_n = 0
+      oc_n = 0
       row_n = 0
       errors = 0
       warns = 0
@@ -1069,6 +1079,40 @@ cmd_check() {
       next
     }
 
+    /^## / { in_ac = 0; in_oc = 0 }
+    /^## Autonomy Changes/ { in_ac = 1; ac_lines = 0; in_ledger = 0; next }
+    /^## Owner Checkpoints/ { in_oc = 1; oc_lines = 0; in_ledger = 0; next }
+    in_ac && /^\|/ {
+      ac_lines++
+      if (ac_lines <= 2) next
+      line = $0
+      sub(/^\|/, "", line)
+      sub(/\|[ \t]*$/, "", line)
+      nf = split(line, cells, "|")
+      for (i = 1; i <= nf; i++) { gsub(/^[ \t]+/, "", cells[i]); gsub(/[ \t]+$/, "", cells[i]) }
+      ac_n++
+      ac_init[ac_n] = cells[1]
+      ac_from[ac_n] = cells[2]
+      ac_to[ac_n] = cells[3]
+      ac_date[ac_n] = cells[4]
+      ac_words[ac_n] = cells[5]
+      next
+    }
+    in_oc && /^\|/ {
+      oc_lines++
+      if (oc_lines <= 2) next
+      line = $0
+      sub(/^\|/, "", line)
+      sub(/\|[ \t]*$/, "", line)
+      nf = split(line, cells, "|")
+      for (i = 1; i <= nf; i++) { gsub(/^[ \t]+/, "", cells[i]); gsub(/[ \t]+$/, "", cells[i]) }
+      oc_n++
+      oc_init[oc_n] = cells[1]
+      oc_stage[oc_n] = cells[2]
+      oc_date[oc_n] = cells[3]
+      oc_words[oc_n] = cells[4]
+      next
+    }
     /^## Gate Ledger/ { in_ledger = 1; ledger_count = 0; next }
     in_ledger && /^## / { in_ledger = 0 }
     in_ledger && /^\|/ {
@@ -1085,6 +1129,7 @@ cmd_check() {
       r_stage[row_n] = cells[3]
       r_outcome[row_n] = cells[4]
       r_approver[row_n] = cells[5]
+      r_date[row_n] = cells[6]
       r_artifact[row_n] = cells[7]
       r_evidence[row_n] = cells[8]
       next
@@ -1112,8 +1157,16 @@ cmd_check() {
       }
     }
 
+    function lvl_rank(l) {
+      if (l == "high") return 0
+      if (l == "medium") return 1
+      if (l == "run") return 2
+      return -1
+    }
+
     END {
       for (i = 1; i <= row_n; i++) {
+        if (!((r_init[i] SUBSEP r_stage[i]) in first_date)) first_date[r_init[i] SUBSEP r_stage[i]] = r_date[i]
         if (!(r_stage[i] in stage_index)) {
           print "ERROR: row #" r_num[i] ": unknown stage " r_stage[i]
           errors++
@@ -1237,6 +1290,73 @@ cmd_check() {
         if (fb == "" || fb == "none") {
           print "ERROR: stage " as_ " is active without a feature branch"
           errors++
+        }
+      }
+
+      # Autonomy levels (core/autonomy.md). A missing key means medium, and a
+      # ledger with no key and no tables adds no errors.
+      aut_present = ("autonomy" in active)
+      aut = aut_present ? active["autonomy"] : "medium"
+      if (aut_present && lvl_rank(aut) < 0) {
+        print "ERROR: active.autonomy \"" aut "\" is not one of high | medium | run"
+        errors++
+      }
+      for (i = 1; i <= ac_n; i++) {
+        ini = ac_init[i]
+        valid = (lvl_rank(ac_from[i]) >= 0 && lvl_rank(ac_to[i]) >= 0)
+        if (!valid) {
+          print "ERROR: autonomy: Autonomy Changes row for " ini " has invalid level (" ac_from[i] " -> " ac_to[i] ")"
+          errors++
+        }
+        exempt = (ac_from[i] == "run" && ac_to[i] == "medium" && index(ac_words[i], "auto-downgrade:") == 1)
+        if (!exempt && index(ac_words[i], "\"") == 0) {
+          print "ERROR: autonomy: Autonomy Changes row for " ini " has no quoted owner words"
+          errors++
+        }
+        if (!(ini in ac_seen)) {
+          ac_seen[ini] = 1
+        } else if (valid && lvl_rank(ac_to[i]) > lvl_rank(ac_from[i]) && ((ini SUBSEP "step0") in first_date)) {
+          s0d = first_date[ini SUBSEP "step0"]
+          if (ac_date[i] >= s0d) {
+            print "ERROR: autonomy: " ini " upgrade " ac_from[i] " -> " ac_to[i] " dated " ac_date[i] " is not before its step0 row (" s0d "); upgrades are only allowed before step0"
+            errors++
+          }
+        }
+        last_to[ini] = ac_to[i]
+        if (ac_to[i] == "high") high_since[ini] = ac_date[i]
+      }
+      for (i = 1; i <= oc_n; i++) {
+        ini = oc_init[i]
+        if (oc_stage[i] != "arc-plan" && oc_stage[i] != "step0" && oc_stage[i] != "verify" && oc_stage[i] != "security") {
+          print "ERROR: autonomy: Owner Checkpoints row for " ini " has invalid stage " oc_stage[i]
+          errors++
+        }
+        if (index(oc_words[i], "\"") == 0) {
+          print "ERROR: autonomy: Owner Checkpoints row for " ini " has no quoted owner words"
+          errors++
+        }
+        oc_has[ini SUBSEP oc_stage[i]] = 1
+      }
+      if (ai != "" && ai != "none") {
+        if ((ai in last_to) && last_to[ai] != aut) {
+          print "ERROR: autonomy: " ai " last Autonomy Changes row sets " last_to[ai] " but active.autonomy is " aut
+          errors++
+        }
+        if (aut_present && (aut == "high" || aut == "run") && ((ai SUBSEP "handoff") in latest) && !(ai in ac_seen)) {
+          print "ERROR: autonomy: " ai " has a handoff row and active.autonomy is " aut " but there is no Autonomy Changes row"
+          errors++
+        }
+        if (aut == "high") {
+          hs = (ai in high_since) ? high_since[ai] : "0000-00-00"
+          n = split("arc-plan:step0 step0:build verify:security security:acceptance", cp, " ")
+          for (i = 1; i <= n; i++) {
+            split(cp[i], pr, ":")
+            nk = ai SUBSEP pr[2]
+            if ((nk in first_date) && first_date[nk] >= hs && !((ai SUBSEP pr[1]) in oc_has)) {
+              print "ERROR: autonomy: " ai " is High; " pr[2] " has a ledger row but there is no Owner Checkpoints row for " pr[1]
+              errors++
+            }
+          }
         }
       }
 

@@ -35,6 +35,7 @@ decide or supply something, and it never skips a stage on its own.
 | `discovery`, `assessment` | [forge/SKILL.md](forge/SKILL.md), [forge/discovery.md](forge/discovery.md), [forge/knowledge/inquiry-bank.md](forge/knowledge/inquiry-bank.md), [core/evidence.md](core/evidence.md), the stage's template |
 | `business-docs` | [pitch/SKILL.md](pitch/SKILL.md), [pitch/method.md](pitch/method.md), [core/evidence.md](core/evidence.md), the document's template |
 | `constitution`, `roadmap`, `spec`, `design`, `design-review`, `handoff` | [forge/SKILL.md](forge/SKILL.md), [forge/method.md](forge/method.md), the command's template, [gates/wow-check.md](gates/wow-check.md) for GATE-OUT when enabled; for `roadmap`, also [forge/discovery.md](forge/discovery.md) section 5 |
+| `handoff` (level choice), and `arc-plan` through `close` | [core/autonomy.md](core/autonomy.md) |
 | `arc-plan`, `step0`, `build` | [arc/SKILL.md](arc/SKILL.md), [arc/method.md](arc/method.md), [core/dispatch.md](core/dispatch.md), [core/tdd.md](core/tdd.md), [core/debugging.md](core/debugging.md) |
 | `verify` | Arc files above, [core/merge.md](core/merge.md), [gates/audit.md](gates/audit.md), [gates/wow-check.md](gates/wow-check.md) for UI work when enabled |
 | `security` | [sentry/SKILL.md](sentry/SKILL.md), [sentry/method.md](sentry/method.md), [sentry/knowledge/catalog.md](sentry/knowledge/catalog.md) |
@@ -105,6 +106,10 @@ recorded in the ledger.
 - No fact about the world without a real, dated source; no figure without a
   label ([core/evidence.md](core/evidence.md)).
 - Require ShowRunner's Step 0 approval before implementation edits.
+- The autonomy level (High, Medium, Run) chooses who clears ShowRunner-owned
+  checkpoints, never whether a gate exists; every invariant in
+  [core/autonomy.md](core/autonomy.md) holds at every level, and Medium is the
+  default.
 - Never widen scope silently. Welcome every new idea or change of mind,
   capture it verbatim, and route it through Forge steering before it changes
   anything approved; keep unaffected work moving.
