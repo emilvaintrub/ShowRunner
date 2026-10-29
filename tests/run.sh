@@ -1797,6 +1797,31 @@ PYEOF
       PASS*) pass "evals/: forbidden-path file-tool graders match the path, not file content ($result)" ;;
       *) fail "evals/: forbidden-path file-tool graders match the path, not file content" "$result" ;;
     esac
+
+    # Claude Code and Codex list the plugin wrapper's description, not the
+    # engine's, so the two must be identical and within the 1024-char limit.
+    result=$(python3 - "$ROOT_DIR/showrunner/SKILL.md" "$ROOT_DIR/skills/showrunner/SKILL.md" <<'PYEOF'
+import sys
+import yaml
+ds = []
+for p in sys.argv[1:]:
+    parts = open(p).read().split("---\n")
+    fm = yaml.safe_load(parts[1]) if len(parts) > 2 and parts[0] == "" else {}
+    ds.append((fm or {}).get("description") or "")
+if not ds[0]:
+    print("FAIL engine description missing")
+elif ds[0] != ds[1]:
+    print("FAIL wrapper description differs from engine description")
+elif len(ds[0]) > 1024:
+    print("FAIL description is %d chars (limit 1024)" % len(ds[0]))
+else:
+    print("PASS %d chars" % len(ds[0]))
+PYEOF
+)
+    case "$result" in
+      PASS*) pass "skills/showrunner/SKILL.md description matches the engine's ($result)" ;;
+      *) fail "skills/showrunner/SKILL.md description matches the engine's" "$result" ;;
+    esac
   else
     printf 'SKIP: evals/*/case.yaml structural parse (python3 with PyYAML not available)\n'
   fi
