@@ -56,12 +56,18 @@ In this order, before any planning:
 The first report to the owner names the mode (adoption) and says what it
 means in one or two plain sentences, and says that existing code will be
 verified, and existing documents audited, before either counts. It covers
-stabilization and the inventory, and asks only what stabilization needs
-(account control, backups, data classification, where the code should
-live). Do not ask the owner to decide
-the fate of in-flight work yet: list it, and bring each piece back with a
-recommendation in the health report (section 5), once the owner's intent is
-reconstructed.
+stabilization and the inventory, and asks two kinds of question:
+
+- what stabilization needs (account control, backups, data classification,
+  where the code should live);
+- the owner's intent for each piece of work in flight: it lists every branch
+  and every uncommitted change by name and asks, for each, what it was for
+  and whether it is still wanted ("Branch `billing-v2` adds a half-built
+  payment stub. What was it for, and do you still want it?").
+
+Do not ask the owner to decide each piece's fate (keep, finish, fix,
+rebuild, drop) yet: that recommendation comes in the health report
+(section 5), once the inventory and the owner's intent are in.
 
 Never discard, reset, rebase, force-push, or delete anything during adoption:
 no `git reset --hard`, `git clean`, branch deletion, or history rewrite.
@@ -95,11 +101,13 @@ Build a factual picture, citing repository paths and commands:
 ## 4. Reconstruct Intent (Adoption `discovery`)
 
 Run discovery ([../forge/discovery.md](../forge/discovery.md)) with the
-inventory in hand. Pre-fill each domain from existing documents and mark it
-`reconstructed`; the owner confirms or corrects it. Ask concrete questions the
-inventory raises ("There is a half-built subscription flow on branch
-`billing-v2`, last touched in March. Was that planned, and is it still
-wanted?"). Guide and challenge modes apply as usual. The owner often needs
+inventory in hand. Pre-fill each domain from existing documents and from the
+intent answers the owner gave to the first report, and mark it
+`reconstructed`; the owner confirms or corrects it. Build on those answers
+rather than asking them again; ask only the concrete questions the inventory
+still leaves open (for example, how far a branch the owner still wants should
+go, or what an unexplained change was meant to do). Guide and challenge modes
+apply as usual. The owner often needs
 direction most at this point: say what the evidence suggests, and recommend.
 
 ## 5. Health Report And Rescue Assessment (Adoption `assessment`)
