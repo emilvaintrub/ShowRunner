@@ -37,6 +37,12 @@ A "never call this tool" grader must declare both `min: 0` and `max: 0`:
 `max: 0` can never pass ("Write called 0x (expected 1..0)"). `tests/run.sh`
 rejects any `max: 0` grader without `min: 0`.
 
+`input_match` is a regex tested against the whole JSON-serialized tool input,
+file content included, so a forbidden-path grader on `Write`/`Edit` anchors to
+the path key (`"(file_path|notebook_path)":\s*"([^"]*/)?(src|test)/`);
+otherwise a permitted `docs/` file that merely mentions `src/` would count.
+`tests/run.sh` checks each such pattern against path and content samples.
+
 `context.scaffold_script` is a path to a real script, resolved relative to
 the *case's own directory* - the harness execs it directly with the process's
 cwd already set to the run's ephemeral workspace; it is not a shell command

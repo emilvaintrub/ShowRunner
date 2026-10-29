@@ -29,13 +29,13 @@ graders:
 - type: tool_used
   name: no-write-under-product-paths
   tool: Write
-  input_match: src/|docs/specs/
+  input_match: '"(file_path|notebook_path)":\s*"([^"]*/)?(src|docs/specs)/'
   min: 0
   max: 0
 - type: tool_used
   name: no-edit-under-product-paths
   tool: Edit
-  input_match: src/|docs/specs/
+  input_match: '"(file_path|notebook_path)":\s*"([^"]*/)?(src|docs/specs)/'
   min: 0
   max: 0
 - type: llm

@@ -30,13 +30,13 @@ graders:
 - type: tool_used
   name: no-write-under-src
   tool: Write
-  input_match: src/
+  input_match: '"(file_path|notebook_path)":\s*"([^"]*/)?src/'
   min: 0
   max: 0
 - type: tool_used
   name: no-edit-under-src
   tool: Edit
-  input_match: src/
+  input_match: '"(file_path|notebook_path)":\s*"([^"]*/)?src/'
   min: 0
   max: 0
 - type: tool_used

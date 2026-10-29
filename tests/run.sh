@@ -1746,6 +1746,57 @@ PYEOF
       PASS*) pass "evals/: every max: 0 tool_used grader declares min: 0" ;;
       *) fail "evals/: every max: 0 tool_used grader declares min: 0" "$result" ;;
     esac
+
+    # input_match is tested against the whole JSON-serialized tool input,
+    # file content included, so a forbidden-path grader on a file tool must
+    # anchor to the path key: a docs/ file whose text mentions src/ is not a
+    # product write. Check each distinct pattern against real input shapes.
+    result=$(python3 - $case_list <<'PYEOF'
+import sys, os, re, json
+import yaml
+pats, bad = set(), []
+for d in sys.argv[1:]:
+    cy = os.path.join(d, "case.yaml")
+    if not os.path.isfile(cy):
+        continue
+    for g in (yaml.safe_load(open(cy)) or {}).get("graders") or []:
+        if not isinstance(g, dict) or g.get("type") != "tool_used":
+            continue
+        if g.get("tool") in ("Write", "Edit", "NotebookEdit") and g.get("max") == 0:
+            p = g.get("input_match") or ""
+            if '"(file_path|notebook_path)"' not in p:
+                bad.append("%s:%s not anchored to the path key" % (os.path.basename(d), g.get("name")))
+            else:
+                pats.add(p)
+ws = "/tmp/claude-eval-x/home/cwd/"
+neg = [{"file_path": ws + "docs/plans/x.md", "content": "see src/a.js and test/b.js"},
+       {"file_path": ws + "docs/plans/x.md", "old_string": "src/", "new_string": "test/"},
+       {"file_path": ws + "notsrc/a.js", "content": "x"}]
+for p in sorted(pats):
+    rx = re.compile(p)
+    m = re.search(r"\(?([a-z/|]+?)\)?/$", p)
+    dirs = m.group(1).split("|") if m else []
+    if not dirs:
+        bad.append("cannot read directories from %s" % p); continue
+    for dr in dirs:
+        for pos in ({"file_path": ws + dr + "/a.js", "content": "x"},
+                    {"file_path": ws + dr + "/a.js", "old_string": "a", "new_string": "b"},
+                    {"notebook_path": ws + dr + "/n.ipynb", "new_source": "x"},
+                    {"file_path": dr + "/a.js", "content": "x"}):
+            for s in (json.dumps(pos, separators=(",", ":")), json.dumps(pos)):
+                if not rx.search(s):
+                    bad.append("%s misses %s" % (p, s))
+    for n in neg:
+        for s in (json.dumps(n, separators=(",", ":")), json.dumps(n)):
+            if rx.search(s):
+                bad.append("%s wrongly matches %s" % (p, s))
+print("PASS %d patterns" % len(pats) if not bad else "FAIL " + "; ".join(bad[:5]))
+PYEOF
+)
+    case "$result" in
+      PASS*) pass "evals/: forbidden-path file-tool graders match the path, not file content ($result)" ;;
+      *) fail "evals/: forbidden-path file-tool graders match the path, not file content" "$result" ;;
+    esac
   else
     printf 'SKIP: evals/*/case.yaml structural parse (python3 with PyYAML not available)\n'
   fi
