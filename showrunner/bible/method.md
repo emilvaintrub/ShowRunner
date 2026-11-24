@@ -209,7 +209,8 @@ decision is the owner's call, recorded through Forge `decide`. The Bible never
 edits the decision log, and a flagged entry is shown in Part I S7 as
 `drift flagged`, never as settled. Entries that are `reversed` or `retired`
 are not checked. A trigger whose condition is ambiguous is flagged as a
-question, not resolved.
+question, not resolved. When reporting the flags, state plainly that the
+decision log was not edited.
 
 ## 8. Human-Owned Gate
 
