@@ -62,7 +62,9 @@ so. The root cause that resolves a stalled fix loop
 ([lifecycle.md](lifecycle.md) section 8) is always the first rule candidate.
 
 Lessons are append-only. A wrong or outdated lesson is superseded by a new
-entry that cites it, never edited away.
+entry that cites it: the architect appends the new entry and changes only the
+old index line's Status to `superseded by L-<n>`. The old entry's body is
+never edited; that index Status is the one permitted edit.
 
 ## Interaction With Existing Rules
 

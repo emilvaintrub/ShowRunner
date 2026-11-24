@@ -329,9 +329,9 @@ Silence is never approval.
   ([models.md](models.md) section 5). If that escalated fix gets a `FIX` with
   the same signature again, the loop has stalled: stop, even when
   `lifecycle.fix_loop_limit` is not yet reached, and bring the owner the plain
-  explanation and options. The root cause that resolves a stall is the first lesson
-  candidate ([debugging.md](debugging.md) section 5). `fix_loop_limit`
-  remains the outer bound.
+  explanation and options. The root cause that resolves a stall is the first
+  lesson candidate ([debugging.md](debugging.md) section 5).
+  `fix_loop_limit` remains the outer bound.
 - `verify` `REDESIGN` re-opens `spec` (or `design`) with the evidence.
 - A `security` finding in the arc's own diff returns to `build`. A finding
   outside the diff gets its own finding ID and becomes a new initiative unless

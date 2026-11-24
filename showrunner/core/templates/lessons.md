@@ -2,7 +2,10 @@
 
 > Rules: `core/debugging.md` section 5 in the ShowRunner package. Written
 > only by the architect, in the merge hygiene commit. Append-only: a wrong
-> lesson is superseded by a new entry that cites it, never edited away.
+> lesson is superseded by a new entry that cites it. Superseding appends the
+> new entry and changes only the old index line's Status to `superseded by
+> L-<n>`; the old entry's body is never edited. That is the one permitted
+> edit.
 
 ## Index
 
