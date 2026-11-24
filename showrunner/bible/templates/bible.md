@@ -6,10 +6,19 @@ Audience: `<engineering | capabilities | combined>`
 
 Sources: `<Forge spec path>`, `<Arc ship report path(s)>`, `<Sentry sweep
 report path(s)>`, `<Sentry security document path>`, `<pen-test report
-path(s) or none>`
+path(s) or none>`, `<decision log path or disabled>`
 
 Every row below cites the repository path, interface, or named report that
-backs it. A row with no citation is not rendered.
+backs it, and every cited path exists at the commit above. A row with no
+citation is not rendered.
+
+## Contents
+
+- Part I - Architecture: 1. System Overview, 2. Component Map, 3. Data Model,
+  4. Interfaces & Contracts, 5. Dependencies, 6. Deploy Topology, 7. Key
+  Decisions
+- Part II - Capabilities: 1. What The System Does, 2. Surfaces, 3. Limits &
+  Non-Goals, 4. Security & Accepted Risks, 5. Intent-Not-Shipped
 
 # Part I - Architecture
 
@@ -52,9 +61,9 @@ Source: Sentry config block (`sentry.deploy`, `sentry.edge_provider`,
 
 ## 7. Key Decisions
 
-| Decision | Source |
-| --- | --- |
-| <material architectural decision> | `<decision log or ship report path>` |
+| Decision | Source | Status |
+| --- | --- | --- |
+| <material architectural decision> | `<decision log or ship report path>` | holds \| drift flagged (<trigger fired, artifact missing, or contradicted>; raised at the human-owned gate) |
 
 # Part II - Capabilities
 

@@ -18,7 +18,9 @@ Apply the shared decision classifier:
   default and proceed.
 - Drift: a capability the Forge spec promises but the repository does not
   implement is recorded under Intent-Not-Shipped, never under a shipped
-  capability.
+  capability. A recorded decision whose revisit trigger has fired, or that the
+  repository no longer backs, is flagged to the human-owned gate, never edited
+  and never rendered as settled.
 - Adjacent issue: a new security gap noticed during synthesis is reported as
   a candidate Sentry finding, not fixed. The Bible has no product write
   surface.
@@ -27,7 +29,8 @@ Apply the shared decision classifier:
 
 1. **BIND** (`init`)
    - Read config, the Forge spec, Arc ship reports, Sentry sweep/security/
-     pen-test outputs, and the configured `repository_map` hints.
+     pen-test outputs, the decision log (`project.decision_log`), and the
+     configured `repository_map` hints.
 2. **EXTRACT** (`sync`)
    - At the exact commit, walk the configured repository paths and derive the
      component map, data model, and interface list directly - no new scripts
@@ -37,7 +40,8 @@ Apply the shared decision classifier:
 3. **RECONCILE** (`sync`)
    - Reconcile the extraction against the Forge spec (intent), Arc ship
      reports (what shipped), and Sentry artifacts (security posture).
-   - Apply the evidence rule (S5) and the Intent-Not-Shipped drift gate (S7).
+   - Apply the evidence rule (S5) and the drift gate (S7): Intent-Not-Shipped
+     and Decision drift.
 4. **RENDER** (`sync`)
    - Resolve the human-owned gate (S8).
    - Render [templates/bible.md](templates/bible.md) to `bible.output.path`.
@@ -99,6 +103,10 @@ The Bible's inputs are fixed:
   smoke evidence).
 - **Security posture** - Sentry's sweep reports, security document, and
   pen-test report (protection layers, residual and accepted risks).
+- **Recorded decisions** - the decision log at `project.decision_log` (what
+  was decided, its affected artifacts, and its revisit trigger). The Bible
+  reads it and never edits it; when it is `disabled`, say so and skip
+  Decision drift.
 
 Repository-derived extraction (components, data model, interfaces) is an
 agent-method instruction, not a new tool: read the paths and globs in
@@ -125,10 +133,12 @@ least one of:
 - a named report (the Forge spec and section, an Arc ship report, or a Sentry
   sweep/security/pen-test report).
 
-A claim with no such citation is unbacked. Reject it before render: narrow
-the claim to what the evidence supports, find the real citation, or move it
-to Intent-Not-Shipped (S7) or Limits & Non-Goals as the evidence warrants. A
-capability with no code evidence is a defect in the draft, not a feature.
+A claim with no such citation is unbacked, and so is a claim whose cited
+repository path does not exist at the bound commit. Reject it before render:
+narrow the claim to what the evidence supports, find the real citation, or
+move it to Intent-Not-Shipped (S7) or Limits & Non-Goals as the evidence
+warrants. A capability with no code evidence is a defect in the draft, not a
+feature.
 
 ## 6. Document Skeleton
 
@@ -149,7 +159,8 @@ two parts. Every numbered item below is evidence-bound per S5.
 6. Deploy topology - environments and edge/DB/deploy targets, read from the
    Sentry config block.
 7. Key decisions - material architectural decisions, traced to the decision
-   log or ship reports, not re-derived.
+   log or ship reports, not re-derived; each shows `holds` or `drift flagged`
+   from the Decision drift gate (S7).
 
 ### Part II - Capabilities (product/external audience)
 
@@ -164,7 +175,9 @@ two parts. Every numbered item below is evidence-bound per S5.
    not yet implement, stated plainly. This is the reconciliation payload
    (S7).
 
-## 7. Drift Gate - Intent-Not-Shipped
+## 7. Drift Gate
+
+### Intent-Not-Shipped
 
 For each capability or feature named in Forge spec sections 1-8, compare it
 against the repository extraction and the Arc ship report scope:
@@ -179,6 +192,25 @@ against the repository extraction and the Arc ship report scope:
 A ghost capability is a normal, expected output of an honest synthesis - not
 a failure of the run.
 
+### Decision drift
+
+For each decision-log entry with status `approved`, flag it when:
+
+- its revisit trigger has fired: the date has passed, or the condition or
+  threshold is evidenced in the repository or a named report;
+- an affected artifact it names is missing at the bound commit;
+- the repository contradicts the decision (the affected artifact exists but
+  does something the decision rules out).
+
+Each flag names the entry id, which test fired, and the evidence (the
+trigger and today's date, the missing path, or the contradicting path).
+Flags go to the human-owned gate (S8); whether to keep, revisit, or reverse a
+decision is the owner's call, recorded through Forge `decide`. The Bible never
+edits the decision log, and a flagged entry is shown in Part I S7 as
+`drift flagged`, never as settled. Entries that are `reversed` or `retired`
+are not checked. A trigger whose condition is ambiguous is flagged as a
+question, not resolved.
+
 ## 8. Human-Owned Gate
 
 Before render, batch:
@@ -186,10 +218,12 @@ Before render, batch:
 - audience framing, if `bible.audience` is unset or the repository evidence
   conflicts with the configured value;
 - borderline inclusion calls for what counts as a listed "capability";
-- any claim the evidence rule (S5) could not resolve to a citation.
+- any claim the evidence rule (S5) could not resolve to a citation;
+- every Decision drift flag (S7), with its evidence.
 
 An empty gate is explicit: state the convention defaults used (for example,
-"`bible.audience: combined` taken from config; no ambiguous claims found").
+"`bible.audience: combined` taken from config; no ambiguous claims found; no
+decision drift found").
 Never hide an empty gate.
 
 ## 9. Read-Only Ceiling
@@ -221,6 +255,8 @@ A Bible `sync` may request merge approval only when:
 - every claim in the rendered document cites a path, interface, or report
   (S5);
 - the Intent-Not-Shipped section reflects every drift found (S7);
+- every Decision drift flag (S7) was raised at the human-owned gate, or the
+  report states that none was found;
 - the human-owned gate (S8) is resolved or explicitly empty;
 - ship report and remote-tip evidence are complete;
 - required smoke is complete or explicitly awaits the human;
