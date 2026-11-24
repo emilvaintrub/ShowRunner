@@ -101,6 +101,10 @@ Run from the main worktree where `core.hooksPath` is configured.
 3. Use subject `Merge: <scoped conventional summary>`.
 4. Perform hygiene:
    - update the configured backlog, project-state file, or Showrunner ledger;
+   - append each rule in the ship report's Rules Learned section to
+     `project.lessons` ([templates/lessons.md](templates/lessons.md)): the
+     entry and its index line, with the next free id; skip this when the
+     section says `none` or `project.lessons` is `disabled`, and say which;
    - remove configured temporary prompt artifacts;
    - record deferred items and smoke status.
 5. Commit hygiene separately with

@@ -15,6 +15,13 @@ Own only `<feature branch>`. Do not merge or push `main`.
 
 - <paths, symbols, and current behavior>
 
+## Lessons
+
+- In scope: `<L-ids from the index of project.lessons whose scope overlaps
+  the paths this fix touches>`, or "none in scope", or
+  `project.lessons: disabled`. Read those entries and their traps. Never edit
+  the lessons log.
+
 ## Tests And Gates
 
 - Vulnerable-case regression:
@@ -32,6 +39,7 @@ and scope boundary. End:
 `STOP: awaiting describe-back approval`
 
 Use the scope STOP gate for adjacent findings. Commit and push only the feature
-branch, write the ship report, report the remote tip, and end:
+branch, write the ship report with its Rules Learned section (`none` when
+empty, or `project.lessons: disabled`), report the remote tip, and end:
 
 `STOP BEFORE MERGE`

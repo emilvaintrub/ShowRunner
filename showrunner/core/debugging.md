@@ -37,6 +37,33 @@ async or timing-dependent code, wait on the actual completion signal (a
 promise, callback, or event), not a fixed delay - a delay that happens to be
 long enough today is not a fix and will be flaky under different timing.
 
+## 5. Record The Rule
+
+When the verified root cause is a pattern likely to recur - a wrong
+assumption, a misleading API, a trap the next change would fall into again -
+turn it into a validated rule. A one-off typo or slip is not a rule; record
+`none`.
+
+A rule has:
+
+- **Scope:** the repository-relative paths or globs it covers. A rule with no
+  scope is global and is loaded for every plan; keep those rare.
+- **Rule:** one sentence a future implementer can follow.
+- **Evidence:** the reproduction from section 1, the test that now guards it,
+  and the fix commit.
+- **Traps:** what looks right but is not, so the next reader recognizes it.
+
+The implementer reports the rule in the ship report's Rules Learned section
+and never writes the lessons log itself. The architect appends it to
+`project.lessons` ([templates/lessons.md](templates/lessons.md)), with its
+index line, in the merge hygiene commit ([merge.md](merge.md)). When
+`project.lessons` is `disabled`, nothing is recorded and the ship report says
+so. The root cause that resolves a stalled fix loop
+([lifecycle.md](lifecycle.md) section 8) is always the first rule candidate.
+
+Lessons are append-only. A wrong or outdated lesson is superseded by a new
+entry that cites it, never edited away.
+
 ## Interaction With Existing Rules
 
 A first flaky failure is investigated under this discipline, never silently

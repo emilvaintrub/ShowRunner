@@ -24,6 +24,17 @@ Remote tip: `<sha or disabled>`
 - Deferred adjacent findings:
 - Deviations:
 
+## Rules Learned
+
+Always present. Write `none` when no root cause was a pattern likely to recur,
+or `project.lessons: disabled` when lessons are off. The architect appends
+each rule to `project.lessons` in the merge hygiene commit
+(`core/debugging.md` section 5); the implementer never writes the log.
+
+| Scope | Rule | Evidence (reproduction, test, fix commit) | Traps | Supersedes |
+| --- | --- | --- | --- | --- |
+| `<path or glob>`, or global | <one-sentence rule> | <failure observed>; `<test>`; `<sha>` | <what looks right but is not> | <L-id or none> |
+
 ## Verification
 
 - Vulnerable-case regression: PASS | FAIL
