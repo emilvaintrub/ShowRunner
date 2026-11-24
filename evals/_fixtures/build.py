@@ -919,6 +919,105 @@ def case_high_mode_step0_checkpoint(root):
     lib.git_branch(root, "feat/loan-list")
 
 
+# ---------------------------------------------------------------------------
+# Case 35: arc-plan loads only the lesson whose scope the plan touches.
+# ---------------------------------------------------------------------------
+LESSONS_LOG = '''# Lessons - Shelfie
+
+> Rules: `core/debugging.md` section 5 in the ShowRunner package. Written
+> only by the architect, in the merge hygiene commit. Append-only.
+
+## Index
+
+| ID | Scope | Rule | Status |
+| --- | --- | --- | --- |
+| L-001 | `src/dates.js` | `formatDate` returns UTC; convert to the viewer's time zone before display. | active |
+| L-002 | `src/export/**` | CSV export must quote every field; titles contain commas. | active |
+
+## Entries
+
+### L-001 - The date helper returns UTC
+
+- **Date:** 2026-09-20
+- **Scope:** `src/dates.js`
+- **Rule:** `formatDate` returns UTC; convert to the viewer's time zone before
+  display.
+- **Evidence:**
+  - Reproduction: a loan made at 23:30 in Berlin showed the next day's date.
+  - Test: `test/dates.test.js` "shows the local date near midnight"
+  - Fix commit: `4f1c2ab`
+- **Traps:**
+  - Tests that run in UTC pass even when the conversion is missing; set a
+    non-UTC `TZ` in the test.
+- **Supersedes:** none
+- **Source:** I-000, docs/ship-reports/home-page.md
+
+### L-002 - CSV export quoting
+
+- **Date:** 2026-09-22
+- **Scope:** `src/export/**`
+- **Rule:** CSV export must quote every field; titles contain commas.
+- **Evidence:**
+  - Reproduction: "Guns, Germs, and Steel" split into three columns.
+  - Test: `test/export.test.js` "quotes titles with commas"
+  - Fix commit: `9b7e310`
+- **Traps:**
+  - Joining fields with `,` looks fine until a title has a comma.
+- **Supersedes:** none
+- **Source:** I-000, docs/ship-reports/export-spike.md
+'''
+
+
+def case_lesson_read_at_plan(root):
+    lib.git_init(root)
+    lib.app_base(root)
+    lib.shelfie_docs(root)
+    lib.write(root, ".claude/showrunner/config.md",
+              lib.render_config(lessons="docs/lessons.md"))
+    lib.write(root, "docs/lessons.md", LESSONS_LOG)
+    lib.write(root, "src/dates.js", (
+        "// Formats a Date as YYYY-MM-DD (UTC).\n"
+        "module.exports.formatDate=(d)=>d.toISOString().slice(0,10);\n"
+    ))
+    lib.write(root, "src/export/csv.js", (
+        "module.exports.toCsv=(rows)=>rows.map(r=>r.map(f=>JSON.stringify(String(f))).join(',')).join('\\n');\n"
+    ))
+    lib.write(root, "docs/specs/loan-dates.md", (
+        "# Feature Specification - Loan dates\n\n> Status: arc-ready\n\n"
+        "## 1. Intent\nShow the date each book was lent on the loan list.\n\n"
+        "## 2. Scope\nIn scope: a 'Lent on' date beside each loan on the "
+        "home page. Out of scope: export, reminders, due dates.\n\n"
+        "## 3. Experience And Behavior\nEach loan shows 'Lent on <date>' in "
+        "the owner's local date.\n\n"
+        "## 4. Resolved Decisions\nDate format YYYY-MM-DD (owner, "
+        "2026-09-25).\n\n"
+        "## 5. Technical Direction\nAdd the lent-on date formatting to "
+        "`src/dates.js` beside `formatDate`; render it in `src/page.js`; "
+        "test in `test/dates.test.js` and `test/page.test.js`.\n\n"
+        "## 9. Arc Step 0 Contract\nDescribe back the date rendering and "
+        "its test.\n\n"
+        "## 10. Build And Verification Phasing\n1. Render the lent-on date "
+        "with a test.\n\n"
+        "## 11. Passing Condition\nThe home page shows each loan's local "
+        "lent-on date; `npm test` passes.\n"
+    ))
+    active = lib.base_active(
+        initiative="I-001", title="Loan dates", stage="arc-plan",
+        status="in-progress",
+    )
+    ledger = lib.proj_rows_all() + lib.init_rows_upto("I-001", "arc-plan")
+    lib.write_state(
+        root, active,
+        initiatives=[("I-001", "Loan dates", "2026-09-24",
+                       '"Show me when I lent each book."',
+                       "arc-plan", "in-progress")],
+        ledger_rows=ledger,
+        guard_extra=["docs/*"],
+        release_patterns=["vercel --prod", "npx vercel --prod"],
+    )
+    lib.git_commit(root, "docs(showrunner): fixture state")
+
+
 CASES = {
     "plain-request-no-command": case_plain_request_no_command,
     "resume-after-break": case_resume_after_break,
@@ -951,6 +1050,7 @@ CASES = {
     "run-mode-end-gate": case_run_mode_end_gate,
     "run-mode-uncovered-decision-stops": case_run_mode_uncovered_decision,
     "high-mode-step0-checkpoint": case_high_mode_step0_checkpoint,
+    "lesson-read-at-plan": case_lesson_read_at_plan,
 }
 
 

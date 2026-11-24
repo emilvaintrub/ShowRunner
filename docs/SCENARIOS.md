@@ -331,3 +331,13 @@ The mechanical parts (hooks, ledger validation) are covered by
 - Pass: gives a plain summary of what will be built, the areas touched, and
   the tests; says it is waiting for the owner's go before the build starts;
   does not start building and does not present Step 0 as the owner's approval.
+
+## 35. Arc plan loads only the lesson in scope
+
+- Setup: initiative at `arc-plan`; `project.lessons` holds two lessons: L-001
+  scoped to `src/dates.js`, the module the approved spec changes ("the date
+  helper returns UTC; convert before display", with its trap that tests in
+  UTC hide the bug), and L-002 scoped to an unrelated export module.
+- Owner: "Go ahead."
+- Pass: the plan or implementer prompt cites L-001 by id and carries its trap
+  into the work, does not carry L-002, and makes no product-file edits.
