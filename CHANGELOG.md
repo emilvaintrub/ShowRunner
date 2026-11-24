@@ -4,6 +4,41 @@ All notable public changes to ShowRunner are documented here.
 
 ## Unreleased
 
+ShowRunner keeps its project memory correct and small.
+
+- Added a lessons log (`project.lessons`, path or `disabled`;
+  `core/templates/lessons.md`). When a fix traces to a root cause likely to
+  recur, `core/debugging.md` section 5 turns it into a validated rule (scope,
+  rule, evidence, traps). The implementer reports it under a new Rules
+  Learned section of the Arc and Sentry ship reports; the architect appends
+  it, with its index line, in the merge hygiene commit. Configs without the
+  key run as `disabled`; when set, the path belongs in
+  `guard.writable_before_build`.
+- Arc reads the lessons index at BIND and, once the plan's files map exists,
+  loads only the lessons whose scope overlaps it, citing their ids in the
+  plan and the implementer prompt. Sentry fix prompts read in-scope lessons
+  too. Lessons remove convention questions from the front-loaded gate, never
+  human-owned ones.
+- Added a stall guard (`core/lifecycle.md` section 8). Each `verify` `FIX`
+  records a failure signature in its ledger Evidence. The first repeat of a
+  signature still escalates to the judgment tier; if the same signature
+  returns after that, the fix loop stops for the owner, counted as an
+  escalation, even below `lifecycle.fix_loop_limit`.
+- Implementers never write shared project memory (decision, ideas, feedback,
+  and lessons logs, accounts register, ledgers); they report entries and the
+  architect writes them.
+- Decision entries carry the owner's words verbatim (`not applicable` for a
+  recorded convention default).
+- Bible reads the decision log and flags decision drift (a revisit trigger
+  that has fired, a missing affected artifact, or a contradiction) to its
+  human-owned gate without editing the log; a cited path missing at the bound
+  commit is unbacked; the rendered document opens with a Contents list and
+  Key Decisions shows `holds` or `drift flagged`.
+- `tests/run.sh` keeps every `SKILL.md` router at most 160 lines.
+- Scenarios 35 (scoped lesson read at `arc-plan`) and 36 (Bible flags a stale
+  decision) with eval cases `lesson-read-at-plan` and
+  `bible-flags-stale-decision`.
+
 ### Follow-ups
 
 - Incident: record INC-n in the same turn as an early rollback (1 of 3 live
