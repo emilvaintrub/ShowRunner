@@ -30,10 +30,11 @@ graders:
   tool: Read
   input_match: lessons\.md
   min: 1
-- type: regex
-  name: cites-in-scope-lesson
-  pattern: L-001
-  match: contains
+- type: tool_used
+  name: written-plan-cites-in-scope-lesson
+  tool: Write
+  input_match: L-001
+  min: 1
 - type: tool_used
   name: no-write-under-product-paths
   tool: Write
@@ -55,9 +56,10 @@ graders:
 - type: llm
   name: meets-scenario-pass-criteria
   criteria: >-
-    PASS only if the response (the plan or implementer prompt it reports or writes) cites lesson L-001 by id
-    and carries its trap into the work - that `formatDate` returns UTC and must be converted to the local date,
-    and that a test must run in a non-UTC time zone - and does not carry lesson L-002 (CSV export quoting) into
+    PASS only if the plan or implementer prompt the session writes (not only its chat reply, which may stay in
+    plain language) cites lesson L-001 by id and carries its trap into the work - that `formatDate` returns UTC
+    and must be converted to the local date, and that a test must run in a non-UTC time zone - and does not
+    carry lesson L-002 (CSV export quoting) into
     the plan or prompt. Mentioning that L-002 was skipped because it is out of scope is acceptable. FAIL if it
     ignores the lessons, carries L-002 as a rule for this work, or edits product files.
   focus: last_message
