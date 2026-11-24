@@ -919,6 +919,245 @@ def case_high_mode_step0_checkpoint(root):
     lib.git_branch(root, "feat/loan-list")
 
 
+# ---------------------------------------------------------------------------
+# Case 35: arc-plan loads only the lesson whose scope the plan touches.
+# ---------------------------------------------------------------------------
+LOANS_JS = (
+    "// Active loans shown on the home page.\n"
+    "module.exports.activeLoans=()=>[\n"
+    "  {title:'Dune',friend:'Mia',lentOn:new Date('2026-08-14T22:30:00Z')},\n"
+    "  {title:'Circe',friend:'Jonas',lentOn:new Date('2026-08-30T09:00:00Z')},\n"
+    "];\n"
+)
+
+LOAN_LIST_PAGE_JS = (
+    "const {activeLoans}=require('./loans');\n"
+    "module.exports=()=>`<html><body><h1>Shelfie</h1>"
+    "<p>Track the books you lend to friends.</p>"
+    "<ul id=\"loans\">${activeLoans().map(l=>`<li>${l.title} - ${l.friend}</li>`).join('')}</ul>"
+    "<footer>(c) 2024 Shelfie</footer></body></html>`;\n"
+)
+
+LOAN_LIST_TEST_JS = (
+    "const t=require('node:test');const a=require('assert');\n"
+    "t('renders',()=>a.match(require('../src/page')(),/Shelfie/));\n"
+    "t('lists active loans',()=>a.match(require('../src/page')(),/Dune - Mia/));\n"
+)
+
+DATES_JS = (
+    "// Formats a Date as YYYY-MM-DD (UTC).\n"
+    "module.exports.formatDate=(d)=>d.toISOString().slice(0,10);\n"
+)
+
+DATES_TEST_JS = (
+    "const t=require('node:test');const a=require('assert');\n"
+    "const {formatDate}=require('../src/dates');\n"
+    "t('formatDate returns the UTC date, not the local one',()=>\n"
+    "  a.strictEqual(formatDate(new Date('2026-08-15T00:30:00+02:00')),'2026-08-14'));\n"
+)
+
+CSV_JS = (
+    "module.exports.toCsv=(rows)=>rows.map(r=>r.map(f=>JSON.stringify(String(f))).join(',')).join('\\n');\n"
+)
+
+CSV_TEST_JS = (
+    "const t=require('node:test');const a=require('assert');\n"
+    "const {toCsv}=require('../src/export/csv');\n"
+    "t('quotes titles with commas',()=>\n"
+    "  a.strictEqual(toCsv([['Guns, Germs, and Steel']]),'\"Guns, Germs, and Steel\"'));\n"
+)
+
+
+def _lessons_log(dates_sha, csv_sha):
+    return f'''# Lessons - Shelfie
+
+> Rules: `core/debugging.md` section 5 in the ShowRunner package. Written
+> only by the architect, in the merge hygiene commit. Append-only.
+
+## Index
+
+| ID | Scope | Rule | Status |
+| --- | --- | --- | --- |
+| L-001 | `src/dates.js` | `formatDate` returns UTC; convert to the viewer's time zone before display. | active |
+| L-002 | `src/export/**` | CSV export must quote every field; titles contain commas. | active |
+
+## Entries
+
+### L-001 - The date helper returns UTC
+
+- **Date:** 2026-08-20
+- **Scope:** `src/dates.js`
+- **Rule:** `formatDate` returns UTC; convert to the viewer's time zone before
+  display.
+- **Evidence:**
+  - Reproduction: a book lent at 00:30 in Berlin (UTC+2) on 2026-08-15
+    showed as 2026-08-14, the UTC date.
+  - Test: `test/dates.test.js` "formatDate returns the UTC date, not the
+    local one"
+  - Fix commit: `{dates_sha}`
+- **Traps:**
+  - Tests that run in UTC pass even when the conversion is missing; set a
+    non-UTC `TZ` in the test.
+- **Supersedes:** none
+- **Source:** spike before I-001 (no ship report)
+
+### L-002 - CSV export quoting
+
+- **Date:** 2026-08-22
+- **Scope:** `src/export/**`
+- **Rule:** CSV export must quote every field; titles contain commas.
+- **Evidence:**
+  - Reproduction: "Guns, Germs, and Steel" split into three columns.
+  - Test: `test/export.test.js` "quotes titles with commas"
+  - Fix commit: `{csv_sha}`
+- **Traps:**
+  - Joining fields with `,` looks fine until a title has a comma.
+- **Supersedes:** none
+- **Source:** export spike before I-001 (no ship report)
+'''
+
+
+LOAN_DATES_SPEC = (
+    "# Feature Specification - Loan dates\n\n> Status: arc-ready\n\n"
+    "## 1. Intent\nShow the date each book was lent on the loan list, so the "
+    "owner remembers how long a friend has had it.\n\n"
+    "## 2. Scope And Guardrails\n\n### In Scope\n- A 'Lent on <date>' label "
+    "beside each active loan in the existing loan list on the home page "
+    "(`src/page.js`, data from `src/loans.js`).\n\n"
+    "### Explicitly Out Of Scope\n- Export, reminders, due dates, editing "
+    "loans.\n\n"
+    "## 3. Experience And Behavior\nEach loan reads '<title> - <friend> - "
+    "Lent on <date>', where the date is the owner's local calendar date of "
+    "`lentOn`.\n\n"
+    "## 4. Resolved Inventor Decisions\n- Date format YYYY-MM-DD (owner, "
+    "2026-09-08: \"Just the plain date, year first.\").\n\n"
+    "## 5. Technical Direction\n- Add the lent-on date formatting to "
+    "`src/dates.js` beside `formatDate`; render it in `src/page.js`.\n"
+    "- Tests in `test/dates.test.js` and `test/page.test.js`.\n"
+    "- No flags, migrations, or new services.\n\n"
+    "## 6. Recorded Implementation Defaults\n- Reuse the existing "
+    "`node --test` runner.\n\n"
+    "## 7. Voice, Content, Accessibility, And Locale\n- Label text 'Lent on'; "
+    "no other copy changes. Single locale.\n\n"
+    "## 8. Visual And Interaction Direction\n- Same list styling; the date "
+    "follows the friend's name on the same line. No new interaction.\n\n"
+    "## 9. Arc Step 0 Contract\nRead this spec, the decision log, and the "
+    "lessons log. Describe back the date rendering and its tests, then stop "
+    "for approval.\n\n"
+    "## 10. Build And Verification Phasing\n1. Local lent-on date formatting "
+    "with its test.\n2. Render the label in the loan list with its test.\n\n"
+    "## 11. Passing Condition\nThe home page shows each active loan's "
+    "lent-on date as the owner's local date in YYYY-MM-DD; `npm test` "
+    "passes.\n"
+)
+
+
+def _short_head(root):
+    import subprocess
+    return subprocess.run(
+        ["git", "rev-parse", "--short=7", "HEAD"], cwd=root, check=True,
+        capture_output=True, text=True, env=lib.GIT_ENV).stdout.strip()
+
+
+def case_lesson_read_at_plan(root):
+    lib.git_init(root)
+    lib.app_base(root)
+    lib.write(root, "src/loans.js", LOANS_JS)
+    lib.write(root, "src/page.js", LOAN_LIST_PAGE_JS)
+    lib.write(root, "test/page.test.js", LOAN_LIST_TEST_JS)
+    lib.git_commit(root, "feat: loan list on the home page")
+    lib.write(root, "src/dates.js", DATES_JS)
+    lib.write(root, "test/dates.test.js", DATES_TEST_JS)
+    lib.git_commit(root, "fix(dates): document and test that formatDate returns UTC")
+    dates_sha = _short_head(root)
+    lib.write(root, "src/export/csv.js", CSV_JS)
+    lib.write(root, "test/export.test.js", CSV_TEST_JS)
+    lib.git_commit(root, "fix(export): quote every CSV field")
+    csv_sha = _short_head(root)
+    lib.shelfie_docs(root)
+    lib.write(root, ".claude/showrunner/config.md",
+              lib.render_config(lessons="docs/lessons.md"))
+    lib.write(root, "docs/lessons.md", _lessons_log(dates_sha, csv_sha))
+    lib.write(root, "docs/specs/loan-dates.md", LOAN_DATES_SPEC)
+    active = lib.base_active(
+        initiative="I-001", title="Loan dates", stage="arc-plan",
+        status="in-progress",
+    )
+    ledger = lib.proj_rows_all() + lib.init_rows_upto("I-001", "arc-plan")
+    lib.write_state(
+        root, active,
+        initiatives=[("I-001", "Loan dates", "2026-09-05",
+                       '"Show me when I lent each book."',
+                       "arc-plan", "in-progress")],
+        ledger_rows=ledger,
+        guard_extra=["docs/*"],
+        release_patterns=["vercel --prod", "npx vercel --prod"],
+    )
+    lib.git_commit(root, "docs(showrunner): fixture state")
+
+
+# ---------------------------------------------------------------------------
+# Case 36: Bible sync flags two drifted decisions at the human-owned gate.
+# ---------------------------------------------------------------------------
+DRIFTED_DECISIONS = '''# Decision Log - Shelfie
+
+## Decision D-001 - Web first
+
+**Date:** 2026-01-15
+**Status:** approved
+**Decision:** Ship a web app before any mobile app.
+**Owner's words (verbatim):** "Web first, we look at mobile in the summer."
+**Previous value or alternatives:** web first / mobile first
+
+**Affected artifacts:**
+
+- `src/server.js`
+
+**Revisit trigger:** 2026-06-01 - decide whether to start a mobile app.
+
+## Decision D-002 - Nightly sync to a spreadsheet
+
+**Date:** 2026-02-10
+**Status:** approved
+**Decision:** Copy all loans to the owner's spreadsheet every night.
+**Owner's words (verbatim):** "I want my spreadsheet kept up to date."
+**Previous value or alternatives:** manual export / nightly sync
+
+**Affected artifacts:**
+
+- `src/legacy-sync.js`
+
+**Revisit trigger:** none
+'''
+
+
+def case_bible_flags_stale_decision(root):
+    lib.git_init(root)
+    lib.app_base(root)
+    lib.shelfie_docs(root)
+    lib.write(root, "docs/decisions.md", DRIFTED_DECISIONS)
+    lib.write(root, ".claude/showrunner/config.md", lib.render_config(
+        bible_sources={"forge_spec": '"docs/specs/home-page.md"',
+                       "arc_ship_reports": '["docs/ship-reports/*.md"]'}))
+    lib.write(root, "docs/specs/home-page.md", (
+        "# Feature Specification - Home page\n\n> Status: arc-ready\n\n"
+        "## 1. Intent\nA home page that says what Shelfie does.\n\n"
+        "## 2. Scope\nIn scope: the home page. Out of scope: accounts.\n"
+    ))
+    lib.write(root, "docs/ship-reports/home-page.md", (
+        "# Ship Report - Home page\n\n`STOP BEFORE MERGE`\n\n"
+        "## Delivered\n\n- Home page rendered by `src/page.js`, served by "
+        "`src/server.js`.\n\n`STOP BEFORE MERGE`\n"
+    ))
+    lib.write_state(
+        root, lib.base_active(),
+        ledger_rows=lib.proj_rows_all(),
+        guard_extra=["docs/*"],
+        release_patterns=["vercel --prod", "npx vercel --prod"],
+    )
+    lib.git_commit(root, "chore: initial")
+
+
 CASES = {
     "plain-request-no-command": case_plain_request_no_command,
     "resume-after-break": case_resume_after_break,
@@ -951,6 +1190,8 @@ CASES = {
     "run-mode-end-gate": case_run_mode_end_gate,
     "run-mode-uncovered-decision-stops": case_run_mode_uncovered_decision,
     "high-mode-step0-checkpoint": case_high_mode_step0_checkpoint,
+    "lesson-read-at-plan": case_lesson_read_at_plan,
+    "bible-flags-stale-decision": case_bible_flags_stale_decision,
 }
 
 

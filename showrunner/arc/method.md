@@ -50,12 +50,18 @@ Every Arc follows:
 
 1. **BIND**
    - Read config, approved direction, repository guidance, and current state.
+   - When `project.lessons` is set, read its index and load the global
+     lessons (no scope). When it is `disabled`, say so in the plan and the
+     ship report.
    - Verify Arc is ready and identify required test, gate, migration, locale,
      smoke, hook, branch, remote, and cleanup bindings.
 
 2. **PLAN**
    - Preserve approved product direction.
    - Verify named implementation surfaces instead of assuming paths.
+   - Once the files-and-responsibilities map exists, load every lesson whose
+     scope overlaps a path on it, and no other. Record each as a convention
+     default citing its id, and carry its traps into the affected tasks.
    - Inventory the complete decision surface.
    - Resolve conventions and record them.
    - Gate human-owned decisions before rendering the final prompt.
@@ -204,6 +210,8 @@ The prompt must include:
 
 - role and branch ownership;
 - complete read list, approved source, and source digest;
+- the lessons index and the ids of the in-scope lessons, or the statement
+  that `project.lessons` is disabled or that no lesson is in scope;
 - outcome and explicit non-goals;
 - design readiness source, or a statement that no design-dependent surface is
   in scope;
@@ -278,11 +286,18 @@ repository policy. Consistent red blocks completion.
 
 ### Responding To A FIX Verdict
 
-When `verify` returns `FIX`, record a `fix` ledger row, increment
-`active.fix_loops`, and resume `run` on the same branch in the same turn. When
-`fix_loops` reaches `lifecycle.fix_loop_limit`, stop and give the owner a
-plain account of what keeps failing and the options (re-scope, re-open the
-spec, or accept a narrower passing condition).
+When `verify` returns `FIX`, record a `fix` ledger row with the failure
+signature in its Evidence ([../core/lifecycle.md](../core/lifecycle.md)
+section 8), increment `active.fix_loops`, and resume `run` on the same branch
+in the same turn. When `fix_loops` reaches `lifecycle.fix_loop_limit`, stop and
+give the owner a plain account of what keeps failing and the options
+(re-scope, re-open the spec, or accept a narrower passing condition).
+
+When the signature matches the previous `verify` `FIX`, run the next fix on
+the judgment tier ([../core/models.md](../core/models.md) section 5). When the
+same signature returns after that escalated fix, the loop has stalled: stop,
+even below the limit, and give the owner the same plain account and options.
+Count the stall in `active.escalations`.
 
 - Reproduce the finding before changing anything; do not patch a behavior you
   have not observed.
@@ -392,4 +407,6 @@ owner for `acceptance` (together with `merge`, at Run). An Arc is ready to reque
 - the `security` stage has a terminal ledger row on the same tip;
 - the owner's `acceptance` smoke is recorded;
 - the ship report's ShowRunner decisions section is present, even when empty;
+- the ship report's Rules Learned section is present (`none` when empty, or
+  the statement that `project.lessons` is disabled);
 - the response ends `STOP BEFORE MERGE`.

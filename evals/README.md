@@ -5,7 +5,7 @@ Automated, repeatable eval cases for the behavioral scenarios in
 plugin against a disposable fixture repository for one agent turn and grades
 the result with `claude plugin eval` (Claude Code 2.1+). This replaces
 running the scenarios by hand with fresh agents on throwaway fixture repos:
-the same 31 scenarios now run in CI on every prose change and on a weekly
+the same 33 scenarios now run in CI on every prose change and on a weekly
 schedule, so a rule edit or a new model generation cannot silently regress a
 scenario that was manually verified once and never checked again.
 
@@ -134,6 +134,8 @@ so the `evals` workflow installs them itself before running the suite.
 | 32 | `run-mode-end-gate` |
 | 33 | `run-mode-uncovered-decision-stops` |
 | 34 | `high-mode-step0-checkpoint` |
+| 35 | `lesson-read-at-plan` |
+| 36 | `bible-flags-stale-decision` |
 
 ### Not Automated
 
@@ -157,8 +159,8 @@ so the `evals` workflow installs them itself before running the suite.
   `rescue-mid-development` - a small, cheap, high-value subset for quick
   checks.
 - Topical: `lifecycle`, `discovery`, `evidence`, `steering`, `ownership`,
-  `outcomes`, `incident`, `legal`, `adoption`, `delegates`, `feedback`,
-  `cost`, `autonomy`.
+  `outcomes`, `incident`, `legal`, `adoption`, `bible`, `delegates`,
+  `feedback`, `cost`, `autonomy`, `memory`.
 
 ## Running Locally
 
@@ -175,7 +177,7 @@ claude plugin eval . --case plain-request-no-command --trust-plugin \
   --scaffold --allow-tools Bash Write Edit --ablation none --runs 1 \
   --no-publish --max-cost-usd 1
 
-# The full suite (all 31 cases):
+# The full suite (all 33 cases):
 claude plugin eval . --trust-plugin --scaffold --allow-tools Bash Write Edit \
   --ablation none --runs 1 --threshold 0.8 --no-publish --max-cost-usd 10
 ```
@@ -193,7 +195,7 @@ Notes:
   here (a comparison against "no ShowRunner plugin at all" answering a
   ShowRunner-specific owner message) and roughly halves the cost.
 - `--max-cost-usd` is a hard ceiling; drop it or raise it for a full run of
-  all 31 cases with 3 judged votes per `llm` grader.
+  all 33 cases with 3 judged votes per `llm` grader.
 - Add `--json <path>` to get the full machine-readable result, and drop
   `--no-publish` if you want the shareable HTML report link.
 

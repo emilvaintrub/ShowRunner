@@ -21,6 +21,8 @@ what live in [lifecycle.md](lifecycle.md).
 - Do not perform the implementer's production edits in a dispatched arc.
 - May correct a describe-back, answer convention questions, and escalate
   product decisions.
+- Is the single writer of shared project memory: entries an implementer
+  reports are written by the architect, under each file's own rule.
 
 **Implementer**
 
@@ -28,6 +30,10 @@ what live in [lifecycle.md](lifecycle.md).
 - Describe the work back before implementation.
 - Own only the feature branch: edit, test, commit, and push there.
 - Never merge or push `main`.
+- Never edit shared project memory: the decision log, ideas log, feedback
+  log, accounts register, lessons log, state ledger, or the project-state and
+  hygiene ledger files. Report each entry they need in the ship report instead
+  (a validated rule goes in Rules Learned); the architect writes it.
 
 The same model may fill both roles in separate sessions. The separation is
 contextual and procedural, not a claim about identity. Which model each role
@@ -56,8 +62,9 @@ An `init` command must:
 8. Create the state ledger at `lifecycle.state_file` (default
    `.claude/showrunner/state.md`) from
    [templates/state.md](templates/state.md) when it is missing. Fill
-   `guard.writable_before_build` with the config, ledger, and every
-   configured planning, report, and output path, and propose
+   `guard.writable_before_build` with the config, ledger, the lessons log
+   when `project.lessons` is set, and every configured planning, report, and
+   output path, and propose
    `guard.release_patterns` from repository evidence.
 9. Install and verify enforcement per [enforcement.md](enforcement.md).
 10. Inventory every external service the repository evidences into the
@@ -116,7 +123,11 @@ before hardening directions; Arc and Sentry may resolve and proceed.
 Before directions or dispatch:
 
 1. Inventory the full known decision surface.
-2. Remove questions answered by recorded decisions or repository evidence.
+2. Remove questions answered by recorded decisions or repository evidence,
+   and convention or technical questions an in-scope lesson in
+   `project.lessons` already answers; record each as a convention default
+   citing the lesson id. A lesson never answers a human-owned question: those
+   are asked even when a lesson seems to cover them.
 3. Group related questions.
 4. Respect `questions.max_per_round` from config.
 5. For each question, provide concise options, a recommendation, and rationale.

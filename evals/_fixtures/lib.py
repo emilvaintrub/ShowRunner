@@ -194,7 +194,15 @@ def render_config(forge_status="ready", business_selected="[]", distribution="sa
                    feedback_log="docs/feedback.md",
                    feedback_channels='["support inbox export", "app-store reviews"]',
                    budget_per_initiative="none", budget_monthly="none",
-                   autonomy_default=None, run_escalation_limit=3):
+                   autonomy_default=None, run_escalation_limit=3,
+                   lessons=None, bible_sources=None):
+    # `lessons` and `bible_sources` are emitted only when given, so every
+    # fixture that does not pass them renders byte-for-byte as before.
+    lessons_line = f'  lessons: "{lessons}"\n' if lessons is not None else ""
+    bible_sources_block = ""
+    if bible_sources:
+        bible_sources_block = "  sources:\n" + "".join(
+            f'    {k}: {v}\n' for k, v in bible_sources.items())
     autonomy_block = ""
     if autonomy_default is not None:
         autonomy_block = (
@@ -214,7 +222,7 @@ project:
   decision_log: "docs/decisions.md"
   project_state: "docs/project-state.md"
   hygiene_ledger: "docs/project-state.md"
-questions:
+{lessons_line}questions:
   max_per_round: 5
 lifecycle:
   state_file: "{LEDGER_PATH}"
@@ -281,7 +289,7 @@ sentry:
     blocked_without_owner_decision: ["GPL-*", "AGPL-*", "SSPL-*", "unknown"]
 bible:
   status: ready
-  output:
+{bible_sources_block}  output:
     path: "docs/bible.md"
 ```
 '''

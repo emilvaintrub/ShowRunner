@@ -81,9 +81,9 @@ guard:
 `guard.writable_before_build` lists the paths ShowRunner may write outside the
 `build` stage: the config and ledger, constitution, decision log, ideas log, feedback log, accounts register, project
 state, specs, briefs, plans, prompts, ship, sweep, and Bible outputs, the
-hygiene ledger, and the enforcement files setup installs (`.claude/settings.json`
-and the hooks path). Setup derives it from the config; anything not listed is
-product code.
+hygiene ledger, the lessons log (`project.lessons`, when set), and the
+enforcement files setup installs (`.claude/settings.json` and the hooks path).
+Setup derives it from the config; anything not listed is product code.
 
 `guard.release_patterns` lists command prefixes that publish or deploy
 (for example a hosting CLI's production deploy or a package publish). Setup

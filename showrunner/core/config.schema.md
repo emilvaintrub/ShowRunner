@@ -22,6 +22,7 @@ project:
   decision_log: "<path or disabled>"
   project_state: "<path or disabled>"
   hygiene_ledger: "<existing backlog/project-state path or disabled>"
+  lessons: "<path or disabled>"   # validated rules from debugging; listed in guard.writable_before_build when set
 
 roles:
   architect_model: "<judgment model; the conductor session's own model>"
@@ -414,6 +415,22 @@ These are technical bindings: infer them at `init` and record them as
 defaults rather than asking the owner. A config written before `light_model` and
 `routing` existed runs as `tiered` with the platform defaults; add the keys
 the next time the config is edited.
+
+### Project memory
+
+`project.decision_log`, `project.project_state`, `project.hygiene_ledger`, and
+`project.lessons` name the shared project memory. `project.lessons` is the log
+of validated rules from [debugging.md](debugging.md) section 5, shaped by
+[templates/lessons.md](templates/lessons.md): the architect appends to it in
+the merge hygiene commit, and Arc reads its index at planning, the way Sentry
+reads its regression catalog at triage. `disabled` skips both recording and
+reading, and the ship report says so. A config without the key runs as
+`disabled`; add the key the next time the config is edited.
+
+When `project.lessons` is a path, it must be in `guard.writable_before_build`
+([state.md](state.md)), or the merge hygiene commit that appends to it is
+refused. Setup derives it there; a project that turns lessons on later adds
+the path to that list in the same change.
 
 ### Business
 

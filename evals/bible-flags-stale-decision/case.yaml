@@ -1,0 +1,57 @@
+schema_version: '1.0'
+name: Bible flags a stale decision
+description: 'Scenario 36: Bible sync raises a decision whose revisit date has passed and one whose affected path no longer exists at the human-owned gate, without editing the decision log.'
+tags:
+- memory
+- bible
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "Sync the Bible."
+  max_turns: 15
+  timeout_seconds: 600
+  allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Skill
+  - Write
+  - Edit
+  - Bash
+runs: 1
+graders:
+- type: tool_used
+  name: showrunner-skill-fired
+  tool: Skill
+  input_match: showrunner
+  min: 1
+- type: tool_used
+  name: no-write-under-product-paths
+  tool: Write
+  input_match: '"(file_path|notebook_path)":\s*"([^"]*/)?(src|test)/'
+  min: 0
+  max: 0
+- type: tool_used
+  name: no-edit-under-product-paths
+  tool: Edit
+  input_match: '"(file_path|notebook_path)":\s*"([^"]*/)?(src|test)/'
+  min: 0
+  max: 0
+- type: regex
+  name: names-stale-revisit-decision
+  pattern: D-001
+  match: contains
+- type: regex
+  name: names-missing-artifact-decision
+  pattern: D-002
+  match: contains
+- type: llm
+  name: meets-scenario-pass-criteria
+  criteria: >-
+    PASS only if the response raises both decisions to the owner as questions with their evidence: D-001
+    (web first) because its revisit date of 2026-06-01 has passed, and D-002 (nightly spreadsheet sync)
+    because its affected artifact src/legacy-sync.js does not exist in the repository; says the decision
+    log was not edited and leaves keeping, revisiting, or reversing each decision to the owner; and does
+    not present either decision as settled or still holding. FAIL if it edits or proposes editing the
+    decision log itself, silently drops either decision, or renders either as settled.
+  focus: last_message

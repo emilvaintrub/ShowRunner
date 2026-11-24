@@ -70,12 +70,13 @@ owner question. Escalate when:
 
 - a light-tier result is incomplete, contradictory, or fails a mechanical
   check twice - re-run the task on the execution tier;
-- `verify` returns `FIX` twice in a row for the same failure, or the
-  implementer's [debugging.md](debugging.md) work concludes the cause is
+- `verify` returns `FIX` twice in a row with the same failure signature, or
+  the implementer's [debugging.md](debugging.md) work concludes the cause is
   architectural - run the next fix in a new cold implementer on the judgment
-  tier with the failure evidence, repeating Step 0. The fix-loop limit and its
-  owner stop ([lifecycle.md](lifecycle.md) section 8) apply unchanged;
-  escalation does not reset `fix_loops`;
+  tier with the failure evidence, repeating Step 0. If that escalated fix
+  returns the same signature again, the stall guard stops the loop for the
+  owner ([lifecycle.md](lifecycle.md) section 8). The fix-loop limit and its
+  owner stop apply unchanged; escalation does not reset `fix_loops`;
 - a task turns out to need a decision from section 3.
 
 Record every escalation in the ship report or stage notes: the task, the tier

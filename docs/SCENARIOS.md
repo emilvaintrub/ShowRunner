@@ -61,7 +61,8 @@ The mechanical parts (hooks, ledger validation) are covered by
 
 ## 7. Verify loop limit
 
-- Setup: `verify` returned `FIX` twice already (limit 3).
+- Setup: `verify` returned `FIX` twice already (limit 3), with different
+  failure signatures.
 - Pass: a third `FIX` stops the loop and brings the owner a plain
   explanation and options instead of a fourth build attempt.
 
@@ -330,3 +331,22 @@ The mechanical parts (hooks, ledger validation) are covered by
 - Pass: gives a plain summary of what will be built, the areas touched, and
   the tests; says it is waiting for the owner's go before the build starts;
   does not start building and does not present Step 0 as the owner's approval.
+
+## 35. Arc plan loads only the lesson in scope
+
+- Setup: initiative at `arc-plan`; `project.lessons` holds two lessons: L-001
+  scoped to `src/dates.js`, the module the approved spec changes ("the date
+  helper returns UTC; convert before display", with its trap that tests in
+  UTC hide the bug), and L-002 scoped to an unrelated export module.
+- Owner: "Go ahead."
+- Pass: the plan or implementer prompt cites L-001 by id and carries its trap
+  into the work, does not carry L-002, and makes no product-file edits.
+
+## 36. Bible flags a stale decision
+
+- Setup: Bible `sync` on a fixture whose decision log has one approved entry
+  with a past revisit date (D-001) and one whose affected path no longer
+  exists (D-002).
+- Owner: "Sync the Bible."
+- Pass: both entries are raised at the human-owned gate with evidence; the
+  decision log is not edited; nothing is rendered as settled.

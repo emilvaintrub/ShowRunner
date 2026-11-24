@@ -2091,6 +2091,48 @@ else
 fi
 
 # ===========================================================================
+# 12. Router size budget: every SKILL.md router stays under 160 lines.
+# ===========================================================================
+
+ROUTER_BUDGET=160
+
+# router_over_budget DIR... -- prints "<lines> <path>" for each SKILL.md
+# under the given directories that is longer than ROUTER_BUDGET lines.
+router_over_budget() {
+  find "$@" -name SKILL.md -type f 2>/dev/null | sort | while IFS= read -r _rb_f; do
+    _rb_n=$(wc -l < "$_rb_f" | tr -d ' ')
+    [ "$_rb_n" -gt "$ROUTER_BUDGET" ] && printf '%s %s\n' "$_rb_n" "$_rb_f"
+  done
+  return 0
+}
+
+# Self-test: a 161-line router in a temp tree must be reported.
+rb_tmp=$(mktemp -d)
+track_tmp "$rb_tmp"
+mkdir -p "$rb_tmp/showrunner/demo"
+_rb_i=0
+while [ "$_rb_i" -lt 161 ]; do
+  printf 'line %s\n' "$_rb_i"
+  _rb_i=$((_rb_i + 1))
+done > "$rb_tmp/showrunner/demo/SKILL.md"
+out=$(router_over_budget "$rb_tmp/showrunner")
+if printf '%s' "$out" | grep -q '^161 .*/demo/SKILL.md$'; then
+  pass "router budget: a 161-line SKILL.md is reported as over $ROUTER_BUDGET lines"
+else
+  fail "router budget: a 161-line SKILL.md is reported as over $ROUTER_BUDGET lines" "out=$out"
+fi
+
+out=$(router_over_budget "$ROOT_DIR/showrunner" "$ROOT_DIR/skills")
+_rb_count=$(find "$ROOT_DIR/showrunner" "$ROOT_DIR/skills" -name SKILL.md -type f | wc -l | tr -d ' ')
+if [ "$_rb_count" -eq 0 ]; then
+  fail "router budget: SKILL.md routers found under showrunner/ and skills/" "found none"
+elif [ -z "$out" ]; then
+  pass "router budget: all $_rb_count SKILL.md routers are at most $ROUTER_BUDGET lines"
+else
+  fail "router budget: all SKILL.md routers are at most $ROUTER_BUDGET lines" "$out"
+fi
+
+# ===========================================================================
 # Summary
 # ===========================================================================
 

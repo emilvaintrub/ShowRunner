@@ -35,6 +35,17 @@ the end gate and can veto any entry; a veto returns to `build`.
 | --- | --- | --- | --- | --- |
 | <convention default, spec interpretation, deferred adjacent item, or model-tier escalation> | <options considered> | <choice> | <reason> | <spec section, or none> |
 
+## Rules Learned
+
+Always present. Write `none` when no root cause was a pattern likely to recur,
+or `project.lessons: disabled` when lessons are off. The architect appends
+each rule to `project.lessons` in the merge hygiene commit
+(`core/debugging.md` section 5); the implementer never writes the log.
+
+| Scope | Rule | Evidence (reproduction, test, fix commit) | Traps | Supersedes |
+| --- | --- | --- | --- | --- |
+| `<path or glob>`, or global | <one-sentence rule> | <failure observed>; `<test>`; `<sha>` | <what looks right but is not> | <L-id or none> |
+
 ## Commits
 
 ```text

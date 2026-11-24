@@ -317,6 +317,21 @@ Silence is never approval.
 - `verify` `FIX` returns to `build` on the same branch. After
   `lifecycle.fix_loop_limit` (default 3) consecutive `FIX` verdicts, stop and
   bring the owner a plain explanation and options.
+- Stall guard. Every `verify` `FIX` records its failure signature in the
+  Evidence of its `fix` row: `signature: <failing check>: <first error or
+  assertion line>`, with paths, line numbers, timestamps, and ids stripped and
+  any `|` written as `/`. For a review finding rather than a failing command,
+  the check is the verify pass (spec-compliance, code-quality, or audit) and
+  the line is the finding's first line; a verdict with several failures uses
+  the first in verdict order. A `security` `fix` row in between does not
+  break the sequence. When two consecutive `verify` `FIX` verdicts share a
+  signature, the next fix first escalates to the judgment tier
+  ([models.md](models.md) section 5). If that escalated fix gets a `FIX` with
+  the same signature again, the loop has stalled: stop, even when
+  `lifecycle.fix_loop_limit` is not yet reached, and bring the owner the plain
+  explanation and options. The root cause that resolves a stall is the first
+  lesson candidate ([debugging.md](debugging.md) section 5).
+  `fix_loop_limit` remains the outer bound.
 - `verify` `REDESIGN` re-opens `spec` (or `design`) with the evidence.
 - A `security` finding in the arc's own diff returns to `build`. A finding
   outside the diff gets its own finding ID and becomes a new initiative unless

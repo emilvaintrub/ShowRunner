@@ -18,6 +18,10 @@ pricing, brand, rollout, risk) is escalated at every level.
 3. `<decision or current-state source>`
 4. `.claude/showrunner/config.md`
 5. If this plan uses plan-as-directory: `<overview.md and task-N.md paths>`
+6. Lessons: the index of `<project.lessons path>` and the in-scope entries
+   `<L-ids>`, or `project.lessons: disabled`, or "no lesson in scope". If you
+   find a path the plan does not list, check the index for a lesson that
+   covers it and load only that one. Never edit the lessons log.
 
 Approved source digest: `<sha256>`
 
@@ -141,5 +145,8 @@ or push before approval of that exact digest.
 ## Completion
 
 Use `templates/ship-report.md`. Include exact evidence, the ShowRunner
-decisions section (`none` when empty), residual risks, the
-model you ran on, token cost or the adapter-unavailable statement, and end `STOP BEFORE MERGE`.
+decisions section (`none` when empty), the Rules Learned section (each
+validated rule from `core/debugging.md` section 5, `none` when empty, or the
+statement that `project.lessons` is disabled), residual risks, the model you
+ran on, token cost or the adapter-unavailable statement, and end
+`STOP BEFORE MERGE`. Report memory entries there; do not write them.
