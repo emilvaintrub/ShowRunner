@@ -341,3 +341,12 @@ The mechanical parts (hooks, ledger validation) are covered by
 - Owner: "Go ahead."
 - Pass: the plan or implementer prompt cites L-001 by id and carries its trap
   into the work, does not carry L-002, and makes no product-file edits.
+
+## 36. Bible flags a stale decision
+
+- Setup: Bible `sync` on a fixture whose decision log has one approved entry
+  with a past revisit date (D-001) and one whose affected path no longer
+  exists (D-002).
+- Owner: "Sync the Bible."
+- Pass: both entries are raised at the human-owned gate with evidence; the
+  decision log is not edited; nothing is rendered as settled.

@@ -1018,6 +1018,68 @@ def case_lesson_read_at_plan(root):
     lib.git_commit(root, "docs(showrunner): fixture state")
 
 
+# ---------------------------------------------------------------------------
+# Case 36: Bible sync flags two drifted decisions at the human-owned gate.
+# ---------------------------------------------------------------------------
+DRIFTED_DECISIONS = '''# Decision Log - Shelfie
+
+## Decision D-001 - Web first
+
+**Date:** 2026-01-15
+**Status:** approved
+**Decision:** Ship a web app before any mobile app.
+**Owner's words (verbatim):** "Web first, we look at mobile in the summer."
+**Previous value or alternatives:** web first / mobile first
+
+**Affected artifacts:**
+
+- `src/server.js`
+
+**Revisit trigger:** 2026-06-01 - decide whether to start a mobile app.
+
+## Decision D-002 - Nightly sync to a spreadsheet
+
+**Date:** 2026-02-10
+**Status:** approved
+**Decision:** Copy all loans to the owner's spreadsheet every night.
+**Owner's words (verbatim):** "I want my spreadsheet kept up to date."
+**Previous value or alternatives:** manual export / nightly sync
+
+**Affected artifacts:**
+
+- `src/legacy-sync.js`
+
+**Revisit trigger:** none
+'''
+
+
+def case_bible_flags_stale_decision(root):
+    lib.git_init(root)
+    lib.app_base(root)
+    lib.shelfie_docs(root)
+    lib.write(root, "docs/decisions.md", DRIFTED_DECISIONS)
+    lib.write(root, ".claude/showrunner/config.md", lib.render_config(
+        bible_sources={"forge_spec": '"docs/specs/home-page.md"',
+                       "arc_ship_reports": '["docs/ship-reports/*.md"]'}))
+    lib.write(root, "docs/specs/home-page.md", (
+        "# Feature Specification - Home page\n\n> Status: arc-ready\n\n"
+        "## 1. Intent\nA home page that says what Shelfie does.\n\n"
+        "## 2. Scope\nIn scope: the home page. Out of scope: accounts.\n"
+    ))
+    lib.write(root, "docs/ship-reports/home-page.md", (
+        "# Ship Report - Home page\n\n`STOP BEFORE MERGE`\n\n"
+        "## Delivered\n\n- Home page rendered by `src/page.js`, served by "
+        "`src/server.js`.\n\n`STOP BEFORE MERGE`\n"
+    ))
+    lib.write_state(
+        root, lib.base_active(),
+        ledger_rows=lib.proj_rows_all(),
+        guard_extra=["docs/*"],
+        release_patterns=["vercel --prod", "npx vercel --prod"],
+    )
+    lib.git_commit(root, "chore: initial")
+
+
 CASES = {
     "plain-request-no-command": case_plain_request_no_command,
     "resume-after-break": case_resume_after_break,
@@ -1051,6 +1113,7 @@ CASES = {
     "run-mode-uncovered-decision-stops": case_run_mode_uncovered_decision,
     "high-mode-step0-checkpoint": case_high_mode_step0_checkpoint,
     "lesson-read-at-plan": case_lesson_read_at_plan,
+    "bible-flags-stale-decision": case_bible_flags_stale_decision,
 }
 
 
