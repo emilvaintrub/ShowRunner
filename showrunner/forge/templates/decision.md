@@ -3,6 +3,7 @@
 **Date:** <date>
 **Status:** approved | reversed | retired
 **Decision:** <one sentence>
+**Owner's words (verbatim):** "<owner's exact words>" | not applicable
 **Previous value or alternatives:** <entry, options, or none>
 
 **Rationale:**
@@ -25,5 +26,6 @@
 
 **Revisit trigger:** <date, evidence threshold, condition, or none>
 
-For reversals, append a new entry and cite the superseded decision. Never edit
-the old entry to erase its rationale.
+Copy the owner's words exactly as given; write `not applicable` only for a
+recorded convention default. For reversals, append a new entry and cite the
+superseded decision. Never edit the old entry to erase its rationale.

@@ -99,6 +99,8 @@ A durable decision entry includes:
 
 - stable identifier and date;
 - the decision in one sentence;
+- the owner's words approving it, quoted verbatim (`not applicable` for a
+  recorded convention default);
 - prior value or competing options;
 - rationale;
 - evidence or precedent;
@@ -268,8 +270,11 @@ invests in the brand, and record the owner's choice.
 ### `decide`
 
 Check whether the call is durable enough for the decision log. Present the
-proposed entry, wait for approval, then append it. For a reversal, cite the
-prior entry and evidence that changed.
+proposed entry, wait for approval, then append it with the owner's approving
+words copied verbatim into its owner's-words field: never paraphrased,
+summarized, or inferred. A recorded convention default carries `not
+applicable` there. For a reversal, cite the prior entry and evidence that
+changed.
 
 ### `design`
 
