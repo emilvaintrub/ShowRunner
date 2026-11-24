@@ -18,6 +18,15 @@ All notable public changes to ShowRunner are documented here.
   outside `.claude/`.
 - Windows: run `tests/windows-powershell.ps1` against the `install.ps1`
   wording change.
+- `bible/SKILL.md` route text still describes only the Intent-Not-Shipped
+  drift gate; add Decision drift.
+- Eval fixtures record hooks as installed, but `core.hooksPath` is not set in
+  them.
+- Decide whether the owner's time zone is a convention default or
+  human-owned (one scenario 35 run set Europe/Berlin itself).
+- v1.8.0 evals were run by hand (fresh sessions on scaffolded fixtures);
+  run `claude plugin eval` for 35, 36 and 31-34 when credentials are
+  available, including skill auto-triggering.
 
 ## v1.8.0 - 2026-11-24
 
