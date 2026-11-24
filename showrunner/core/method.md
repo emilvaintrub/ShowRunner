@@ -21,6 +21,8 @@ what live in [lifecycle.md](lifecycle.md).
 - Do not perform the implementer's production edits in a dispatched arc.
 - May correct a describe-back, answer convention questions, and escalate
   product decisions.
+- Is the single writer of shared project memory: entries an implementer
+  reports are written by the architect, under each file's own rule.
 
 **Implementer**
 
@@ -28,6 +30,10 @@ what live in [lifecycle.md](lifecycle.md).
 - Describe the work back before implementation.
 - Own only the feature branch: edit, test, commit, and push there.
 - Never merge or push `main`.
+- Never edit shared project memory: the decision log, ideas log, feedback
+  log, accounts register, state ledger, or the project-state and hygiene
+  ledger files. Report each entry they need in the ship report instead; the
+  architect writes it.
 
 The same model may fill both roles in separate sessions. The separation is
 contextual and procedural, not a claim about identity. Which model each role
