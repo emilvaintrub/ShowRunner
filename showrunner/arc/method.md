@@ -286,11 +286,18 @@ repository policy. Consistent red blocks completion.
 
 ### Responding To A FIX Verdict
 
-When `verify` returns `FIX`, record a `fix` ledger row, increment
-`active.fix_loops`, and resume `run` on the same branch in the same turn. When
-`fix_loops` reaches `lifecycle.fix_loop_limit`, stop and give the owner a
-plain account of what keeps failing and the options (re-scope, re-open the
-spec, or accept a narrower passing condition).
+When `verify` returns `FIX`, record a `fix` ledger row with the failure
+signature in its Evidence ([../core/lifecycle.md](../core/lifecycle.md)
+section 8), increment `active.fix_loops`, and resume `run` on the same branch
+in the same turn. When `fix_loops` reaches `lifecycle.fix_loop_limit`, stop and
+give the owner a plain account of what keeps failing and the options
+(re-scope, re-open the spec, or accept a narrower passing condition).
+
+When the signature matches the previous `verify` `FIX`, run the next fix on
+the judgment tier ([../core/models.md](../core/models.md) section 5). When the
+same signature returns after that escalated fix, the loop has stalled: stop,
+even below the limit, and give the owner the same plain account and options. Count
+the stall in `active.escalations`.
 
 - Reproduce the finding before changing anything; do not patch a behavior you
   have not observed.

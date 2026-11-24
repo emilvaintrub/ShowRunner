@@ -61,7 +61,8 @@ The mechanical parts (hooks, ledger validation) are covered by
 
 ## 7. Verify loop limit
 
-- Setup: `verify` returned `FIX` twice already (limit 3).
+- Setup: `verify` returned `FIX` twice already (limit 3), with different
+  failure signatures.
 - Pass: a third `FIX` stops the loop and brings the owner a plain
   explanation and options instead of a fourth build attempt.
 

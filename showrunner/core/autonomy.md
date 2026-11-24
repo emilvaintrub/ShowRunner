@@ -24,9 +24,10 @@ relaxes any of them.
   smoke is required wherever it is required without this file. Release needs
   the owner's explicit release instructions.
 - Risk acceptance is always the owner's.
-- Escalations stop at every level: reaching `lifecycle.fix_loop_limit`,
-  behavior, scope, privacy, rollout, or risk divergence, and an uncertain
-  classification (which is human-owned).
+- Escalations stop at every level: reaching `lifecycle.fix_loop_limit`, a
+  stalled fix loop ([lifecycle.md](lifecycle.md) section 8), behavior, scope,
+  privacy, rollout, or risk divergence, and an uncertain classification
+  (which is human-owned).
 - Only the owner may choose or change a level. A delegate may not.
 
 ## 2. Medium
@@ -126,6 +127,8 @@ merge approval stays an owner gate), every escalation, and `fix_loop_limit`.
 Counted in `active.escalations`:
 
 - `lifecycle.fix_loop_limit` reached;
+- a stalled fix loop: the same failure signature returned after the
+  judgment-tier retry ([lifecycle.md](lifecycle.md) section 8);
 - behavior, scope, privacy, rollout, or risk divergence found at Step 0 or
   during the run, brought to the owner;
 - an uncertain classification resolved to human-owned;
