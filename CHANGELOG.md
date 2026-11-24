@@ -4,6 +4,23 @@ All notable public changes to ShowRunner are documented here.
 
 ## Unreleased
 
+### Follow-ups
+
+- Incident: record INC-n in the same turn as an early rollback (1 of 3 live
+  runs waited for the owner's confirmation before recording).
+- Release gate on an unresolved account: 1 of 3 runs still previewed release
+  mechanics; consider a sharper example in `core/release.md` section 2.
+- `handoff-offers-autonomy-level` fixture: give the spec real sections 3-8.
+- Rescue criterion still says "for the owner's decision" beside the rule that
+  fate decisions wait for the health report; watch it in full-suite runs.
+- Document for users: interactive sessions get one sensitive-file prompt for
+  the default ledger path; `claude -p` and CI need `lifecycle.state_file`
+  outside `.claude/`.
+- Windows: run `tests/windows-powershell.ps1` against the `install.ps1`
+  wording change.
+
+## v1.8.0 - 2026-11-24
+
 ShowRunner keeps its project memory correct and small.
 
 - Added a lessons log (`project.lessons`, path or `disabled`;
@@ -38,21 +55,6 @@ ShowRunner keeps its project memory correct and small.
 - Scenarios 35 (scoped lesson read at `arc-plan`) and 36 (Bible flags a stale
   decision) with eval cases `lesson-read-at-plan` and
   `bible-flags-stale-decision`.
-
-### Follow-ups
-
-- Incident: record INC-n in the same turn as an early rollback (1 of 3 live
-  runs waited for the owner's confirmation before recording).
-- Release gate on an unresolved account: 1 of 3 runs still previewed release
-  mechanics; consider a sharper example in `core/release.md` section 2.
-- `handoff-offers-autonomy-level` fixture: give the spec real sections 3-8.
-- Rescue criterion still says "for the owner's decision" beside the rule that
-  fate decisions wait for the health report; watch it in full-suite runs.
-- Document for users: interactive sessions get one sensitive-file prompt for
-  the default ledger path; `claude -p` and CI need `lifecycle.state_file`
-  outside `.claude/`.
-- Windows: run `tests/windows-powershell.ps1` against the `install.ps1`
-  wording change.
 
 ## v1.7.0 - 2026-10-29
 
